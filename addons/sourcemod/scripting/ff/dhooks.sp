@@ -16,12 +16,22 @@
  */
 
 static DynamicHook g_DHookCanCollideWithTeammates;
+static DynamicHook g_DHookWantsLagCompensationOnEntity;
+static DynamicHook g_DHookGetCustomDamageType;
 
 void DHooks_Initialize(GameData gamedata)
 {
 	//CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
+	g_DHookWantsLagCompensationOnEntity = CreateDynamicHook(gamedata, "CBasePlayer::WantsLagCompensationOnEntity");
+	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
+}
+
+void DHooks_OnClientConnected(int client)
+{
+	g_DHookWantsLagCompensationOnEntity.HookEntity(Hook_Pre, client, DHookCallback_WantsLagCompensationOnEntity_Pre);
+	g_DHookWantsLagCompensationOnEntity.HookEntity(Hook_Post, client, DHookCallback_WantsLagCompensationOnEntity_Post);
 }
 
 void DHooks_OnEntityCreated(int entity, const char[] classname)
@@ -29,6 +39,10 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	if (strncmp(classname, "tf_projectile_", 14) == 0)
 	{
 		g_DHookCanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
+	}
+	else if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
+	{
+		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
 	}
 }
 
@@ -80,5 +94,35 @@ public MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookRe
 {
 	// Always make projectiles collide with teammates
 	ret.Value = true;
+	
 	return MRES_Supercede;
+}
+
+public MRESReturn DHookCallback_WantsLagCompensationOnEntity_Pre(int player, DHookReturn ret, DHookParam params)
+{
+	// Enables lag compensation on teammates
+	Player(player).SetTeam(TFTeam_Spectator);
+	
+	return MRES_Ignored;
+}
+
+public MRESReturn DHookCallback_WantsLagCompensationOnEntity_Post(int player, DHookReturn ret, DHookParam params)
+{
+	Player(player).ResetTeam();
+	
+	return MRES_Ignored;
+}
+
+public MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
+{
+	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
+	// https://github.com/Mentrillum/Slender-Fortress-Modified-Versions/blob/7c162f2a82eb1d1058c56fb23faf1be942b965d0/addons/sourcemod/scripting/sf2/pvp.sp#L982-L995
+	int penetrateType = SDKCall_GetPenetrateType(entity);
+	if (penetrateType == TF_DMG_CUSTOM_NONE)
+	{
+		ret.Value = TF_DMG_CUSTOM_NONE;
+		return MRES_Supercede;
+	}
+	
+	return MRES_Ignored;
 }

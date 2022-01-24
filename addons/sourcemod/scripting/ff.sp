@@ -24,6 +24,8 @@
 #include <dhooks>
 #include <tf2_stocks>
 
+#define TF_DMG_CUSTOM_NONE	0
+
 #include "ff/methodmaps/Entity.sp"
 #include "ff/methodmaps/Player.sp"
 
@@ -44,13 +46,24 @@ public void OnPluginStart()
 	delete gamedata;
 	
 	Entity.InitializePropertyList();
+	
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client))
+			OnClientConnected(client);
+	}
+}
+
+public void OnClientConnected(int client)
+{
+	DHooks_OnClientConnected(client);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
 	Entity.Create(entity);
 	
-	DHooks_OnEntityCreated(entity,classname);
+	DHooks_OnEntityCreated(entity, classname);
 	SDKHooks_OnEntityCreated(entity, classname);
 }
 

@@ -29,3 +29,21 @@ stock void TF2_SetTeam(int entity, TFTeam team)
 {
 	SetEntProp(entity, Prop_Send, "m_iTeamNum", team);
 }
+
+stock int FindOwnerEntity(int entity)
+{
+	if (HasEntProp(entity, Prop_Send, "m_hThrower"))
+	{
+		// m_hThrower is usually the last in line
+		return GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	}
+	else if (HasEntProp(entity, Prop_Send, "m_hOwnerEntity"))
+	{
+		// Loops through owner entities until it finds the most specific one
+		int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+		if (owner > 0 && owner != entity)
+			return FindOwnerEntity(owner);
+	}
+	
+	return entity;
+}

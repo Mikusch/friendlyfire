@@ -33,16 +33,28 @@ methodmap Player
 		}
 	}
 	
+	property int TeamCount
+	{
+		public get()
+		{
+			return g_PlayerTeamCount[this._client];
+		}
+		public set(int count)
+		{
+			g_PlayerTeamCount[this._client] = count;
+		}
+	}
+	
 	public void SetTeam(TFTeam team)
 	{
-		int index = g_PlayerTeamCount[this._client]++;
+		int index = this.TeamCount++;
 		g_PlayerTeam[this._client][index] = TF2_GetClientTeam(this._client);
-		SetEntProp(this._client, Prop_Send, "m_iTeamNum", team);
+		TF2_SetTeam(this._client, team);
 	}
 	
 	public void ResetTeam()
 	{
-		int index = --g_PlayerTeamCount[this._client];
-		SetEntProp(this._client, Prop_Send, "m_iTeamNum", g_PlayerTeam[this._client][index]);
+		int index = --this.TeamCount;
+		TF2_SetTeam(this._client, g_PlayerTeam[this._client][index]);
 	}
 }

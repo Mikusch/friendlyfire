@@ -42,6 +42,24 @@
 				"linux"		"227"
 				"windows"	"226"
 			}
+			"CBasePlayer::WantsLagCompensationOnEntity"
+			{
+				"library"	"server"
+				"linux"		"332"
+				"windows"	"331"
+			}
+			"CTFSniperRifle::GetCustomDamageType"
+			{
+				"library"	"server"
+				"linux"		"383"
+				"windows"	"377"
+			}
+			"CTFSniperRifle::GetPenetrateType"
+			{
+				"library"	"server"
+				"linux"		"403"
+				"windows"	"396"
+			}
 		}
 		"Functions"
 		{
@@ -66,5 +84,35 @@
 				"return"	"bool"
 				"this"		"entity"
 			}
+			"CBasePlayer::WantsLagCompensationOnEntity"
+			{
+				"offset"	"CBasePlayer::WantsLagCompensationOnEntity"
+				"hooktype"	"entity"
+				"return"	"bool"
+				"this"		"entity"
+				"arguments"
+				{
+					"pPlayer"
+					{
+						"type"	"cbaseentity"
+					}
+					"pCmd"
+					{
+						"type"	"objectptr"
+					}
+					"pEntityTransmitBits"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+			"CTFSniperRifle::GetCustomDamageType"
+			{
+				"offset"	"CTFSniperRifle::GetCustomDamageType"
+				"hooktype"	"entity"
+				"return"	"int"
+				"this"		"entity"
+			}
 		}
+	}
 }

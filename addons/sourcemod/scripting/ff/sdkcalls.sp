@@ -18,10 +18,12 @@
 #define TICK_NEVER_THINK	(-1.0)
 
 static Handle g_SDKCallGetNextThink;
+static Handle g_SDKCallGetPenetrateType;
 
 void SDKCalls_Initialize(GameData gamedata)
 {
 	g_SDKCallGetNextThink = PrepSDKCall_GetNextThink(gamedata);
+	g_SDKCallGetPenetrateType = PrepSDKCall_GetPenetrateType(gamedata);
 }
 
 static Handle PrepSDKCall_GetNextThink(GameData gamedata)
@@ -38,10 +40,31 @@ static Handle PrepSDKCall_GetNextThink(GameData gamedata)
 	return call;
 }
 
+static Handle PrepSDKCall_GetPenetrateType(GameData gamedata)
+{
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(gamedata, SDKConf_Virtual, "CTFSniperRifle::GetPenetrateType");
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+	
+	Handle call = EndPrepSDKCall();
+	if (!call)
+		LogError("Failed to create SDKCall: CTFSniperRifle::GetPenetrateType");
+	
+	return call;
+}
+
 float SDKCall_GetNextThink(int entity, const char[] context = "")
 {
 	if (g_SDKCallGetNextThink)
 		return SDKCall(g_SDKCallGetNextThink, entity, context);
 	
 	return TICK_NEVER_THINK;
+}
+
+int SDKCall_GetPenetrateType(int weapon)
+{
+	if (g_SDKCallGetPenetrateType)
+		return SDKCall(g_SDKCallGetPenetrateType, weapon);
+	
+	return TF_DMG_CUSTOM_NONE;
 }
