@@ -60,6 +60,12 @@
 				"linux"		"403"
 				"windows"	"396"
 			}
+			"CTFWeaponBaseGun::SecondaryAttack"
+			{
+				"library"	"server"
+				"linux"		"290"
+				"windows"	"284"
+			}
 		}
 		"Functions"
 		{
@@ -111,6 +117,13 @@
 				"offset"	"CTFSniperRifle::GetCustomDamageType"
 				"hooktype"	"entity"
 				"return"	"int"
+				"this"		"entity"
+			}
+			"CTFWeaponBaseGun::SecondaryAttack"
+			{
+				"offset"	"CTFWeaponBaseGun::SecondaryAttack"
+				"hooktype"	"entity"
+				"return"	"void"
 				"this"		"entity"
 			}
 		}

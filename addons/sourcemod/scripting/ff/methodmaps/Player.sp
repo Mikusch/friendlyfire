@@ -49,12 +49,17 @@ methodmap Player
 	{
 		int index = this.TeamCount++;
 		g_PlayerTeam[this._client][index] = TF2_GetClientTeam(this._client);
-		TF2_ChangeClientTeamAlive(this._client, team);
+		TF2_SetTeam(this._client, team);
+	}
+	
+	public void ChangeToSpectator()
+	{
+		this.SetTeam(TFTeam_Spectator);
 	}
 	
 	public void ResetTeam()
 	{
 		int index = --this.TeamCount;
-		TF2_ChangeClientTeamAlive(this._client, g_PlayerTeam[this._client][index]);
+		TF2_SetTeam(this._client, g_PlayerTeam[this._client][index]);
 	}
 }

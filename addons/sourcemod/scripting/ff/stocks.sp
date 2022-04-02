@@ -22,14 +22,11 @@ stock bool IsEntityClient(int entity)
 
 stock TFTeam TF2_GetTeam(int entity)
 {
-	return view_as<TFTeam>(GetEntProp(entity, Prop_Send, "m_iTeamNum"));
+	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
 }
 
 stock void TF2_SetTeam(int entity, TFTeam team)
 {
-	if (IsEntityClient(entity))
-		LogError("Setting m_iTeam on players leads to crashes, use TF2_ChangeClientTeamAlive instead");
-	
 	SetEntProp(entity, Prop_Send, "m_iTeamNum", team);
 }
 
@@ -49,12 +46,4 @@ stock int FindOwnerEntity(int entity)
 	}
 	
 	return entity;
-}
-
-void TF2_ChangeClientTeamAlive(int client, TFTeam team)
-{
-	// Change team without suiciding
-	SetEntProp(client, Prop_Send, "m_lifeState", LIFE_DEAD);
-	TF2_ChangeClientTeam(client, team);
-	SetEntProp(client, Prop_Send, "m_lifeState", LIFE_ALIVE);
 }

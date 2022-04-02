@@ -110,6 +110,11 @@ methodmap Entity
 		TF2_SetTeam(this._ref, team);
 	}
 	
+	public void ChangeToSpectator()
+	{
+		this.SetTeam(TFTeam_Spectator);
+	}
+	
 	public void ResetTeam()
 	{
 		int index = --this.TeamCount;

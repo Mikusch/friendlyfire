@@ -15,9 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+char g_PrimaryFireClassnames[][] =
+{
+	
+};
+
+char g_SecondaryFireClassnames[][] =
+{
+	"tf_weapon_flamethrower",			// CTFFlameThrower::FireAirBlast
+	"tf_weapon_handgun_scout_primary",	// CTFPistol_ScoutPrimary::Push
+};
+
 static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookWantsLagCompensationOnEntity;
 static DynamicHook g_DHookGetCustomDamageType;
+static DynamicHook g_SecondaryAttack;
 
 void DHooks_Initialize(GameData gamedata)
 {
@@ -26,6 +38,7 @@ void DHooks_Initialize(GameData gamedata)
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookWantsLagCompensationOnEntity = CreateDynamicHook(gamedata, "CBasePlayer::WantsLagCompensationOnEntity");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
+	g_SecondaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBaseGun::SecondaryAttack");
 }
 
 void DHooks_OnClientConnected(int client)
@@ -43,6 +56,11 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	else if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
 	{
 		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
+	}
+	else if (strncmp(classname, "tf_weapon_", 10) == 0)
+	{
+		g_SecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
+		g_SecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_SecondaryAttack_Post);
 	}
 }
 
@@ -80,9 +98,10 @@ public MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity, DHookParam 
 	
 	if (strcmp(classname, "tf_projectile_rocket") == 0)
 	{
-		
-		return MRES_Supercede;
+		// TODO Add think functions if needed
 	}
+	
+	return MRES_Ignored;
 }
 
 public MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity, DHookParam params)
@@ -101,7 +120,7 @@ public MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookRe
 public MRESReturn DHookCallback_WantsLagCompensationOnEntity_Pre(int player, DHookReturn ret, DHookParam params)
 {
 	// Enables lag compensation on teammates
-	Player(player).SetTeam(TFTeam_Spectator);
+	Player(player).ChangeToSpectator();
 	
 	return MRES_Ignored;
 }
@@ -125,4 +144,32 @@ public MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn
 	}
 	
 	return MRES_Ignored;
+}
+
+public MRESReturn DHookCallback_SecondaryAttack_Pre(int entity)
+{
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	
+	// TODO: Find better way (weapon ID?)
+	char classname[256];
+	GetEntityClassname(entity, classname, sizeof(classname));
+	
+	for (int i = 0; i < sizeof(g_SecondaryFireClassnames); i++)
+	{
+		if (StrEqual(classname, g_SecondaryFireClassnames[i]))
+		{
+			Player(owner).ChangeToSpectator();
+		}
+	}
+}
+
+public MRESReturn DHookCallback_SecondaryAttack_Post(int entity)
+{
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	
+	// If the team count is 1, it's safe to assume that we did something in OnPlayerRunCmd
+	if (Player(owner).TeamCount == 1)
+	{
+		Player(owner).ResetTeam();
+	}
 }

@@ -22,12 +22,6 @@ static char g_RocketBasedProjectiles[][] =
 	"tf_projectile_energy_ball", 
 };
 
-void SDKHooks_OnClientConnected(int client)
-{
-	SDKHook(client, SDKHook_PostThink, SDKHookCB_PlayerPostThink);
-	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_PlayerPostThinkPost);
-}
-
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (strncmp(classname, "tf_projectile_", 14) == 0)
@@ -55,8 +49,8 @@ public Action SDKHookCB_ProjectileTouch(int entity, int other)
 	int owner = FindOwnerEntity(entity);
 	if (IsEntityClient(owner) && owner != other)
 	{
-		Player(owner).SetTeam(TFTeam_Spectator);
-		Entity(entity).SetTeam(TFTeam_Spectator);
+		Player(owner).ChangeToSpectator();
+		Entity(entity).ChangeToSpectator();
 	}
 }
 
@@ -75,7 +69,7 @@ public Action SDKHookCB_FlameManagerTouch(int entity, int other)
 	// Allows Flame Throwers to work on both teams
 	int owner = FindOwnerEntity(entity);
 	if (IsEntityClient(owner))
-		Player(owner).SetTeam(TFTeam_Spectator);
+		Player(owner).ChangeToSpectator();
 }
 
 public void SDKHookCB_FlameManagerTouchPost(int entity, int other)
