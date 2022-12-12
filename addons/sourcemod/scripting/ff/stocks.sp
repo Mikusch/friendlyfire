@@ -15,22 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-stock bool IsEntityClient(int entity)
+#pragma newdecls required
+#pragma semicolon 1
+
+bool IsEntityClient(int entity)
 {
 	return 0 < entity <= MaxClients;
 }
 
-stock TFTeam TF2_GetTeam(int entity)
+TFTeam TF2_GetTeam(int entity)
 {
 	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
 }
 
-stock void TF2_SetTeam(int entity, TFTeam team)
+void TF2_SetTeam(int entity, TFTeam team)
 {
 	SetEntProp(entity, Prop_Send, "m_iTeamNum", team);
 }
 
-stock int FindOwnerEntity(int entity)
+// Useful to get the parent owner for entities that have a chain of owners
+// e.g. CTFFlameManager -> CTFFlameThrower -> CTFPlayer
+int FindParentOwnerEntity(int entity)
 {
 	if (HasEntProp(entity, Prop_Send, "m_hThrower"))
 	{
@@ -41,8 +46,10 @@ stock int FindOwnerEntity(int entity)
 	{
 		// Loops through owner entities until it finds the most specific one
 		int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		if (owner > 0 && owner != entity)
-			return FindOwnerEntity(owner);
+		if (owner != -1 && owner != entity)
+		{
+			return FindParentOwnerEntity(owner);
+		}
 	}
 	
 	return entity;

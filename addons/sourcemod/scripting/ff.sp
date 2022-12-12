@@ -23,6 +23,7 @@
 #include <sdkhooks>
 #include <dhooks>
 #include <tf2_stocks>
+#include <tf2utils>
 
 #define TF_DMG_CUSTOM_NONE	0
 
@@ -38,36 +39,46 @@ public void OnPluginStart()
 {
 	GameData gamedata = new GameData("ff");
 	if (gamedata == null)
+	{
 		SetFailState("Could not find ff gamedata");
+	}
 	
 	// Initialize everything based on gamedata
 	DHooks_Initialize(gamedata);
 	SDKCalls_Initialize(gamedata);
 	delete gamedata;
 	
-	Entity.InitializePropertyList();
-	
 	for (int client = 1; client <= MaxClients; client++)
 	{
 		if (IsClientInGame(client))
+		{
 			OnClientConnected(client);
+		}
 	}
 }
 
 public void OnClientConnected(int client)
 {
 	DHooks_OnClientConnected(client);
+	SDKHooks_OnClientConnected(client);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	Entity.Create(entity);
-	
 	DHooks_OnEntityCreated(entity, classname);
 	SDKHooks_OnEntityCreated(entity, classname);
 }
 
 public void OnEntityDestroyed(int entity)
 {
+	if (Entity(entity).m_iTeamCount > 0)
+	{
+		int owner = FindParentOwnerEntity(entity);
+		if (owner != -1)
+		{
+			Player(owner).ResetTeam();
+		}
+	}
+	
 	Entity(entity).Destroy();
 }

@@ -39,32 +39,32 @@
 			"CBaseProjectile::CanCollideWithTeammates"
 			{
 				"library"	"server"
-				"linux"		"227"
-				"windows"	"226"
-			}
-			"CBasePlayer::WantsLagCompensationOnEntity"
-			{
-				"library"	"server"
-				"linux"		"332"
-				"windows"	"331"
+				"linux"		"230"
+				"windows"	"229"
 			}
 			"CTFSniperRifle::GetCustomDamageType"
 			{
 				"library"	"server"
-				"linux"		"383"
-				"windows"	"377"
+				"linux"		"386"
+				"windows"	"380"
 			}
 			"CTFSniperRifle::GetPenetrateType"
 			{
 				"library"	"server"
-				"linux"		"403"
-				"windows"	"396"
+				"linux"		"406"
+				"windows"	"399"
 			}
 			"CTFWeaponBaseGun::SecondaryAttack"
 			{
 				"library"	"server"
-				"linux"		"290"
-				"windows"	"284"
+				"linux"		"293"
+				"windows"	"287"
+			}
+			"CBaseGrenade::Explode"
+			{
+				"library"	"server"
+				"linux"		"236"
+				"windows"	"235"
 			}
 		}
 		"Functions"
@@ -83,34 +83,30 @@
 					}
 				}
 			}
+			"CBaseGrenade::Explode"
+			{
+				"offset"	"CBaseGrenade::Explode"
+				"hooktype"	"entity"
+				"return"	"bool"
+				"this"		"entity"
+				"arguments"
+				{
+					"pTrace"
+					{
+						"type"	"int"
+					}
+					"bitsDamageType"
+					{
+						"type"	"int"
+					}
+				}
+			}
 			"CBaseProjectile::CanCollideWithTeammates"
 			{
 				"offset"	"CBaseProjectile::CanCollideWithTeammates"
 				"hooktype"	"entity"
 				"return"	"bool"
 				"this"		"entity"
-			}
-			"CBasePlayer::WantsLagCompensationOnEntity"
-			{
-				"offset"	"CBasePlayer::WantsLagCompensationOnEntity"
-				"hooktype"	"entity"
-				"return"	"bool"
-				"this"		"entity"
-				"arguments"
-				{
-					"pPlayer"
-					{
-						"type"	"cbaseentity"
-					}
-					"pCmd"
-					{
-						"type"	"objectptr"
-					}
-					"pEntityTransmitBits"
-					{
-						"type"	"objectptr"
-					}
-				}
 			}
 			"CTFSniperRifle::GetCustomDamageType"
 			{

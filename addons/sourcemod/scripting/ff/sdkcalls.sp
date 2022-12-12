@@ -15,6 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma newdecls required
+#pragma semicolon 1
+
 #define TICK_NEVER_THINK	(-1.0)
 
 static Handle g_SDKCallGetNextThink;

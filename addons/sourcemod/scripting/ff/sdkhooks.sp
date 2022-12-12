@@ -15,25 +15,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-static char g_RocketBasedProjectiles[][] = 
+#pragma newdecls required
+#pragma semicolon 1
+
+void SDKHooks_OnClientConnected(int client)
 {
-	"tf_projectile_rocket", 
-	"tf_projectile_flare", 
-	"tf_projectile_energy_ball", 
-};
+	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_OnTakeDamage_Pre);
+	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_OnTakeDamage_Post);
+}
+
+Action SDKHookCB_OnTakeDamage_Pre(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	if (IsEntityClient(attacker))
+	{
+		Player(attacker).ChangeToSpectator();
+	}
+	
+	return Plugin_Continue;
+}
+
+void SDKHookCB_OnTakeDamage_Post(int victim, int attacker, int inflictor, float damage, int damagetype)
+{
+	if (IsEntityClient(attacker))
+	{
+		Player(attacker).ResetTeam();
+	}
+}
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (strncmp(classname, "tf_projectile_", 14) == 0)
 	{
-		// CTFBaseRocket::RocketTouch removes the entity if it hits an enemy, never calling TouchPost.
-		// Since rocket-based projectiles already work without this fix, exclude them.
-		for (int i = 0; i < sizeof(g_RocketBasedProjectiles); i++)
-		{
-			if (strcmp(classname, g_RocketBasedProjectiles[i]) == 0)
-				return;
-		}
-		
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_ProjectileTouch);
 		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_ProjectileTouchPost);
 	}
@@ -44,19 +56,21 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 	}
 }
 
-public Action SDKHookCB_ProjectileTouch(int entity, int other)
+Action SDKHookCB_ProjectileTouch(int entity, int other)
 {
-	int owner = FindOwnerEntity(entity);
+	int owner = FindParentOwnerEntity(entity);
 	if (IsEntityClient(owner) && owner != other)
 	{
 		Player(owner).ChangeToSpectator();
 		Entity(entity).ChangeToSpectator();
 	}
+	
+	return Plugin_Continue;
 }
 
-public void SDKHookCB_ProjectileTouchPost(int entity, int other)
+void SDKHookCB_ProjectileTouchPost(int entity, int other)
 {
-	int owner = FindOwnerEntity(entity);
+	int owner = FindParentOwnerEntity(entity);
 	if (IsEntityClient(owner) && owner != other)
 	{
 		Player(owner).ResetTeam();
@@ -64,17 +78,23 @@ public void SDKHookCB_ProjectileTouchPost(int entity, int other)
 	}
 }
 
-public Action SDKHookCB_FlameManagerTouch(int entity, int other)
+Action SDKHookCB_FlameManagerTouch(int entity, int other)
 {
 	// Allows Flame Throwers to work on both teams
-	int owner = FindOwnerEntity(entity);
+	int owner = FindParentOwnerEntity(entity);
 	if (IsEntityClient(owner))
+	{
 		Player(owner).ChangeToSpectator();
+	}
+	
+	return Plugin_Continue;
 }
 
-public void SDKHookCB_FlameManagerTouchPost(int entity, int other)
+void SDKHookCB_FlameManagerTouchPost(int entity, int other)
 {
-	int owner = FindOwnerEntity(entity);
+	int owner = FindParentOwnerEntity(entity);
 	if (IsEntityClient(owner))
+	{
 		Player(owner).ResetTeam();
+	}
 }

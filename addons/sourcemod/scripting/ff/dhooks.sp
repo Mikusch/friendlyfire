@@ -15,42 +15,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-char g_PrimaryFireClassnames[][] =
-{
-	
-};
-
-char g_SecondaryFireClassnames[][] =
-{
-	"tf_weapon_flamethrower",			// CTFFlameThrower::FireAirBlast
-	"tf_weapon_handgun_scout_primary",	// CTFPistol_ScoutPrimary::Push
-};
+#pragma newdecls required
+#pragma semicolon 1
 
 static DynamicHook g_DHookCanCollideWithTeammates;
-static DynamicHook g_DHookWantsLagCompensationOnEntity;
 static DynamicHook g_DHookGetCustomDamageType;
 static DynamicHook g_SecondaryAttack;
+static DynamicHook g_Explode;
 
 void DHooks_Initialize(GameData gamedata)
 {
 	//CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
-	g_DHookWantsLagCompensationOnEntity = CreateDynamicHook(gamedata, "CBasePlayer::WantsLagCompensationOnEntity");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
 	g_SecondaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBaseGun::SecondaryAttack");
+	g_Explode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
 }
 
 void DHooks_OnClientConnected(int client)
 {
-	g_DHookWantsLagCompensationOnEntity.HookEntity(Hook_Pre, client, DHookCallback_WantsLagCompensationOnEntity_Pre);
-	g_DHookWantsLagCompensationOnEntity.HookEntity(Hook_Post, client, DHookCallback_WantsLagCompensationOnEntity_Post);
+	
 }
 
 void DHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (strncmp(classname, "tf_projectile_", 14) == 0)
 	{
+		if (strncmp(classname, "tf_projectile_jar", 17) == 0)
+		{
+			g_Explode.HookEntity(Hook_Pre, entity, DHookCallback_Explode_Pre);
+			g_Explode.HookEntity(Hook_Post, entity, DHookCallback_Explode_Post);
+		}
+		
 		g_DHookCanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
 	}
 	else if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
@@ -90,7 +87,34 @@ static DynamicHook CreateDynamicHook(GameData gamedata, const char[] name)
 	return hook;
 }
 
-public MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity, DHookParam params)
+MRESReturn DHookCallback_Explode_Pre(int entity, DHookParam params)
+{
+	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	if (thrower != -1)
+	{
+		Entity(thrower).ChangeToSpectator();
+	}
+	// TODO GAS STILL COATS YOURSELF
+	// HOOK PointManager::ShouldCollide
+	Entity(entity).ChangeToSpectator();
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_Explode_Post(int entity, DHookParam params)
+{
+	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	if (thrower != -1)
+	{
+		Entity(thrower).ResetTeam();
+	}
+	
+	Entity(entity).ResetTeam();
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity, DHookParam params)
 {
 	char classname[64];
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
@@ -104,12 +128,12 @@ public MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity, DHookParam 
 	return MRES_Ignored;
 }
 
-public MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity, DHookParam params)
+MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity, DHookParam params)
 {
 	return MRES_Ignored;
 }
 
-public MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
+MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
 	// Always make projectiles collide with teammates
 	ret.Value = true;
@@ -117,22 +141,7 @@ public MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookRe
 	return MRES_Supercede;
 }
 
-public MRESReturn DHookCallback_WantsLagCompensationOnEntity_Pre(int player, DHookReturn ret, DHookParam params)
-{
-	// Enables lag compensation on teammates
-	Player(player).ChangeToSpectator();
-	
-	return MRES_Ignored;
-}
-
-public MRESReturn DHookCallback_WantsLagCompensationOnEntity_Post(int player, DHookReturn ret, DHookParam params)
-{
-	Player(player).ResetTeam();
-	
-	return MRES_Ignored;
-}
-
-public MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
+MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
 	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
 	// https://github.com/Mentrillum/Slender-Fortress-Modified-Versions/blob/7c162f2a82eb1d1058c56fb23faf1be942b965d0/addons/sourcemod/scripting/sf2/pvp.sp#L982-L995
@@ -146,30 +155,24 @@ public MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn
 	return MRES_Ignored;
 }
 
-public MRESReturn DHookCallback_SecondaryAttack_Pre(int entity)
+MRESReturn DHookCallback_SecondaryAttack_Pre(int entity)
 {
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	
-	// TODO: Find better way (weapon ID?)
-	char classname[256];
-	GetEntityClassname(entity, classname, sizeof(classname));
-	
-	for (int i = 0; i < sizeof(g_SecondaryFireClassnames); i++)
+	if (owner != -1)
 	{
-		if (StrEqual(classname, g_SecondaryFireClassnames[i]))
-		{
-			Player(owner).ChangeToSpectator();
-		}
+		Player(owner).ChangeToSpectator();
 	}
+	
+	return MRES_Ignored;
 }
 
-public MRESReturn DHookCallback_SecondaryAttack_Post(int entity)
+MRESReturn DHookCallback_SecondaryAttack_Post(int entity)
 {
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	
-	// If the team count is 1, it's safe to assume that we did something in OnPlayerRunCmd
-	if (Player(owner).TeamCount == 1)
+	if (owner != -1)
 	{
 		Player(owner).ResetTeam();
 	}
+	
+	return MRES_Ignored;
 }

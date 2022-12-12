@@ -15,6 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma newdecls required
+#pragma semicolon 1
+
 static int g_PlayerTeamCount[MAXPLAYERS + 1];
 static TFTeam g_PlayerTeam[MAXPLAYERS + 1][8];
 
@@ -33,7 +36,7 @@ methodmap Player
 		}
 	}
 	
-	property int TeamCount
+	property int m_iTeamCount
 	{
 		public get()
 		{
@@ -47,7 +50,7 @@ methodmap Player
 	
 	public void SetTeam(TFTeam team)
 	{
-		int index = this.TeamCount++;
+		int index = this.m_iTeamCount++;
 		g_PlayerTeam[this._client][index] = TF2_GetClientTeam(this._client);
 		TF2_SetTeam(this._client, team);
 	}
@@ -59,7 +62,7 @@ methodmap Player
 	
 	public void ResetTeam()
 	{
-		int index = --this.TeamCount;
+		int index = --this.m_iTeamCount;
 		TF2_SetTeam(this._client, g_PlayerTeam[this._client][index]);
 	}
 }

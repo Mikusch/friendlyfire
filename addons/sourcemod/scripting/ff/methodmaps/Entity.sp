@@ -15,18 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-static ArrayList g_EntityProperties;
+#pragma newdecls required
+#pragma semicolon 1
+
+static ArrayList g_entityProperties;
 
 enum struct EntityProperties
 {
-	int ref;
+	int m_index;
+	
 	int team_count;
 	TFTeam team[8];
 	
-	void Initialize(int ref)
+	void Init(int entity)
 	{
-		this.ref = ref;
+		this.m_index = entity;
 		this.team_count = 0;
+	}
+	
+	void Destroy()
+	{
+		// nothing yet!
 	}
 }
 
@@ -34,49 +43,66 @@ methodmap Entity
 {
 	public Entity(int entity)
 	{
+		if (!IsValidEntity(entity))
+		{
+			return view_as<Entity>(INVALID_ENT_REFERENCE);
+		}
+		
+		if (!g_entityProperties)
+		{
+			g_entityProperties = new ArrayList(sizeof(EntityProperties));
+		}
+		
+		// doubly convert it to ensure we store it as an entity reference
+		entity = EntIndexToEntRef(EntRefToEntIndex(entity));
+		
+		if (g_entityProperties.FindValue(entity, EntityProperties::m_index) == -1)
+		{
+			// fill basic properties
+			EntityProperties properties;
+			properties.Init(entity);
+			
+			g_entityProperties.PushArray(properties);
+		}
+		
 		return view_as<Entity>(entity);
 	}
 	
-	property int _ref
+	property int m_index
 	{
 		public get()
 		{
-			// Doubly convert it to ensure it is an entity reference
-			return EntIndexToEntRef(EntRefToEntIndex(view_as<int>(this)));
+			return view_as<int>(this);
 		}
 	}
 	
-	property int _listIndex
+	property int m_listIndex
 	{
 		public get()
 		{
-			return g_EntityProperties.FindValue(this._ref, EntityProperties::ref);
+			return g_entityProperties.FindValue(view_as<int>(this), EntityProperties::m_index);
 		}
 	}
 	
-	property int TeamCount
+	property int m_iTeamCount
 	{
 		public get()
 		{
-			if (this._listIndex != -1)
-				return g_EntityProperties.Get(this._listIndex, EntityProperties::team_count);
-			
-			return -1;
+			return g_entityProperties.Get(this.m_listIndex, EntityProperties::team_count);
 		}
 		public set(int count)
 		{
-			if (this._listIndex != -1)
-				g_EntityProperties.Set(this._listIndex, count, EntityProperties::team_count);
+			g_entityProperties.Set(this.m_listIndex, count, EntityProperties::team_count);
 		}
 	}
 	
 	public TFTeam GetTeamInternal(int index)
 	{
 		// ArrayList.GetArray has no block parameter so we iterate everything
-		for (int i = 0; i < sizeof(g_EntityProperties); i++)
+		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
-			if (g_EntityProperties.GetArray(this._listIndex, properties) > 0)
+			if (g_entityProperties.GetArray(this.m_listIndex, properties))
 			{
 				return properties.team[index];
 			}
@@ -89,13 +115,13 @@ methodmap Entity
 	public void SetTeamInternal(TFTeam team, int index)
 	{
 		// ArrayList.GetArray has no block parameter so we iterate everything
-		for (int i = 0; i < sizeof(g_EntityProperties); i++)
+		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
-			if (g_EntityProperties.GetArray(this._listIndex, properties) > 0)
+			if (g_entityProperties.GetArray(this.m_listIndex, properties) > 0)
 			{
 				properties.team[index] = team;
-				g_EntityProperties.SetArray(this._listIndex, properties);
+				g_entityProperties.SetArray(this.m_listIndex, properties);
 				return;
 			}
 		}
@@ -105,9 +131,9 @@ methodmap Entity
 	
 	public void SetTeam(TFTeam team)
 	{
-		int index = this.TeamCount++;
-		this.SetTeamInternal(TF2_GetTeam(this._ref), index);
-		TF2_SetTeam(this._ref, team);
+		int index = this.m_iTeamCount++;
+		this.SetTeamInternal(TF2_GetTeam(this.m_index), index);
+		TF2_SetTeam(this.m_index, team);
 	}
 	
 	public void ChangeToSpectator()
@@ -117,37 +143,24 @@ methodmap Entity
 	
 	public void ResetTeam()
 	{
-		int index = --this.TeamCount;
+		int index = --this.m_iTeamCount;
 		TFTeam team = this.GetTeamInternal(index);
-		TF2_SetTeam(this._ref, team);
+		TF2_SetTeam(this.m_index, team);
 	}
 	
 	public void Destroy()
 	{
-		if (this._listIndex != -1)
-			g_EntityProperties.Erase(this._listIndex);
-	}
-	
-	public static bool Create(int entity)
-	{
-		if (!IsValidEntity(entity))
-			return false;
+		if (this.m_listIndex == -1)
+			return;
 		
-		int ref = Entity(entity)._ref;
-		
-		if (g_EntityProperties.FindValue(ref, EntityProperties::ref) == -1)
+		EntityProperties properties;
+		if (g_entityProperties.GetArray(this.m_listIndex, properties))
 		{
-			EntityProperties properties;
-			properties.Initialize(ref);
-			
-			g_EntityProperties.PushArray(properties);
+			// properly dispose of contained handles
+			properties.Destroy();
 		}
 		
-		return true;
-	}
-	
-	public static void InitializePropertyList()
-	{
-		g_EntityProperties = new ArrayList(sizeof(EntityProperties));
+		// finally, remove the entry from local storage
+		g_entityProperties.Erase(this.m_listIndex);
 	}
 }
