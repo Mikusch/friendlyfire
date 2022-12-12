@@ -109,6 +109,11 @@ Action SDKHookCB_OnTakeDamage_Pre(int victim, int &attacker, int &inflictor, flo
 	{
 		Player(attacker).ChangeToSpectator();
 	}
+	else
+	{
+		// Mostly for boots_falling_stomp
+		Player(victim).ChangeToSpectator();
+	}
 	
 	return Plugin_Continue;
 }
@@ -118,6 +123,10 @@ void SDKHookCB_OnTakeDamage_Post(int victim, int attacker, int inflictor, float 
 	if (IsEntityClient(attacker))
 	{
 		Player(attacker).ResetTeam();
+	}
+	else
+	{
+		Player(victim).ResetTeam();
 	}
 }
 
