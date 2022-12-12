@@ -25,6 +25,7 @@ static DynamicHook g_Explode;
 
 void DHooks_Initialize(GameData gamedata)
 {
+	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeamPre, _);
 	//CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
@@ -114,25 +115,6 @@ MRESReturn DHookCallback_Explode_Post(int entity, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity, DHookParam params)
-{
-	char classname[64];
-	if (!GetEntityClassname(entity, classname, sizeof(classname)))
-		return MRES_Ignored;
-	
-	if (strcmp(classname, "tf_projectile_rocket") == 0)
-	{
-		// TODO Add think functions if needed
-	}
-	
-	return MRES_Ignored;
-}
-
-MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity, DHookParam params)
-{
-	return MRES_Ignored;
-}
-
 MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
 	// Always make projectiles collide with teammates
@@ -175,4 +157,23 @@ MRESReturn DHookCallback_SecondaryAttack_Post(int entity)
 	}
 	
 	return MRES_Ignored;
+}
+
+MRESReturn DHook_InSameTeamPre(int entity, DHookReturn ret, DHookParam param)
+{
+	if (param.IsNull(1))
+	{
+		ret.Value = false;
+		return MRES_Supercede;
+	}
+	
+	int other = param.Get(1);
+	
+	// Find the top-most owner.
+	// Unless this matches us, assume everyone is an enemy!
+	entity = FindParentOwnerEntity(entity);
+	other = FindParentOwnerEntity(other);
+	
+	ret.Value = (entity == other);
+	return MRES_Supercede;
 }

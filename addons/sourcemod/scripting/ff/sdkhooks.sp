@@ -18,10 +18,89 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+enum PostThinkType
+{
+	PostThinkType_None,
+	PostThinkType_Spectator,
+	PostThinkType_EnemyTeam,
+}
+
+static PostThinkType g_nPostThinkType = PostThinkType_None;
+
 void SDKHooks_OnClientConnected(int client)
 {
+	SDKHook(client, SDKHook_PreThink, SDKHookCB_PreThink);
+	SDKHook(client, SDKHook_PreThinkPost, SDKHookCB_PreThinkPost);
+	SDKHook(client, SDKHook_PostThink, SDKHookCB_PostThink_Pre);
+	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_PostThink_Post);
 	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_OnTakeDamage_Pre);
 	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_OnTakeDamage_Post);
+}
+
+// CTFPlayerShared::OnPreDataChanged
+void SDKHookCB_PreThink(int client)
+{
+	// Disable radius buffs like Buff Banner or King Rune
+	Player(client).ChangeToSpectator();
+}
+
+// CTFPlayerShared::OnPreDataChanged
+void SDKHookCB_PreThinkPost(int client)
+{
+	Player(client).ResetTeam();
+}
+
+// CTFWeaponBase::ItemPostFrame
+void SDKHookCB_PostThink_Pre(int client)
+{
+	int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	if (activeWeapon == -1)
+		return;
+	
+	int weaponID = TF2Util_GetWeaponID(activeWeapon);
+	if (weaponID == TF_WEAPON_HANDGUN_SCOUT_PRIMARY)
+	{
+		g_nPostThinkType = PostThinkType_EnemyTeam;
+		
+		// For everything using GetEnemyTeam, switch all other players to the enemy team
+		for (int other = 1; other <= MaxClients; other++)
+		{
+			if (IsClientInGame(other) && other != client)
+			{
+				Player(other).SetTeam(GetEnemyTeam(TF2_GetClientTeam(client)));
+			}
+		}
+	}
+	else
+	{
+		g_nPostThinkType = PostThinkType_Spectator;
+		
+		// For everything else, assume it does simple team checks
+		Player(client).ChangeToSpectator();
+	}
+}
+
+// CTFWeaponBase::ItemPostFrame
+void SDKHookCB_PostThink_Post(int client)
+{
+	// Change everything back to how it was accordingly
+	switch (g_nPostThinkType)
+	{
+		case PostThinkType_Spectator:
+		{
+			Player(client).ResetTeam();
+		}
+		case PostThinkType_EnemyTeam:
+		{
+			for (int other = 1; other <= MaxClients; other++)
+			{
+				if (IsClientInGame(other) && other != client)
+					Player(other).ResetTeam();
+			}
+		}
+	}
+	
+	g_nPostThinkType = PostThinkType_None;
 }
 
 Action SDKHookCB_OnTakeDamage_Pre(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)

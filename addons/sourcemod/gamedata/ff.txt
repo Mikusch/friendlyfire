@@ -33,6 +33,12 @@
 				"linux" 	"@_ZN11CBaseEntity20PhysicsDispatchThinkEMS_FvvE"
 				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53"
 			}
+			"CBaseEntity::InSameTeam"
+			{
+				"library"	"server"
+				"linux"		"@_ZNK11CBaseEntity10InSameTeamEPKS_"
+				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0\x75\x2A"
+			}
 		}
 		"Offsets"
 		{
@@ -121,6 +127,20 @@
 				"hooktype"	"entity"
 				"return"	"void"
 				"this"		"entity"
+			}
+			"CBaseEntity::InSameTeam"
+			{
+				"signature"	"CBaseEntity::InSameTeam"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"entity"
+				"arguments"
+				{
+					"pEntity"
+					{
+						"type"	"cbaseentity"
+					}
+				}
 			}
 		}
 	}

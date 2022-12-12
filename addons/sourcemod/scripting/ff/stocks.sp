@@ -54,3 +54,13 @@ int FindParentOwnerEntity(int entity)
 	
 	return entity;
 }
+
+TFTeam GetEnemyTeam(TFTeam team)
+{
+	switch (team)
+	{
+		case TFTeam_Red: { return TFTeam_Blue; }
+		case TFTeam_Blue: { return TFTeam_Red; }
+		default: { return team; }
+	}
+}
