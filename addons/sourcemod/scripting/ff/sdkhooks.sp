@@ -27,19 +27,19 @@ enum PostThinkType
 
 int g_iSpectatorItemIDs[] =
 {
-	TF_WEAPON_BUFF_ITEM,
-	TF_WEAPON_FLAMETHROWER,
-	TF_WEAPON_FLAME_BALL,
-	TF_WEAPON_SNIPERRIFLE,
-	TF_WEAPON_KNIFE,
-	TF_WEAPON_STICKBOMB,
+	TF_WEAPON_BUFF_ITEM,	// CTFPlayerShared::PulseRageBuff
+	TF_WEAPON_FLAMETHROWER,	// CBaseCombatWeapon::SecondaryAttack
+	TF_WEAPON_FLAME_BALL,	// CWeaponFlameBall::SecondaryAttack
+	TF_WEAPON_SNIPERRIFLE,	// CTFPlayer::FireBullet
+	TF_WEAPON_KNIFE,		// CTFKnife::PrimaryAttack
+	TF_WEAPON_STICKBOMB,	// CTFStickBomb::Smack
 };
 
 int g_iEnemyItemIDs[] =
 {
-	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,
-	TF_WEAPON_BAT,
-	TF_WEAPON_GRAPPLINGHOOK,
+	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,	// CTFPistol_ScoutPrimary::Push
+	TF_WEAPON_BAT,						// CTFWeaponBaseMelee::PrimaryAttack
+	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
 static bool g_PostThinkMelee;
@@ -57,6 +57,11 @@ void SDKHooks_OnClientPutInServer(int client)
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
+	if (strncmp(classname, "obj_", 4) == 0)
+	{
+		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_BaseObject_SpawnPost);
+		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_BaseObject_OnTakeDamage);
+	}
 	if (strncmp(classname, "tf_projectile_", 14) == 0)
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_ProjectileTouch);
@@ -202,6 +207,21 @@ void SDKHookCB_OnTakeDamagePost(int victim, int attacker, int inflictor, float d
 	{
 		Player(victim).ResetTeam();
 	}
+}
+
+void SDKHookCB_BaseObject_SpawnPost(int entity)
+{
+	// Enable collisions for both teams
+	SetEntityCollisionGroup(entity, TFCOLLISION_GROUP_OBJECT_SOLIDTOPLAYERMOVEMENT);
+}
+
+Action SDKHookCB_BaseObject_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	// Don't allow buildings from friendly players
+	if (TF2_IsObjectFriendly(victim, attacker))
+		return Plugin_Stop;
+	
+	return Plugin_Continue;
 }
 
 Action SDKHookCB_ProjectileTouch(int entity, int other)

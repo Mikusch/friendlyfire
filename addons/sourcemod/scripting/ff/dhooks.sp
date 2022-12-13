@@ -167,8 +167,9 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	char classname[64];
 	GetEntityClassname(entity, classname, sizeof(classname));
 	
-	if (StrEqual(classname, "obj_sentrygun")) // CObjectSentrygun::SentryThink
+	if (StrEqual(classname, "obj_sentrygun"))
 	{
+		// CObjectSentrygun::SentryThink
 		g_ThinkFunction = ThinkFunction_SentryThink;
 		
 		TFTeam teamFriendly = TF2_GetTeam(entity);
@@ -212,8 +213,9 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	}
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
-		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding") && SDKCall_GetNextThink(entity, "DispenseThink") == TICK_NEVER_THINK) // CObjectDispenser::DispenseThink
+		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding") && SDKCall_GetNextThink(entity, "DispenseThink") == TICK_NEVER_THINK)
 		{
+			// CObjectDispenser::DispenseThink
 			g_ThinkFunction = ThinkFunction_DispenseThink;
 			
 			// Disallow players able to be healed from dispenser
@@ -270,7 +272,6 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 		}
 		case ThinkFunction_DispenseThink:
 		{
-			TFTeam team = TF2_GetTeam(entity);
 			for (int client = 1; client <= MaxClients; client++)
 			{
 				if (IsClientInGame(client))
