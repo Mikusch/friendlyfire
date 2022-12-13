@@ -31,10 +31,10 @@ void SDKHooks_OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_PreThink, SDKHookCB_PreThink);
 	SDKHook(client, SDKHook_PreThinkPost, SDKHookCB_PreThinkPost);
-	SDKHook(client, SDKHook_PostThink, SDKHookCB_PostThink_Pre);
-	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_PostThink_Post);
-	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_OnTakeDamage_Pre);
-	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_OnTakeDamage_Post);
+	SDKHook(client, SDKHook_PostThink, SDKHookCB_PostThink);
+	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_PostThinkPost);
+	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_OnTakeDamage);
+	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_OnTakeDamagePost);
 }
 
 // CTFPlayerShared::OnPreDataChanged
@@ -51,7 +51,7 @@ void SDKHookCB_PreThinkPost(int client)
 }
 
 // CTFWeaponBase::ItemPostFrame
-void SDKHookCB_PostThink_Pre(int client)
+void SDKHookCB_PostThink(int client)
 {
 	int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 	if (activeWeapon == -1)
@@ -73,9 +73,6 @@ void SDKHookCB_PostThink_Pre(int client)
 	}
 	else
 	{
-		if (weaponID == TF_WEAPON_BUILDER)
-			return;
-		
 		g_nPostThinkType = PostThinkType_Spectator;
 		
 		int building = MaxClients + 1;
@@ -98,7 +95,7 @@ void SDKHookCB_PostThink_Pre(int client)
 }
 
 // CTFWeaponBase::ItemPostFrame
-void SDKHookCB_PostThink_Post(int client)
+void SDKHookCB_PostThinkPost(int client)
 {
 	// Change everything back to how it was accordingly
 	switch (g_nPostThinkType)
@@ -127,7 +124,7 @@ void SDKHookCB_PostThink_Post(int client)
 	g_nPostThinkType = PostThinkType_None;
 }
 
-Action SDKHookCB_OnTakeDamage_Pre(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+Action SDKHookCB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (IsEntityClient(attacker))
 	{
@@ -142,7 +139,7 @@ Action SDKHookCB_OnTakeDamage_Pre(int victim, int &attacker, int &inflictor, flo
 	return Plugin_Continue;
 }
 
-void SDKHookCB_OnTakeDamage_Post(int victim, int attacker, int inflictor, float damage, int damagetype)
+void SDKHookCB_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	if (IsEntityClient(attacker))
 	{
