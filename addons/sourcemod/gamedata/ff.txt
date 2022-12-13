@@ -66,18 +66,6 @@
 				"linux"		"406"
 				"windows"	"399"
 			}
-			"CTFWeaponBaseGun::PrimaryAttack"
-			{
-				"library"	"server"
-				"linux"		"292"
-				"windows"	"286"
-			}
-			"CTFWeaponBaseGun::SecondaryAttack"
-			{
-				"library"	"server"
-				"linux"		"293"
-				"windows"	"287"
-			}
 			"CBaseGrenade::Explode"
 			{
 				"library"	"server"
@@ -149,20 +137,6 @@
 				"offset"	"CTFSniperRifle::GetCustomDamageType"
 				"hooktype"	"entity"
 				"return"	"int"
-				"this"		"entity"
-			}
-			"CTFWeaponBaseGun::PrimaryAttack"
-			{
-				"offset"	"CTFWeaponBaseGun::PrimaryAttack"
-				"hooktype"	"entity"
-				"return"	"void"
-				"this"		"entity"
-			}
-			"CTFWeaponBaseGun::SecondaryAttack"
-			{
-				"offset"	"CTFWeaponBaseGun::SecondaryAttack"
-				"hooktype"	"entity"
-				"return"	"void"
 				"this"		"entity"
 			}
 			"CBaseEntity::InSameTeam"

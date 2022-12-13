@@ -20,8 +20,6 @@
 
 static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookGetCustomDamageType;
-static DynamicHook g_PrimaryAttack;
-static DynamicHook g_SecondaryAttack;
 static DynamicHook g_Explode;
 
 void DHooks_Initialize(GameData gamedata)
@@ -31,8 +29,6 @@ void DHooks_Initialize(GameData gamedata)
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
-	g_PrimaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBaseGun::PrimaryAttack");
-	g_SecondaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBaseGun::SecondaryAttack");
 	g_Explode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
 }
 
@@ -56,13 +52,6 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	else if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
 	{
 		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
-	}
-	else if (strncmp(classname, "tf_weapon_", 10) == 0)
-	{
-		g_PrimaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_PrimaryAttack_Pre);
-		g_PrimaryAttack.HookEntity(Hook_Post, entity, DHookCallback_PrimaryAttack_Post);
-		g_SecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
-		g_SecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_SecondaryAttack_Post);
 	}
 }
 
@@ -136,50 +125,6 @@ MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 	{
 		ret.Value = TF_DMG_CUSTOM_NONE;
 		return MRES_Supercede;
-	}
-	
-	return MRES_Ignored;
-}
-
-MRESReturn DHookCallback_PrimaryAttack_Pre(int entity)
-{
-	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1)
-	{
-		Player(owner).ChangeToSpectator();
-	}
-	
-	return MRES_Ignored;
-}
-
-MRESReturn DHookCallback_PrimaryAttack_Post(int entity)
-{
-	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1)
-	{
-		Player(owner).ResetTeam();
-	}
-	
-	return MRES_Ignored;
-}
-
-MRESReturn DHookCallback_SecondaryAttack_Pre(int entity)
-{
-	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1)
-	{
-		Player(owner).ChangeToSpectator();
-	}
-	
-	return MRES_Ignored;
-}
-
-MRESReturn DHookCallback_SecondaryAttack_Post(int entity)
-{
-	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1)
-	{
-		Player(owner).ResetTeam();
 	}
 	
 	return MRES_Ignored;

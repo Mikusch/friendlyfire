@@ -25,6 +25,24 @@ enum PostThinkType
 	PostThinkType_EnemyTeam,
 }
 
+int g_iSpectatorItemIDs[] = 
+{
+	TF_WEAPON_BUFF_ITEM,
+	TF_WEAPON_FLAMETHROWER,
+	TF_WEAPON_FLAME_BALL,
+	TF_WEAPON_SNIPERRIFLE,
+	TF_WEAPON_KNIFE,
+	TF_WEAPON_STICKBOMB,
+};
+
+int g_iEnemyItemIDs[] = 
+{
+	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,
+	TF_WEAPON_BAT,
+	TF_WEAPON_GRAPPLINGHOOK,
+};
+
+static bool g_PostThinkMelee;
 static PostThinkType g_nPostThinkType = PostThinkType_None;
 
 void SDKHooks_OnClientPutInServer(int client)
@@ -57,40 +75,49 @@ void SDKHookCB_PostThink(int client)
 	if (activeWeapon == -1)
 		return;
 	
-	int weaponID = TF2Util_GetWeaponID(activeWeapon);
-	if (weaponID == TF_WEAPON_HANDGUN_SCOUT_PRIMARY)
+	// CTFWeaponBaseMelee::Smack
+	if (TF2Util_GetWeaponSlot(activeWeapon) == TFWeaponSlot_Melee)
 	{
-		g_nPostThinkType = PostThinkType_EnemyTeam;
-		
-		// For everything using GetEnemyTeam, switch all other players to the enemy team
-		for (int other = 1; other <= MaxClients; other++)
-		{
-			if (IsClientInGame(other) && other != client)
-			{
-				Player(other).SetTeam(GetEnemyTeam(TF2_GetClientTeam(client)));
-			}
-		}
-	}
-	else
-	{
-		g_nPostThinkType = PostThinkType_Spectator;
+		g_PostThinkMelee = true;
 		
 		int building = MaxClients + 1;
 		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
 		{
-			// Move enemy buildings to a team that is NOT spectator to be able to deal damage
-			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") == client)
+			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
 			{
+				// Move all enemy buildings to spectator to allow them to take damage from us
 				Entity(building).ChangeToSpectator();
 			}
-			else
+		}
+	}
+	
+	// For functions that collect all players from the enemy team
+	for (int i = 0; i < sizeof(g_iEnemyItemIDs); i++)
+	{
+		if (TF2Util_GetWeaponID(activeWeapon) == g_iEnemyItemIDs[i])
+		{
+			g_nPostThinkType = PostThinkType_EnemyTeam;
+			
+			// For everything using GetEnemyTeam, switch all other players to the enemy team
+			for (int other = 1; other <= MaxClients; other++)
 			{
-				Entity(building).SetTeam(TFTeam_Red);
+				if (IsClientInGame(other) && other != client)
+				{
+					Player(other).SetTeam(GetEnemyTeam(TF2_GetClientTeam(client)));
+				}
 			}
 		}
-		
-		// For everything else, assume it does simple team checks
-		Player(client).ChangeToSpectator();
+	}
+	
+	// For functions that do simple GetTeamNumber() checks, move ourself to spectator team
+	for (int i = 0; i < sizeof(g_iSpectatorItemIDs); i++)
+	{
+		if (TF2Util_GetWeaponID(activeWeapon) == g_iSpectatorItemIDs[i])
+		{
+			g_nPostThinkType = PostThinkType_Spectator;
+			
+			Player(client).ChangeToSpectator();
+		}
 	}
 }
 
@@ -102,13 +129,6 @@ void SDKHookCB_PostThinkPost(int client)
 	{
 		case PostThinkType_Spectator:
 		{
-			// Reset all buildings
-			int building = MaxClients + 1;
-			while ((building = FindEntityByClassname(building, "obj_*")) > MaxClients)
-			{
-				Entity(building).ResetTeam();
-			}
-			
 			Player(client).ResetTeam();
 		}
 		case PostThinkType_EnemyTeam:
@@ -122,6 +142,21 @@ void SDKHookCB_PostThinkPost(int client)
 	}
 	
 	g_nPostThinkType = PostThinkType_None;
+	
+	if (g_PostThinkMelee)
+	{
+		g_PostThinkMelee = false;
+		
+		// Reset all buildings
+		int building = MaxClients + 1;
+		while ((building = FindEntityByClassname(building, "obj_*")) > MaxClients)
+		{
+			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
+			{
+				Entity(building).ResetTeam();
+			}
+		}
+	}
 }
 
 Action SDKHookCB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
