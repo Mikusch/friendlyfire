@@ -25,7 +25,7 @@ enum PostThinkType
 	PostThinkType_EnemyTeam,
 }
 
-int g_iSpectatorItemIDs[] = 
+int g_iSpectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,
 	TF_WEAPON_FLAMETHROWER,
@@ -35,7 +35,7 @@ int g_iSpectatorItemIDs[] =
 	TF_WEAPON_STICKBOMB,
 };
 
-int g_iEnemyItemIDs[] = 
+int g_iEnemyItemIDs[] =
 {
 	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,
 	TF_WEAPON_BAT,
@@ -53,6 +53,24 @@ void SDKHooks_OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_PostThinkPost);
 	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_OnTakeDamage);
 	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_OnTakeDamagePost);
+}
+
+void SDKHooks_OnEntityCreated(int entity, const char[] classname)
+{
+	if (strncmp(classname, "tf_projectile_", 14) == 0)
+	{
+		SDKHook(entity, SDKHook_Touch, SDKHookCB_ProjectileTouch);
+		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_ProjectileTouchPost);
+	}
+	else if (strcmp(classname, "tf_flame_manager") == 0)
+	{
+		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManagerTouch);
+		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManagerTouchPost);
+	}
+	else if (strcmp(classname, "tf_gas_manager") == 0)
+	{
+		SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
+	}
 }
 
 // CTFPlayerShared::OnPreDataChanged
@@ -186,20 +204,6 @@ void SDKHookCB_OnTakeDamagePost(int victim, int attacker, int inflictor, float d
 	}
 }
 
-void SDKHooks_OnEntityCreated(int entity, const char[] classname)
-{
-	if (strncmp(classname, "tf_projectile_", 14) == 0)
-	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_ProjectileTouch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_ProjectileTouchPost);
-	}
-	else if (strcmp(classname, "tf_flame_manager") == 0)
-	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManagerTouch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManagerTouchPost);
-	}
-}
-
 Action SDKHookCB_ProjectileTouch(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
@@ -224,10 +228,10 @@ void SDKHookCB_ProjectileTouchPost(int entity, int other)
 
 Action SDKHookCB_FlameManagerTouch(int entity, int other)
 {
-	// Allows Flame Throwers to work on both teams
 	int owner = FindParentOwnerEntity(entity);
 	if (IsEntityClient(owner))
 	{
+		// Fixes Flame Throwers during friendly fire
 		Player(owner).ChangeToSpectator();
 	}
 	
@@ -241,4 +245,15 @@ void SDKHookCB_FlameManagerTouchPost(int entity, int other)
 	{
 		Player(owner).ResetTeam();
 	}
+}
+
+Action SDKHookCB_GasManager_Touch(int entity, int other)
+{
+	if (FindParentOwnerEntity(entity) == other)
+	{
+		// Do not coat ourselves in our own gas
+		return Plugin_Handled;
+	}
+	
+	return Plugin_Continue;
 }

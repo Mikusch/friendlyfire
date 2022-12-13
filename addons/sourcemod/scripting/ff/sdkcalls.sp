@@ -18,8 +18,6 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-#define TICK_NEVER_THINK	(-1.0)
-
 static Handle g_SDKCallGetNextThink;
 static Handle g_SDKCallGetPenetrateType;
 static Handle g_SDKCallGetGlobalTeam;

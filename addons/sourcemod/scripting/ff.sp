@@ -26,6 +26,7 @@
 #include <tf2utils>
 
 #define TF_DMG_CUSTOM_NONE	0
+#define TICK_NEVER_THINK	(-1.0)
 
 ConVar mp_friendlyfire;
 ConVar tf_avoidteammates;
@@ -85,6 +86,14 @@ public void OnEntityCreated(int entity, const char[] classname)
 {
 	DHooks_OnEntityCreated(entity, classname);
 	SDKHooks_OnEntityCreated(entity, classname);
+}
+
+public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
+{
+	// Only allow the building Engineer to use
+	int builder = GetEntPropEnt(teleporter, Prop_Send, "m_hBuilder");
+	result = TF2_IsObjectFriendly(teleporter, client);
+	return Plugin_Handled;
 }
 
 public void OnEntityDestroyed(int entity)

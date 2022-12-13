@@ -18,9 +18,18 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+enum ThinkFunction
+{
+	ThinkFunction_None,
+	ThinkFunction_DispenseThink,
+	ThinkFunction_SentryThink,
+}
+
 static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookGetCustomDamageType;
 static DynamicHook g_Explode;
+
+static ThinkFunction g_ThinkFunction;
 
 void DHooks_Initialize(GameData gamedata)
 {
@@ -160,6 +169,8 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	
 	if (StrEqual(classname, "obj_sentrygun")) // CObjectSentrygun::SentryThink
 	{
+		g_ThinkFunction = ThinkFunction_SentryThink;
+		
 		TFTeam teamFriendly = TF2_GetTeam(entity);
 		TFTeam teamEnemy = GetEnemyTeam(teamFriendly);
 		Address pEnemyTeam = SDKCall_GetGlobalTeam(teamEnemy);
@@ -199,46 +210,81 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 			}
 		}
 	}
+	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
+	{
+		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding") && SDKCall_GetNextThink(entity, "DispenseThink") == TICK_NEVER_THINK) // CObjectDispenser::DispenseThink
+		{
+			g_ThinkFunction = ThinkFunction_DispenseThink;
+			
+			// Disallow players able to be healed from dispenser
+			for (int client = 1; client <= MaxClients; client++)
+			{
+				if (IsClientInGame(client))
+				{
+					if (!TF2_IsObjectFriendly(entity, client))
+					{
+						Player(client).ChangeToSpectator();
+					}
+				}
+			}
+		}
+	}
 	
 	return MRES_Ignored;
 }
 
 MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 {
-	char classname[64];
-	GetEntityClassname(entity, classname, sizeof(classname));
-	
-	if (StrEqual(classname, "obj_sentrygun")) // CObjectSentrygun::SentryThink
+	switch (g_ThinkFunction)
 	{
-		TFTeam enemyTeam = GetEnemyTeam(TF2_GetTeam(entity));
-		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
-		
-		for (int client = 1; client <= MaxClients; client++)
+		case ThinkFunction_SentryThink:
 		{
-			if (IsClientInGame(client))
+			TFTeam enemyTeam = GetEnemyTeam(TF2_GetTeam(entity));
+			Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
+			
+			for (int client = 1; client <= MaxClients; client++)
 			{
-				bool friendly = TF2_IsObjectFriendly(entity, client);
-				
-				if (friendly && Entity(client).m_preHookTeam == enemyTeam)
+				if (IsClientInGame(client))
 				{
-					SDKCall_AddPlayer(pEnemyTeam, client);
+					bool friendly = TF2_IsObjectFriendly(entity, client);
+					
+					if (friendly && Entity(client).m_preHookTeam == enemyTeam)
+					{
+						SDKCall_AddPlayer(pEnemyTeam, client);
+					}
+					else if (!friendly && Entity(client).m_preHookTeam != enemyTeam)
+					{
+						SDKCall_RemovePlayer(pEnemyTeam, client);
+					}
 				}
-				else if (!friendly && Entity(client).m_preHookTeam != enemyTeam)
+			}
+			
+			int building = -1;
+			while ((building = FindEntityByClassname(building, "obj_*")) != -1)
+			{
+				if (!GetEntProp(building, Prop_Send, "m_bPlacing"))
 				{
-					SDKCall_RemovePlayer(pEnemyTeam, client);
+					SDKCall_ChangeTeam(building, Entity(building).m_preHookTeam);
 				}
 			}
 		}
-		
-		int building = -1;
-		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
+		case ThinkFunction_DispenseThink:
 		{
-			if (!GetEntProp(building, Prop_Send, "m_bPlacing"))
+			TFTeam team = TF2_GetTeam(entity);
+			for (int client = 1; client <= MaxClients; client++)
 			{
-				SDKCall_ChangeTeam(building, Entity(building).m_preHookTeam);
+				if (IsClientInGame(client))
+				{
+					if (!TF2_IsObjectFriendly(entity, client))
+					{
+						Player(client).ResetTeam();
+					}
+				}
 			}
 		}
 	}
+	
+	g_ThinkFunction = ThinkFunction_None;
 	
 	return MRES_Ignored;
 }
