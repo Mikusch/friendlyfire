@@ -85,3 +85,12 @@ bool TF2_IsObjectFriendly(int obj, int entity)
 	
 	return false;
 }
+
+float TF2_GetPercentInvisible(int client)
+{
+	static int offset = -1;
+	if (offset == -1)
+		offset = FindSendPropInfo("CTFPlayer", "m_flInvisChangeCompleteTime") - 8;
+	
+	return GetEntDataFloat(client, offset);
+}

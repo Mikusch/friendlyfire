@@ -53,6 +53,7 @@ void SDKHooks_OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_PostThinkPost);
 	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_OnTakeDamage);
 	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_OnTakeDamagePost);
+	SDKHook(client, SDKHook_SetTransmit, SDKHookCB_SetTransmit);
 }
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
@@ -207,6 +208,18 @@ void SDKHookCB_OnTakeDamagePost(int victim, int attacker, int inflictor, float d
 	{
 		Player(victim).ResetTeam();
 	}
+}
+
+Action SDKHookCB_SetTransmit(int entity, int client)
+{
+	// Don't transmit invisible spies to living players
+	if (entity == client || !IsPlayerAlive(client))
+		return Plugin_Continue;
+	
+	if (TF2_GetPercentInvisible(entity) >= 1.0)
+		return Plugin_Handled;
+	
+	return Plugin_Continue;
 }
 
 void SDKHookCB_BaseObject_SpawnPost(int entity)
