@@ -20,21 +20,23 @@
 
 static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookGetCustomDamageType;
+static DynamicHook g_PrimaryAttack;
 static DynamicHook g_SecondaryAttack;
 static DynamicHook g_Explode;
 
 void DHooks_Initialize(GameData gamedata)
 {
 	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeamPre, _);
-	//CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
+	CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
+	g_PrimaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBaseGun::PrimaryAttack");
 	g_SecondaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBaseGun::SecondaryAttack");
 	g_Explode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
 }
 
-void DHooks_OnClientConnected(int client)
+void DHooks_OnClientPutInServer(int client)
 {
 	
 }
@@ -57,6 +59,8 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	}
 	else if (strncmp(classname, "tf_weapon_", 10) == 0)
 	{
+		g_PrimaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_PrimaryAttack_Pre);
+		g_PrimaryAttack.HookEntity(Hook_Post, entity, DHookCallback_PrimaryAttack_Post);
 		g_SecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
 		g_SecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_SecondaryAttack_Post);
 	}
@@ -137,6 +141,28 @@ MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 	return MRES_Ignored;
 }
 
+MRESReturn DHookCallback_PrimaryAttack_Pre(int entity)
+{
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	if (owner != -1)
+	{
+		Player(owner).ChangeToSpectator();
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_PrimaryAttack_Post(int entity)
+{
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	if (owner != -1)
+	{
+		Player(owner).ResetTeam();
+	}
+	
+	return MRES_Ignored;
+}
+
 MRESReturn DHookCallback_SecondaryAttack_Pre(int entity)
 {
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
@@ -161,6 +187,10 @@ MRESReturn DHookCallback_SecondaryAttack_Post(int entity)
 
 MRESReturn DHook_InSameTeamPre(int entity, DHookReturn ret, DHookParam param)
 {
+	char classname[64];
+	if (!GetEntityClassname(entity, classname, sizeof(classname)) || StrEqual(classname, "func_respawnroom"))
+		return MRES_Ignored;
+	
 	if (param.IsNull(1))
 	{
 		ret.Value = false;
@@ -176,4 +206,94 @@ MRESReturn DHook_InSameTeamPre(int entity, DHookReturn ret, DHookParam param)
 	
 	ret.Value = (entity == other);
 	return MRES_Supercede;
+}
+
+MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
+{
+	char classname[64];
+	GetEntityClassname(entity, classname, sizeof(classname));
+	
+	if (StrEqual(classname, "obj_sentrygun")) // CObjectSentrygun::SentryThink
+	{
+		TFTeam teamFriendly = TF2_GetTeam(entity);
+		TFTeam teamEnemy = GetEnemyTeam(teamFriendly);
+		Address pEnemyTeam = SDKCall_GetGlobalTeam(teamEnemy);
+		
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client))
+			{
+				Entity(client).m_preHookTeam = TF2_GetTeam(client);
+				bool friendly = TF2_IsObjectFriendly(entity, client);
+				
+				if (friendly && Entity(client).m_preHookTeam == teamEnemy)
+				{
+					SDKCall_RemovePlayer(pEnemyTeam, client);
+				}
+				else if (!friendly && Entity(client).m_preHookTeam != teamEnemy)
+				{
+					SDKCall_AddPlayer(pEnemyTeam, client);
+				}
+			}
+		}
+		
+		int building = -1;
+		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
+		{
+			if (!GetEntProp(building, Prop_Send, "m_bPlacing"))
+			{
+				Entity(building).m_preHookTeam = TF2_GetTeam(building);
+				if (TF2_IsObjectFriendly(entity, building))
+				{
+					SDKCall_ChangeTeam(building, teamFriendly);
+				}
+				else
+				{
+					SDKCall_ChangeTeam(building, teamEnemy);
+				}
+			}
+		}
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
+{
+	char classname[64];
+	GetEntityClassname(entity, classname, sizeof(classname));
+	
+	if (StrEqual(classname, "obj_sentrygun")) // CObjectSentrygun::SentryThink
+	{
+		TFTeam enemyTeam = GetEnemyTeam(TF2_GetTeam(entity));
+		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
+		
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client))
+			{
+				bool friendly = TF2_IsObjectFriendly(entity, client);
+				
+				if (friendly && Entity(client).m_preHookTeam == enemyTeam)
+				{
+					SDKCall_AddPlayer(pEnemyTeam, client);
+				}
+				else if (!friendly && Entity(client).m_preHookTeam != enemyTeam)
+				{
+					SDKCall_RemovePlayer(pEnemyTeam, client);
+				}
+			}
+		}
+		
+		int building = -1;
+		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
+		{
+			if (!GetEntProp(building, Prop_Send, "m_bPlacing"))
+			{
+				SDKCall_ChangeTeam(building, Entity(building).m_preHookTeam);
+			}
+		}
+	}
+	
+	return MRES_Ignored;
 }

@@ -27,6 +27,9 @@
 
 #define TF_DMG_CUSTOM_NONE	0
 
+ConVar mp_friendlyfire;
+ConVar tf_avoidteammates;
+
 #include "ff/methodmaps/Entity.sp"
 #include "ff/methodmaps/Player.sp"
 
@@ -37,6 +40,9 @@
 
 public void OnPluginStart()
 {
+	mp_friendlyfire = FindConVar("mp_friendlyfire");
+	tf_avoidteammates = FindConVar("tf_avoidteammates");
+	
 	GameData gamedata = new GameData("ff");
 	if (gamedata == null)
 	{
@@ -52,15 +58,27 @@ public void OnPluginStart()
 	{
 		if (IsClientInGame(client))
 		{
-			OnClientConnected(client);
+			OnClientPutInServer(client);
 		}
 	}
 }
 
-public void OnClientConnected(int client)
+public void OnConfigsExecuted()
 {
-	DHooks_OnClientConnected(client);
-	SDKHooks_OnClientConnected(client);
+	mp_friendlyfire.BoolValue = true;
+	tf_avoidteammates.BoolValue = false;
+}
+
+public void OnPluginEnd()
+{
+	mp_friendlyfire.RestoreDefault();
+	tf_avoidteammates.RestoreDefault();
+}
+
+public void OnClientPutInServer(int client)
+{
+	DHooks_OnClientPutInServer(client);
+	SDKHooks_OnClientPutInServer(client);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)

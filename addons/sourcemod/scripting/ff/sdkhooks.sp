@@ -27,7 +27,7 @@ enum PostThinkType
 
 static PostThinkType g_nPostThinkType = PostThinkType_None;
 
-void SDKHooks_OnClientConnected(int client)
+void SDKHooks_OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_PreThink, SDKHookCB_PreThink);
 	SDKHook(client, SDKHook_PreThinkPost, SDKHookCB_PreThinkPost);
@@ -73,7 +73,24 @@ void SDKHookCB_PostThink_Pre(int client)
 	}
 	else
 	{
+		if (weaponID == TF_WEAPON_BUILDER)
+			return;
+		
 		g_nPostThinkType = PostThinkType_Spectator;
+		
+		int building = MaxClients + 1;
+		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
+		{
+			// Move enemy buildings to a team that is NOT spectator to be able to deal damage
+			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") == client)
+			{
+				Entity(building).ChangeToSpectator();
+			}
+			else
+			{
+				Entity(building).SetTeam(TFTeam_Red);
+			}
+		}
 		
 		// For everything else, assume it does simple team checks
 		Player(client).ChangeToSpectator();
@@ -88,6 +105,13 @@ void SDKHookCB_PostThink_Post(int client)
 	{
 		case PostThinkType_Spectator:
 		{
+			// Reset all buildings
+			int building = MaxClients + 1;
+			while ((building = FindEntityByClassname(building, "obj_*")) > MaxClients)
+			{
+				Entity(building).ResetTeam();
+			}
+			
 			Player(client).ResetTeam();
 		}
 		case PostThinkType_EnemyTeam:

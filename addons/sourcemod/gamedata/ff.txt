@@ -39,6 +39,12 @@
 				"linux"		"@_ZNK11CBaseEntity10InSameTeamEPKS_"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0\x75\x2A"
 			}
+			"GetGlobalTeam"
+			{
+				"library"	"server"
+				"linux"		"@_Z13GetGlobalTeami"
+				"windows"	"\x55\x8B\xEC\x8B\x4D\x08\x85\xC9\x78\x2A\x3B\x0D\x2A\x2A\x2A\x2A\x7D\x2A\xA1\x2A\x2A\x2A\x2A\x8B\x04\x88\x5D\xC3"
+			}
 		}
 		"Offsets"
 		{
@@ -60,6 +66,12 @@
 				"linux"		"406"
 				"windows"	"399"
 			}
+			"CTFWeaponBaseGun::PrimaryAttack"
+			{
+				"library"	"server"
+				"linux"		"292"
+				"windows"	"286"
+			}
 			"CTFWeaponBaseGun::SecondaryAttack"
 			{
 				"library"	"server"
@@ -71,6 +83,24 @@
 				"library"	"server"
 				"linux"		"236"
 				"windows"	"235"
+			}
+			"CTeam::AddPlayer"
+			{
+				"library"	"server"
+				"linux"		"209"
+				"windows"	"208"
+			}
+			"CTeam::RemovePlayer"
+			{
+				"library"	"server"
+				"linux"		"210"
+				"windows"	"209"
+			}
+			"CBaseEntity::ChangeTeam"
+			{
+				"library"	"server"
+				"linux"		"97"
+				"windows"	"96"
 			}
 		}
 		"Functions"
@@ -119,6 +149,13 @@
 				"offset"	"CTFSniperRifle::GetCustomDamageType"
 				"hooktype"	"entity"
 				"return"	"int"
+				"this"		"entity"
+			}
+			"CTFWeaponBaseGun::PrimaryAttack"
+			{
+				"offset"	"CTFWeaponBaseGun::PrimaryAttack"
+				"hooktype"	"entity"
+				"return"	"void"
 				"this"		"entity"
 			}
 			"CTFWeaponBaseGun::SecondaryAttack"

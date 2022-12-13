@@ -65,4 +65,9 @@ methodmap Player
 		int index = --this.m_iTeamCount;
 		TF2_SetTeam(this._client, g_PlayerTeam[this._client][index]);
 	}
+	
+	public TFTeam GetTeamInternal(int index)
+	{
+		return g_PlayerTeam[this._client][index];
+	}
 }

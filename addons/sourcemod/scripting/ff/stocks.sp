@@ -64,3 +64,24 @@ TFTeam GetEnemyTeam(TFTeam team)
 		default: { return team; }
 	}
 }
+
+bool TF2_IsObjectFriendly(int obj, int entity)
+{
+	if (IsValidEntity(entity))
+	{
+		if (IsEntityClient(entity))
+		{
+			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == entity)	// obj_dispenser
+				return true;
+			else if (GetEntPropEnt(obj, Prop_Data, "m_hParent") == entity)	// pd_dispenser
+				return true;
+		}
+		else
+		{
+			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == GetEntPropEnt(entity, Prop_Send, "m_hBuilder"))
+				return true;
+		}
+	}
+	
+	return false;
+}
