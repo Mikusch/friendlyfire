@@ -235,6 +235,12 @@ Action SDKHookCB_Projectile_Touch(int entity, int other)
 	{
 		Entity(owner).ChangeToSpectator();
 		Entity(entity).ChangeToSpectator();
+		
+		// Rescue Ranger healing bolts require buildings to be on the same team as them
+		if (IsBaseObject(other) && TF2_IsObjectFriendly(other, owner))
+		{
+			Entity(other).ChangeToSpectator();
+		}
 	}
 	
 	return Plugin_Continue;
@@ -247,6 +253,11 @@ void SDKHookCB_Projectile_TouchPost(int entity, int other)
 	{
 		Entity(owner).ResetTeam();
 		Entity(entity).ResetTeam();
+		
+		if (IsBaseObject(other) && TF2_IsObjectFriendly(other, owner))
+		{
+			Entity(other).ResetTeam();
+		}
 	}
 }
 

@@ -37,21 +37,33 @@ void TF2_SetTeam(int entity, TFTeam team)
 // e.g. CTFFlameManager -> CTFFlameThrower -> CTFPlayer
 int FindParentOwnerEntity(int entity)
 {
+	int parent = -1;
+	
 	if (HasEntProp(entity, Prop_Send, "m_hThrower"))
 	{
-		return GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+		parent = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	}
+	else if (HasEntProp(entity, Prop_Send, "m_hLauncher"))
+	{
+		parent = GetEntPropEnt(entity, Prop_Send, "m_hLauncher");
+	}
+	else if (HasEntProp(entity, Prop_Send, "m_hBuilder"))
+	{
+		parent = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
 	}
 	else if (HasEntProp(entity, Prop_Send, "m_hOwnerEntity"))
 	{
-		// Loops through owner entities until it finds the most specific one
-		int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-		if (owner != -1 && owner != entity)
-		{
-			return FindParentOwnerEntity(owner);
-		}
+		parent = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	}
 	
-	return entity;
+	if (parent != -1 && parent != entity)
+	{
+		return FindParentOwnerEntity(parent);
+	}
+	else
+	{
+		return entity;
+	}
 }
 
 TFTeam GetEnemyTeam(TFTeam team)
@@ -94,4 +106,14 @@ float TF2_GetPercentInvisible(int client)
 		offset = FindSendPropInfo("CTFPlayer", "m_flInvisChangeCompleteTime") - 8;
 	
 	return GetEntDataFloat(client, offset);
+}
+
+bool IsBaseObject(int entity)
+{
+	return HasEntProp(entity, Prop_Data, "CBaseObjectUpgradeThink");
+}
+
+bool IsWeaponBaseMelee(int entity)
+{
+	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseMeleeSmack");
 }

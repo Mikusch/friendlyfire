@@ -69,7 +69,7 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
 	}
 	
-	if (HasEntProp(entity, Prop_Data, "CTFWeaponBaseMeleeSmack"))
+	if (IsWeaponBaseMelee(entity))
 	{
 		g_DHookSmack.HookEntity(Hook_Pre, entity, DHookCallback_Smack_Pre);
 		g_DHookSmack.HookEntity(Hook_Post, entity, DHookCallback_Smack_Post);
@@ -206,9 +206,12 @@ MRESReturn DHookCallback_Smack_Post(int entity)
 
 MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam param)
 {
-	// Respawn rooms should still work normally, for local testing
 	char classname[64];
-	if (!GetEntityClassname(entity, classname, sizeof(classname)) || StrEqual(classname, "func_respawnroom"))
+	if (!GetEntityClassname(entity, classname, sizeof(classname)))
+		return MRES_Ignored;
+	
+	// Respawn rooms should still work normally, for local testing
+	if (StrEqual(classname, "func_respawnroom"))
 		return MRES_Ignored;
 	
 	if (param.IsNull(1))
