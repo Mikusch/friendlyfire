@@ -27,13 +27,14 @@ enum PostThinkType
 
 int g_spectatorItemIDs[] =
 {
-	TF_WEAPON_BUFF_ITEM,	// CTFPlayerShared::PulseRageBuff
-	TF_WEAPON_FLAMETHROWER,	// CTFFlameThrower::SecondaryAttack
-	TF_WEAPON_FLAME_BALL,	// CWeaponFlameBall::SecondaryAttack
-	TF_WEAPON_SNIPERRIFLE,	// CTFPlayer::FireBullet
-	TF_WEAPON_KNIFE,		// CTFKnife::PrimaryAttack
-	TF_WEAPON_STICKBOMB,	// CTFStickBomb::Smack
-	TF_WEAPON_FISTS,		// CTFWeaponBaseMelee::DoMeleeDamage
+	TF_WEAPON_BUFF_ITEM,		// CTFPlayerShared::PulseRageBuff
+	TF_WEAPON_FLAMETHROWER,		// CTFFlameThrower::SecondaryAttack
+	TF_WEAPON_FLAME_BALL,		// CWeaponFlameBall::SecondaryAttack
+	TF_WEAPON_SNIPERRIFLE,		// CTFPlayer::FireBullet
+	TF_WEAPON_KNIFE,			// CTFKnife::PrimaryAttack
+	TF_WEAPON_STICKBOMB,		// CTFStickBomb::Smack
+	TF_WEAPON_FISTS,			// CTFWeaponBaseMelee::DoMeleeDamage
+	TF_WEAPON_RAYGUN_REVENGE,	// CTFFlareGun_Revenge::ExtinguishPlayerInternal
 };
 
 int g_enemyItemIDs[] =
