@@ -27,7 +27,7 @@ enum ThinkFunction
 
 static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookGetCustomDamageType;
-static DynamicHook g_Explode;
+static DynamicHook g_DHookExplode;
 
 static ThinkFunction g_ThinkFunction;
 
@@ -38,12 +38,7 @@ void DHooks_Initialize(GameData gamedata)
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
-	g_Explode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
-}
-
-void DHooks_OnClientPutInServer(int client)
-{
-	
+	g_DHookExplode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
 }
 
 void DHooks_OnEntityCreated(int entity, const char[] classname)
@@ -52,8 +47,8 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	{
 		if (strncmp(classname, "tf_projectile_jar", 17) == 0)
 		{
-			g_Explode.HookEntity(Hook_Pre, entity, DHookCallback_Explode_Pre);
-			g_Explode.HookEntity(Hook_Post, entity, DHookCallback_Explode_Post);
+			g_DHookExplode.HookEntity(Hook_Pre, entity, DHookCallback_Explode_Pre);
+			g_DHookExplode.HookEntity(Hook_Post, entity, DHookCallback_Explode_Post);
 		}
 		
 		g_DHookCanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
@@ -96,10 +91,8 @@ MRESReturn DHookCallback_Explode_Pre(int entity, DHookParam params)
 	if (thrower != -1)
 	{
 		Entity(thrower).ChangeToSpectator();
+		Entity(entity).ChangeToSpectator();
 	}
-	// TODO GAS STILL COATS YOURSELF
-	// HOOK PointManager::ShouldCollide
-	Entity(entity).ChangeToSpectator();
 	
 	return MRES_Ignored;
 }
@@ -110,9 +103,8 @@ MRESReturn DHookCallback_Explode_Post(int entity, DHookParam params)
 	if (thrower != -1)
 	{
 		Entity(thrower).ResetTeam();
+		Entity(entity).ResetTeam();
 	}
-	
-	Entity(entity).ResetTeam();
 	
 	return MRES_Ignored;
 }
@@ -225,7 +217,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 				{
 					if (!TF2_IsObjectFriendly(entity, client))
 					{
-						Player(client).ChangeToSpectator();
+						Entity(client).ChangeToSpectator();
 					}
 				}
 			}
@@ -278,7 +270,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 				{
 					if (!TF2_IsObjectFriendly(entity, client))
 					{
-						Player(client).ResetTeam();
+						Entity(client).ResetTeam();
 					}
 				}
 			}

@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (C) 2022  Mikusch
  *
  * This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,6 @@ int g_iEnemyItemIDs[] =
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static bool g_PostThinkMelee;
 static PostThinkType g_nPostThinkType = PostThinkType_None;
 
 void SDKHooks_OnClientPutInServer(int client)
@@ -83,13 +82,13 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 void SDKHookCB_PreThink(int client)
 {
 	// Disable radius buffs like Buff Banner or King Rune
-	Player(client).ChangeToSpectator();
+	Entity(client).ChangeToSpectator();
 }
 
 // CTFPlayerShared::OnPreDataChanged
 void SDKHookCB_PreThinkPost(int client)
 {
-	Player(client).ResetTeam();
+	Entity(client).ResetTeam();
 }
 
 // CTFWeaponBase::ItemPostFrame
@@ -102,8 +101,6 @@ void SDKHookCB_PostThink(int client)
 	// CTFWeaponBaseMelee::Smack
 	if (TF2Util_GetWeaponSlot(activeWeapon) == TFWeaponSlot_Melee)
 	{
-		g_PostThinkMelee = true;
-		
 		int building = MaxClients + 1;
 		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
 		{
@@ -127,7 +124,7 @@ void SDKHookCB_PostThink(int client)
 			{
 				if (IsClientInGame(other) && other != client)
 				{
-					Player(other).SetTeam(GetEnemyTeam(TF2_GetClientTeam(client)));
+					Entity(other).SetTeam(GetEnemyTeam(TF2_GetClientTeam(client)));
 				}
 			}
 		}
@@ -140,7 +137,7 @@ void SDKHookCB_PostThink(int client)
 		{
 			g_nPostThinkType = PostThinkType_Spectator;
 			
-			Player(client).ChangeToSpectator();
+			Entity(client).ChangeToSpectator();
 		}
 	}
 }
@@ -148,29 +145,12 @@ void SDKHookCB_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 void SDKHookCB_PostThinkPost(int client)
 {
-	// Change everything back to how it was accordingly
-	switch (g_nPostThinkType)
-	{
-		case PostThinkType_Spectator:
-		{
-			Player(client).ResetTeam();
-		}
-		case PostThinkType_EnemyTeam:
-		{
-			for (int other = 1; other <= MaxClients; other++)
-			{
-				if (IsClientInGame(other) && other != client)
-					Player(other).ResetTeam();
-			}
-		}
-	}
+	int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	if (activeWeapon == -1)
+		return;
 	
-	g_nPostThinkType = PostThinkType_None;
-	
-	if (g_PostThinkMelee)
+	if (TF2Util_GetWeaponSlot(activeWeapon) == TFWeaponSlot_Melee)
 	{
-		g_PostThinkMelee = false;
-		
 		// Reset all buildings
 		int building = MaxClients + 1;
 		while ((building = FindEntityByClassname(building, "obj_*")) > MaxClients)
@@ -181,18 +161,39 @@ void SDKHookCB_PostThinkPost(int client)
 			}
 		}
 	}
+	
+	// Change everything back to how it was accordingly
+	switch (g_nPostThinkType)
+	{
+		case PostThinkType_Spectator:
+		{
+			Entity(client).ResetTeam();
+		}
+		case PostThinkType_EnemyTeam:
+		{
+			for (int other = 1; other <= MaxClients; other++)
+			{
+				if (IsClientInGame(other) && other != client)
+				{
+					Entity(other).ResetTeam();
+				}
+			}
+		}
+	}
+	
+	g_nPostThinkType = PostThinkType_None;
 }
 
 Action SDKHookCB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (IsEntityClient(attacker))
 	{
-		Player(attacker).ChangeToSpectator();
+		Entity(attacker).ChangeToSpectator();
 	}
 	else
 	{
 		// Mostly for boots_falling_stomp
-		Player(victim).ChangeToSpectator();
+		Entity(victim).ChangeToSpectator();
 	}
 	
 	return Plugin_Continue;
@@ -202,11 +203,11 @@ void SDKHookCB_OnTakeDamagePost(int victim, int attacker, int inflictor, float d
 {
 	if (IsEntityClient(attacker))
 	{
-		Player(attacker).ResetTeam();
+		Entity(attacker).ResetTeam();
 	}
 	else
 	{
-		Player(victim).ResetTeam();
+		Entity(victim).ResetTeam();
 	}
 }
 
@@ -240,9 +241,9 @@ Action SDKHookCB_BaseObject_OnTakeDamage(int victim, int &attacker, int &inflict
 Action SDKHookCB_ProjectileTouch(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (IsEntityClient(owner) && owner != other)
+	if (owner != other)
 	{
-		Player(owner).ChangeToSpectator();
+		Entity(owner).ChangeToSpectator();
 		Entity(entity).ChangeToSpectator();
 	}
 	
@@ -252,9 +253,9 @@ Action SDKHookCB_ProjectileTouch(int entity, int other)
 void SDKHookCB_ProjectileTouchPost(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (IsEntityClient(owner) && owner != other)
+	if (owner != other)
 	{
-		Player(owner).ResetTeam();
+		Entity(owner).ResetTeam();
 		Entity(entity).ResetTeam();
 	}
 }
@@ -262,10 +263,10 @@ void SDKHookCB_ProjectileTouchPost(int entity, int other)
 Action SDKHookCB_FlameManagerTouch(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (IsEntityClient(owner))
+	if (owner != -1)
 	{
 		// Fixes Flame Throwers during friendly fire
-		Player(owner).ChangeToSpectator();
+		Entity(owner).ChangeToSpectator();
 	}
 	
 	return Plugin_Continue;
@@ -274,9 +275,9 @@ Action SDKHookCB_FlameManagerTouch(int entity, int other)
 void SDKHookCB_FlameManagerTouchPost(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (IsEntityClient(owner))
+	if (owner != -1)
 	{
-		Player(owner).ResetTeam();
+		Entity(owner).ResetTeam();
 	}
 }
 

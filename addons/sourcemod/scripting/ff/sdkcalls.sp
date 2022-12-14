@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (C) 2022  Mikusch
  *
  * This program is free software: you can redistribute it and/or modify
@@ -57,7 +57,7 @@ static Handle PrepSDKCall_GetPenetrateType(GameData gamedata)
 	
 	Handle call = EndPrepSDKCall();
 	if (!call)
-		LogError("Failed to create SDKCall: CTFSniperRifle::GetPenetrateType");
+		ThrowError("Failed to create SDKCall: CTFSniperRifle::GetPenetrateType");
 	
 	return call;
 }
@@ -71,7 +71,7 @@ static Handle PrepSDKCall_GetGlobalTeam(GameData gamedata)
 	
 	Handle call = EndPrepSDKCall();
 	if (!call)
-		LogError("Failed to create SDKCall: GetGlobalTeam");
+		ThrowError("Failed to create SDKCall: GetGlobalTeam");
 	
 	return call;
 }
@@ -84,7 +84,7 @@ static Handle PrepSDKCall_AddPlayer(GameData gamedata)
 	
 	Handle call = EndPrepSDKCall();
 	if (!call)
-		LogMessage("Failed to create SDKCall: CTeam::AddPlayer");
+		ThrowError("Failed to create SDKCall: CTeam::AddPlayer");
 	
 	return call;
 }
@@ -97,7 +97,7 @@ static Handle PrepSDKCall_RemovePlayer(GameData gamedata)
 	
 	Handle call = EndPrepSDKCall();
 	if (!call)
-		LogMessage("Failed to create SDKCall: CTeam::RemovePlayer");
+		ThrowError("Failed to create SDKCall: CTeam::RemovePlayer");
 	
 	return call;
 }
@@ -110,7 +110,7 @@ static Handle PrepSDKCall_ChangeTeam(GameData gamedata)
 	
 	Handle call = EndPrepSDKCall();
 	if (!call)
-		LogError("Failed to create SDKCall: CBaseEntity::ChangeTeam");
+		ThrowError("Failed to create SDKCall: CBaseEntity::ChangeTeam");
 	
 	return call;
 }

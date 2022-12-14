@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (C) 2022  Mikusch
  *
  * This program is free software: you can redistribute it and/or modify
@@ -71,13 +71,12 @@ enum
 ConVar mp_friendlyfire;
 ConVar tf_avoidteammates;
 
-#include "ff/methodmaps/Entity.sp"
-#include "ff/methodmaps/Player.sp"
+#include "ff/data.sp"
 
 #include "ff/dhooks.sp"
 #include "ff/sdkcalls.sp"
 #include "ff/sdkhooks.sp"
-#include "ff/stocks.sp"
+#include "ff/util.sp"
 
 public void OnPluginStart()
 {
@@ -85,7 +84,7 @@ public void OnPluginStart()
 	tf_avoidteammates = FindConVar("tf_avoidteammates");
 	
 	GameData gamedata = new GameData("ff");
-	if (gamedata == null)
+	if (!gamedata)
 	{
 		SetFailState("Could not find ff gamedata");
 	}
@@ -118,7 +117,6 @@ public void OnPluginEnd()
 
 public void OnClientPutInServer(int client)
 {
-	DHooks_OnClientPutInServer(client);
 	SDKHooks_OnClientPutInServer(client);
 }
 
@@ -136,12 +134,14 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 
 public void OnEntityDestroyed(int entity)
 {
-	if (Entity(entity).m_iTeamCount > 0)
+	// If an entity was removed prematurely, reset its owner's team as far back as we need to.
+	// This can happen with projectiles when they collide with the world, not calling the post-hook.
+	for (int i = 0; i < Entity(entity).m_teamCount; i++)
 	{
 		int owner = FindParentOwnerEntity(entity);
 		if (owner != -1)
 		{
-			Player(owner).ResetTeam();
+			Entity(owner).ResetTeam();
 		}
 	}
 	
