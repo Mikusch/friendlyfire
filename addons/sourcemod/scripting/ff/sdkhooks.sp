@@ -25,7 +25,7 @@ enum PostThinkType
 	PostThinkType_EnemyTeam,
 }
 
-int g_iSpectatorItemIDs[] =
+int g_spectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,	// CTFPlayerShared::PulseRageBuff
 	TF_WEAPON_FLAMETHROWER,	// CBaseCombatWeapon::SecondaryAttack
@@ -35,14 +35,15 @@ int g_iSpectatorItemIDs[] =
 	TF_WEAPON_STICKBOMB,	// CTFStickBomb::Smack
 };
 
-int g_iEnemyItemIDs[] =
+int g_enemyItemIDs[] =
 {
 	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,	// CTFPistol_ScoutPrimary::Push
 	TF_WEAPON_BAT,						// CTFWeaponBaseMelee::PrimaryAttack
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static PostThinkType g_nPostThinkType = PostThinkType_None;
+static bool g_inMeleePostThink;
+static PostThinkType g_postThinkType;
 
 void SDKHooks_OnClientPutInServer(int client)
 {
@@ -57,22 +58,27 @@ void SDKHooks_OnClientPutInServer(int client)
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
+	if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
+	{
+		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_Dispenser_StartTouch);
+		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_Dispenser_StartTouchPost);
+	}
 	if (strncmp(classname, "obj_", 4) == 0)
 	{
-		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_BaseObject_SpawnPost);
-		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_BaseObject_OnTakeDamage);
+		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Object_OnTakeDamage);
 	}
 	if (strncmp(classname, "tf_projectile_", 14) == 0)
 	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_ProjectileTouch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_ProjectileTouchPost);
+		SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
+		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 	}
-	else if (strcmp(classname, "tf_flame_manager") == 0)
+	else if (StrEqual(classname, "tf_flame_manager"))
 	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManagerTouch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManagerTouchPost);
+		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
+		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
 	}
-	else if (strcmp(classname, "tf_gas_manager") == 0)
+	else if (StrEqual(classname, "tf_gas_manager"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
 	}
@@ -101,7 +107,9 @@ void SDKHookCB_PostThink(int client)
 	// CTFWeaponBaseMelee::Smack
 	if (TF2Util_GetWeaponSlot(activeWeapon) == TFWeaponSlot_Melee)
 	{
-		int building = MaxClients + 1;
+		g_inMeleePostThink = true;
+		
+		int building = -1;
 		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
 		{
 			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
@@ -112,14 +120,13 @@ void SDKHookCB_PostThink(int client)
 		}
 	}
 	
-	// For functions that collect all players from the enemy team
-	for (int i = 0; i < sizeof(g_iEnemyItemIDs); i++)
+	// For functions that use GetEnemyTeam(), move everyone else to the enemy team
+	for (int i = 0; i < sizeof(g_enemyItemIDs); i++)
 	{
-		if (TF2Util_GetWeaponID(activeWeapon) == g_iEnemyItemIDs[i])
+		if (TF2Util_GetWeaponID(activeWeapon) == g_enemyItemIDs[i])
 		{
-			g_nPostThinkType = PostThinkType_EnemyTeam;
+			g_postThinkType = PostThinkType_EnemyTeam;
 			
-			// For everything using GetEnemyTeam, switch all other players to the enemy team
 			for (int other = 1; other <= MaxClients; other++)
 			{
 				if (IsClientInGame(other) && other != client)
@@ -130,12 +137,12 @@ void SDKHookCB_PostThink(int client)
 		}
 	}
 	
-	// For functions that do simple GetTeamNumber() checks, move ourself to spectator team
-	for (int i = 0; i < sizeof(g_iSpectatorItemIDs); i++)
+	// For functions that do simple GetTeamNumber() checks, move ourselves to spectator team
+	for (int i = 0; i < sizeof(g_spectatorItemIDs); i++)
 	{
-		if (TF2Util_GetWeaponID(activeWeapon) == g_iSpectatorItemIDs[i])
+		if (TF2Util_GetWeaponID(activeWeapon) == g_spectatorItemIDs[i])
 		{
-			g_nPostThinkType = PostThinkType_Spectator;
+			g_postThinkType = PostThinkType_Spectator;
 			
 			Entity(client).ChangeToSpectator();
 		}
@@ -145,15 +152,13 @@ void SDKHookCB_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 void SDKHookCB_PostThinkPost(int client)
 {
-	int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-	if (activeWeapon == -1)
-		return;
-	
-	if (TF2Util_GetWeaponSlot(activeWeapon) == TFWeaponSlot_Melee)
+	if (g_inMeleePostThink)
 	{
+		g_inMeleePostThink = false;
+		
 		// Reset all buildings
-		int building = MaxClients + 1;
-		while ((building = FindEntityByClassname(building, "obj_*")) > MaxClients)
+		int building = -1;
+		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
 		{
 			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
 			{
@@ -163,7 +168,7 @@ void SDKHookCB_PostThinkPost(int client)
 	}
 	
 	// Change everything back to how it was accordingly
-	switch (g_nPostThinkType)
+	switch (g_postThinkType)
 	{
 		case PostThinkType_Spectator:
 		{
@@ -181,7 +186,7 @@ void SDKHookCB_PostThinkPost(int client)
 		}
 	}
 	
-	g_nPostThinkType = PostThinkType_None;
+	g_postThinkType = PostThinkType_None;
 }
 
 Action SDKHookCB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
@@ -223,25 +228,43 @@ Action SDKHookCB_SetTransmit(int entity, int client)
 	return Plugin_Continue;
 }
 
-void SDKHookCB_BaseObject_SpawnPost(int entity)
+Action SDKHookCB_Dispenser_StartTouch(int entity, int other)
+{
+	if (IsEntityClient(other) && !TF2_IsObjectFriendly(entity, other))
+	{
+		Entity(other).ChangeToSpectator();
+	}
+	
+	return Plugin_Continue;
+}
+
+void SDKHookCB_Dispenser_StartTouchPost(int entity, int other)
+{
+	if (IsEntityClient(other) && !TF2_IsObjectFriendly(entity, other))
+	{
+		Entity(other).ResetTeam();
+	}
+}
+
+void SDKHookCB_Object_SpawnPost(int entity)
 {
 	// Enable collisions for both teams
 	SetEntityCollisionGroup(entity, TFCOLLISION_GROUP_OBJECT_SOLIDTOPLAYERMOVEMENT);
 }
 
-Action SDKHookCB_BaseObject_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+Action SDKHookCB_Object_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	// Don't allow buildings from friendly players
+	// Don't allow buildings to take damage from friendly players
 	if (TF2_IsObjectFriendly(victim, attacker))
 		return Plugin_Stop;
 	
 	return Plugin_Continue;
 }
 
-Action SDKHookCB_ProjectileTouch(int entity, int other)
+Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (owner != other)
+	if (IsValidEntity(owner) && owner != other)
 	{
 		Entity(owner).ChangeToSpectator();
 		Entity(entity).ChangeToSpectator();
@@ -250,20 +273,20 @@ Action SDKHookCB_ProjectileTouch(int entity, int other)
 	return Plugin_Continue;
 }
 
-void SDKHookCB_ProjectileTouchPost(int entity, int other)
+void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (owner != other)
+	if (IsValidEntity(owner) && owner != other)
 	{
 		Entity(owner).ResetTeam();
 		Entity(entity).ResetTeam();
 	}
 }
 
-Action SDKHookCB_FlameManagerTouch(int entity, int other)
+Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (owner != -1)
+	if (IsValidEntity(owner) && owner != other)
 	{
 		// Fixes Flame Throwers during friendly fire
 		Entity(owner).ChangeToSpectator();
@@ -272,10 +295,10 @@ Action SDKHookCB_FlameManagerTouch(int entity, int other)
 	return Plugin_Continue;
 }
 
-void SDKHookCB_FlameManagerTouchPost(int entity, int other)
+void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
 	int owner = FindParentOwnerEntity(entity);
-	if (owner != -1)
+	if (IsValidEntity(owner) && owner != other)
 	{
 		Entity(owner).ResetTeam();
 	}

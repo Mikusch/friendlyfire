@@ -33,7 +33,7 @@ static ThinkFunction g_ThinkFunction;
 
 void DHooks_Initialize(GameData gamedata)
 {
-	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeamPre, _);
+	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeam_Pre, _);
 	CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
@@ -131,8 +131,9 @@ MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 	return MRES_Ignored;
 }
 
-MRESReturn DHook_InSameTeamPre(int entity, DHookReturn ret, DHookParam param)
+MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam param)
 {
+	// Respawn rooms should still work normally, for local testing
 	char classname[64];
 	if (!GetEntityClassname(entity, classname, sizeof(classname)) || StrEqual(classname, "func_respawnroom"))
 		return MRES_Ignored;
@@ -145,8 +146,7 @@ MRESReturn DHook_InSameTeamPre(int entity, DHookReturn ret, DHookParam param)
 	
 	int other = param.Get(1);
 	
-	// Find the top-most owner.
-	// Unless this matches us, assume everyone is an enemy!
+	// Unless the top-most parent is us, assume every entity is not on the same team
 	entity = FindParentOwnerEntity(entity);
 	other = FindParentOwnerEntity(other);
 	
@@ -164,41 +164,46 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 		// CObjectSentrygun::SentryThink
 		g_ThinkFunction = ThinkFunction_SentryThink;
 		
-		TFTeam teamFriendly = TF2_GetTeam(entity);
-		TFTeam teamEnemy = GetEnemyTeam(teamFriendly);
-		Address pEnemyTeam = SDKCall_GetGlobalTeam(teamEnemy);
+		TFTeam myTeam = TF2_GetTeam(entity);
+		TFTeam enemyTeam = GetEnemyTeam(myTeam);
+		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
 		
+		// CObjectSentrygun::FindTarget uses CTFTeamManager to collect valid players.
+		// Add all enemy players to the desired team.
 		for (int client = 1; client <= MaxClients; client++)
 		{
 			if (IsClientInGame(client))
 			{
-				Entity(client).m_preHookTeam = TF2_GetTeam(client);
+				TFTeam team = TF2_GetClientTeam(client);
+				Entity(client).m_preHookTeam = team;
 				bool friendly = TF2_IsObjectFriendly(entity, client);
 				
-				if (friendly && Entity(client).m_preHookTeam == teamEnemy)
+				if (friendly && team == enemyTeam)
 				{
 					SDKCall_RemovePlayer(pEnemyTeam, client);
 				}
-				else if (!friendly && Entity(client).m_preHookTeam != teamEnemy)
+				else if (!friendly && team != enemyTeam)
 				{
 					SDKCall_AddPlayer(pEnemyTeam, client);
 				}
 			}
 		}
 		
+		// Buildings work in a similar manner, but we can change their team directly without side effects.
 		int building = -1;
 		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
 		{
 			if (!GetEntProp(building, Prop_Send, "m_bPlacing"))
 			{
 				Entity(building).m_preHookTeam = TF2_GetTeam(building);
+				
 				if (TF2_IsObjectFriendly(entity, building))
 				{
-					SDKCall_ChangeTeam(building, teamFriendly);
+					SDKCall_ChangeTeam(building, myTeam);
 				}
 				else
 				{
-					SDKCall_ChangeTeam(building, teamEnemy);
+					SDKCall_ChangeTeam(building, enemyTeam);
 				}
 			}
 		}
@@ -240,16 +245,19 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 			{
 				if (IsClientInGame(client))
 				{
+					TFTeam team = Entity(client).m_preHookTeam;
 					bool friendly = TF2_IsObjectFriendly(entity, client);
 					
-					if (friendly && Entity(client).m_preHookTeam == enemyTeam)
+					if (friendly && team == enemyTeam)
 					{
 						SDKCall_AddPlayer(pEnemyTeam, client);
 					}
-					else if (!friendly && Entity(client).m_preHookTeam != enemyTeam)
+					else if (!friendly && team != enemyTeam)
 					{
 						SDKCall_RemovePlayer(pEnemyTeam, client);
 					}
+					
+					Entity(client).m_preHookTeam = TFTeam_Unassigned;
 				}
 			}
 			
@@ -260,6 +268,8 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 				{
 					SDKCall_ChangeTeam(building, Entity(building).m_preHookTeam);
 				}
+				
+				Entity(building).m_preHookTeam = TFTeam_Unassigned;
 			}
 		}
 		case ThinkFunction_DispenseThink:
