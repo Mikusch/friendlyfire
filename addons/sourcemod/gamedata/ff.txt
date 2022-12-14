@@ -90,6 +90,12 @@
 				"linux"		"97"
 				"windows"	"96"
 			}
+			"CBasePlayer::Event_Killed"
+			{
+				"library"	"server"
+				"linux"		"69"
+				"windows"	"68"
+			}
 		}
 		"Functions"
 		{
@@ -103,7 +109,7 @@
 				{
 					"thinkFunc"
 					{
-						"type"	"objectptr"
+						"type"	"int"
 					}
 				}
 			}
@@ -138,6 +144,20 @@
 				"hooktype"	"entity"
 				"return"	"int"
 				"this"		"entity"
+			}
+			"CBasePlayer::Event_Killed"
+			{
+				"offset"	"CBasePlayer::Event_Killed"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"info"
+					{
+						"type"	"objectptr"
+					}
+				}
 			}
 			"CBaseEntity::InSameTeam"
 			{

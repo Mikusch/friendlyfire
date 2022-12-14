@@ -117,6 +117,7 @@ public void OnPluginEnd()
 
 public void OnClientPutInServer(int client)
 {
+	DHooks_OnClientPutInServer(client);
 	SDKHooks_OnClientPutInServer(client);
 }
 

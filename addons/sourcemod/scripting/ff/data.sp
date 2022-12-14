@@ -112,6 +112,19 @@ methodmap Entity
 		this.SetTeam(TFTeam_Spectator);
 	}
 	
+	// Creates a history entry regardless of whether we already are in our original team or not
+	public void ChangeToOriginalTeam()
+	{
+		if (this.m_teamCount > 0)
+		{
+			this.SetTeam(this.GetTeamInternal(0));
+		}
+		else
+		{
+			this.SetTeam(TF2_GetTeam(this.ref));
+		}
+	}
+	
 	public void ResetTeam()
 	{
 		int index = --this.m_teamCount;

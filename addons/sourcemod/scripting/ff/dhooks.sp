@@ -28,6 +28,7 @@ enum ThinkFunction
 static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookGetCustomDamageType;
 static DynamicHook g_DHookExplode;
+static DynamicHook g_DHookEventKilled;
 
 static ThinkFunction g_ThinkFunction;
 
@@ -39,6 +40,13 @@ void DHooks_Initialize(GameData gamedata)
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
 	g_DHookExplode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
+	g_DHookEventKilled = CreateDynamicHook(gamedata, "CBasePlayer::Event_Killed");
+}
+
+void DHooks_OnClientPutInServer(int client)
+{
+	g_DHookEventKilled.HookEntity(Hook_Pre, client, DHookCallback_EventKilled_Pre);
+	g_DHookEventKilled.HookEntity(Hook_Post, client, DHookCallback_EventKilled_Post);
 }
 
 void DHooks_OnEntityCreated(int entity, const char[] classname)
@@ -83,6 +91,21 @@ static DynamicHook CreateDynamicHook(GameData gamedata, const char[] name)
 		LogError("Failed to create hook setup handle for %s", name);
 	
 	return hook;
+}
+
+MRESReturn DHookCallback_EventKilled_Pre(int player, DHookParam params)
+{
+	// Switch back to the original team to force proper skin for ragdolls and other on-death effects
+	Entity(player).ChangeToOriginalTeam();
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_EventKilled_Post(int player, DHookParam params)
+{
+	Entity(player).ResetTeam();
+	
+	return MRES_Ignored;
 }
 
 MRESReturn DHookCallback_Explode_Pre(int entity, DHookParam params)
