@@ -23,6 +23,7 @@ enum ThinkFunction
 	ThinkFunction_None,
 	ThinkFunction_DispenseThink,
 	ThinkFunction_SentryThink,
+	ThinkFunction_SapperThink,
 }
 
 static DynamicHook g_DHookCanCollideWithTeammates;
@@ -250,6 +251,14 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 				}
 			}
 		}
+	}
+	else if (StrEqual(classname, "obj_attachment_sapper"))
+	{
+		// CObjectSapper::SapperThink
+		g_ThinkFunction = ThinkFunction_SapperThink;
+		
+		// Always set team to spectator so sapper can sap both teams
+		SDKCall_ChangeTeam(entity, TFTeam_Spectator);
 	}
 	
 	return MRES_Ignored;

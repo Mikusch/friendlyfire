@@ -28,11 +28,12 @@ enum PostThinkType
 int g_spectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,	// CTFPlayerShared::PulseRageBuff
-	TF_WEAPON_FLAMETHROWER,	// CBaseCombatWeapon::SecondaryAttack
+	TF_WEAPON_FLAMETHROWER,	// CTFFlameThrower::SecondaryAttack
 	TF_WEAPON_FLAME_BALL,	// CWeaponFlameBall::SecondaryAttack
 	TF_WEAPON_SNIPERRIFLE,	// CTFPlayer::FireBullet
 	TF_WEAPON_KNIFE,		// CTFKnife::PrimaryAttack
 	TF_WEAPON_STICKBOMB,	// CTFStickBomb::Smack
+	TF_WEAPON_FISTS,		// CTFWeaponBaseMelee::DoMeleeDamage
 };
 
 int g_enemyItemIDs[] =
@@ -42,7 +43,7 @@ int g_enemyItemIDs[] =
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static bool g_inMeleePostThink;
+static bool g_inWrenchPostThink;
 static PostThinkType g_postThinkType;
 
 void SDKHooks_OnClientPutInServer(int client)
@@ -104,19 +105,22 @@ void SDKHookCB_Client_PostThink(int client)
 	if (activeWeapon == -1)
 		return;
 	
-	// CTFWeaponBaseMelee::Smack
-	if (TF2Util_GetWeaponSlot(activeWeapon) == TFWeaponSlot_Melee)
+	// Separate from the other weapons because we want to be able to heal buildings
+	if (TF2Util_GetWeaponID(activeWeapon) == TF_WEAPON_WRENCH)	// CTFWeaponBaseMelee::Smack
 	{
-		g_inMeleePostThink = true;
+		g_inWrenchPostThink = true;
 		
+		// Move ourselves to spectator
+		Entity(client).ChangeToSpectator();
+		
+		// Move all our buildings to spectator to allow them to be repaired by us
 		int building = -1;
 		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
 		{
 			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
-			{
-				// Move all enemy buildings to spectator to allow them to take damage from us
-				Entity(building).ChangeToSpectator();
-			}
+				continue;
+			
+			Entity(building).ChangeToSpectator();
 		}
 	}
 	
@@ -152,18 +156,24 @@ void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 void SDKHookCB_Client_PostThinkPost(int client)
 {
-	if (g_inMeleePostThink)
+	if (g_inWrenchPostThink)
 	{
-		g_inMeleePostThink = false;
+		g_inWrenchPostThink = false;
+		
+		Entity(client).ResetTeam();
 		
 		// Reset all buildings
 		int building = -1;
 		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
 		{
+			// Building might have been destroyed at this point
+			if (GetEntProp(building, Prop_Data, "m_lifeState") != LIFE_ALIVE)
+				continue;
+			
 			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
-			{
-				Entity(building).ResetTeam();
-			}
+				continue;
+			
+			Entity(building).ResetTeam();
 		}
 	}
 	

@@ -41,10 +41,6 @@ int FindParentOwnerEntity(int entity)
 	{
 		return GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	}
-	else if (HasEntProp(entity, Prop_Send, "m_hBuilder"))
-	{
-		return GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-	}
 	else if (HasEntProp(entity, Prop_Send, "m_hOwnerEntity"))
 	{
 		// Loops through owner entities until it finds the most specific one
@@ -74,7 +70,9 @@ bool TF2_IsObjectFriendly(int obj, int entity)
 	{
 		if (IsEntityClient(entity))
 		{
-			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == entity)	// obj_dispenser
+			if (GetEntProp(obj, Prop_Data, "m_iTeamNum") == GetEntPropEnt(entity, Prop_Send, "m_nDisguiseTeam"))
+				return true;
+			else if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == entity)	// obj_dispenser
 				return true;
 			else if (GetEntPropEnt(obj, Prop_Data, "m_hParent") == entity)	// pd_dispenser
 				return true;
