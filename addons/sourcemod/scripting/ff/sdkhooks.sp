@@ -31,20 +31,16 @@ int g_spectatorItemIDs[] =
 	TF_WEAPON_FLAMETHROWER,		// CTFFlameThrower::SecondaryAttack
 	TF_WEAPON_FLAME_BALL,		// CWeaponFlameBall::SecondaryAttack
 	TF_WEAPON_SNIPERRIFLE,		// CTFPlayer::FireBullet
-	TF_WEAPON_KNIFE,			// CTFKnife::PrimaryAttack
-	TF_WEAPON_STICKBOMB,		// CTFStickBomb::Smack
-	TF_WEAPON_FISTS,			// CTFWeaponBaseMelee::DoMeleeDamage
+	TF_WEAPON_KNIFE,			// CTFKnife::BackstabVMThink
 	TF_WEAPON_RAYGUN_REVENGE,	// CTFFlareGun_Revenge::ExtinguishPlayerInternal
 };
 
 int g_enemyItemIDs[] =
 {
 	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,	// CTFPistol_ScoutPrimary::Push
-	TF_WEAPON_BAT,						// CTFWeaponBaseMelee::PrimaryAttack
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static bool g_inWrenchPostThink;
 static PostThinkType g_postThinkType;
 
 void SDKHooks_OnClientPutInServer(int client)
@@ -106,25 +102,6 @@ void SDKHookCB_Client_PostThink(int client)
 	if (activeWeapon == -1)
 		return;
 	
-	// Separate from the other weapons because we want to be able to heal buildings
-	if (TF2Util_GetWeaponID(activeWeapon) == TF_WEAPON_WRENCH)	// CTFWeaponBaseMelee::Smack
-	{
-		g_inWrenchPostThink = true;
-		
-		// Move ourselves to spectator
-		Entity(client).ChangeToSpectator();
-		
-		// Move all our buildings to spectator to allow them to be repaired by us
-		int building = -1;
-		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
-		{
-			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
-				continue;
-			
-			Entity(building).ChangeToSpectator();
-		}
-	}
-	
 	// For functions that use GetEnemyTeam(), move everyone else to the enemy team
 	for (int i = 0; i < sizeof(g_enemyItemIDs); i++)
 	{
@@ -157,27 +134,6 @@ void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 void SDKHookCB_Client_PostThinkPost(int client)
 {
-	if (g_inWrenchPostThink)
-	{
-		g_inWrenchPostThink = false;
-		
-		Entity(client).ResetTeam();
-		
-		// Reset all buildings
-		int building = -1;
-		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
-		{
-			// Building might have been destroyed at this point
-			if (GetEntProp(building, Prop_Data, "m_lifeState") != LIFE_ALIVE)
-				continue;
-			
-			if (GetEntPropEnt(building, Prop_Send, "m_hBuilder") != client)
-				continue;
-			
-			Entity(building).ResetTeam();
-		}
-	}
-	
 	// Change everything back to how it was accordingly
 	switch (g_postThinkType)
 	{

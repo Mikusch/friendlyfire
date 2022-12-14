@@ -96,6 +96,12 @@
 				"linux"		"69"
 				"windows"	"68"
 			}
+			"CTFWeaponBaseMelee::Smack"
+			{
+				"library"	"server"
+				"linux"		"476"
+				"windows"	"469"
+			}
 		}
 		"Functions"
 		{
@@ -158,6 +164,13 @@
 						"type"	"objectptr"
 					}
 				}
+			}
+			"CTFWeaponBaseMelee::Smack"
+			{
+				"offset"	"CTFWeaponBaseMelee::Smack"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
 			}
 			"CBaseEntity::InSameTeam"
 			{

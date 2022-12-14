@@ -70,7 +70,7 @@ bool TF2_IsObjectFriendly(int obj, int entity)
 	{
 		if (IsEntityClient(entity))
 		{
-			if (GetEntProp(obj, Prop_Data, "m_iTeamNum") == GetEntPropEnt(entity, Prop_Send, "m_nDisguiseTeam"))
+			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == GetEntPropEnt(entity, Prop_Send, "m_hDisguiseTarget"))
 				return true;
 			else if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == entity)	// obj_dispenser
 				return true;

@@ -30,6 +30,7 @@ static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookGetCustomDamageType;
 static DynamicHook g_DHookExplode;
 static DynamicHook g_DHookEventKilled;
+static DynamicHook g_DHookSmack;
 
 static ThinkFunction g_ThinkFunction;
 
@@ -42,6 +43,7 @@ void DHooks_Initialize(GameData gamedata)
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
 	g_DHookExplode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
 	g_DHookEventKilled = CreateDynamicHook(gamedata, "CBasePlayer::Event_Killed");
+	g_DHookSmack = CreateDynamicHook(gamedata, "CTFWeaponBaseMelee::Smack");
 }
 
 void DHooks_OnClientPutInServer(int client)
@@ -65,6 +67,12 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	else if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
 	{
 		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
+	}
+	
+	if (HasEntProp(entity, Prop_Data, "CTFWeaponBaseMeleeSmack"))
+	{
+		g_DHookSmack.HookEntity(Hook_Pre, entity, DHookCallback_Smack_Pre);
+		g_DHookSmack.HookEntity(Hook_Post, entity, DHookCallback_Smack_Post);
 	}
 }
 
@@ -150,6 +158,47 @@ MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 	{
 		ret.Value = TF_DMG_CUSTOM_NONE;
 		return MRES_Supercede;
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_Smack_Pre(int entity)
+{
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	if (owner != -1)
+	{
+		Entity(owner).ChangeToSpectator();
+		
+		// Move all our buildings to spectator to allow them to be repaired by us
+		int obj = -1;
+		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+		{
+			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
+				continue;
+			
+			Entity(obj).ChangeToSpectator();
+		}
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_Smack_Post(int entity)
+{
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	if (owner != -1)
+	{
+		Entity(owner).ResetTeam();
+		
+		int obj = -1;
+		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+		{
+			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
+				continue;
+			
+			Entity(obj).ResetTeam();
+		}
 	}
 	
 	return MRES_Ignored;
