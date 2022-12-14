@@ -47,13 +47,13 @@ static PostThinkType g_postThinkType;
 
 void SDKHooks_OnClientPutInServer(int client)
 {
-	SDKHook(client, SDKHook_PreThink, SDKHookCB_PreThink);
-	SDKHook(client, SDKHook_PreThinkPost, SDKHookCB_PreThinkPost);
-	SDKHook(client, SDKHook_PostThink, SDKHookCB_PostThink);
-	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_PostThinkPost);
-	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_OnTakeDamage);
-	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_OnTakeDamagePost);
-	SDKHook(client, SDKHook_SetTransmit, SDKHookCB_SetTransmit);
+	SDKHook(client, SDKHook_PreThink, SDKHookCB_Client_PreThink);
+	SDKHook(client, SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
+	SDKHook(client, SDKHook_PostThink, SDKHookCB_Client_PostThink);
+	SDKHook(client, SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
+	SDKHook(client, SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
+	SDKHook(client, SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
+	SDKHook(client, SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
 }
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
@@ -85,20 +85,20 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 }
 
 // CTFPlayerShared::OnPreDataChanged
-void SDKHookCB_PreThink(int client)
+void SDKHookCB_Client_PreThink(int client)
 {
 	// Disable radius buffs like Buff Banner or King Rune
 	Entity(client).ChangeToSpectator();
 }
 
 // CTFPlayerShared::OnPreDataChanged
-void SDKHookCB_PreThinkPost(int client)
+void SDKHookCB_Client_PreThinkPost(int client)
 {
 	Entity(client).ResetTeam();
 }
 
 // CTFWeaponBase::ItemPostFrame
-void SDKHookCB_PostThink(int client)
+void SDKHookCB_Client_PostThink(int client)
 {
 	int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 	if (activeWeapon == -1)
@@ -150,7 +150,7 @@ void SDKHookCB_PostThink(int client)
 }
 
 // CTFWeaponBase::ItemPostFrame
-void SDKHookCB_PostThinkPost(int client)
+void SDKHookCB_Client_PostThinkPost(int client)
 {
 	if (g_inMeleePostThink)
 	{
@@ -189,7 +189,7 @@ void SDKHookCB_PostThinkPost(int client)
 	g_postThinkType = PostThinkType_None;
 }
 
-Action SDKHookCB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (IsEntityClient(attacker))
 	{
@@ -204,7 +204,7 @@ Action SDKHookCB_OnTakeDamage(int victim, int &attacker, int &inflictor, float &
 	return Plugin_Continue;
 }
 
-void SDKHookCB_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	if (IsEntityClient(attacker))
 	{
@@ -216,7 +216,7 @@ void SDKHookCB_OnTakeDamagePost(int victim, int attacker, int inflictor, float d
 	}
 }
 
-Action SDKHookCB_SetTransmit(int entity, int client)
+Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
 	// Don't transmit invisible spies to living players
 	if (entity == client || !IsPlayerAlive(client))
