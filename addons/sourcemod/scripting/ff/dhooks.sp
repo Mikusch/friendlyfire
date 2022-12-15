@@ -177,14 +177,17 @@ MRESReturn DHookCallback_Smack_Pre(int entity)
 	{
 		Entity(owner).ChangeToSpectator();
 		
-		// Move all our buildings to spectator to allow them to be repaired by us
-		int obj = -1;
-		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+		if (TF2Util_GetWeaponID(entity) == TF_WEAPON_WRENCH)
 		{
-			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
-				continue;
-			
-			Entity(obj).ChangeToSpectator();
+			// Move all our buildings to spectator to allow them to be repaired by us
+			int obj = -1;
+			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+			{
+				if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
+					continue;
+				
+				Entity(obj).ChangeToSpectator();
+			}
 		}
 	}
 	
@@ -198,13 +201,16 @@ MRESReturn DHookCallback_Smack_Post(int entity)
 	{
 		Entity(owner).ResetTeam();
 		
-		int obj = -1;
-		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+		if (TF2Util_GetWeaponID(entity) == TF_WEAPON_WRENCH)
 		{
-			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
-				continue;
-			
-			Entity(obj).ResetTeam();
+			int obj = -1;
+			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+			{
+				if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
+					continue;
+				
+				Entity(obj).ResetTeam();
+			}
 		}
 	}
 	
