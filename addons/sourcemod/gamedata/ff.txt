@@ -45,6 +45,12 @@
 				"linux"		"@_Z13GetGlobalTeami"
 				"windows"	"\x55\x8B\xEC\x8B\x4D\x08\x85\xC9\x78\x2A\x3B\x0D\x2A\x2A\x2A\x2A\x7D\x2A\xA1\x2A\x2A\x2A\x2A\x8B\x04\x88\x5D\xC3"
 			}
+			"CBaseObject::CreateBuildPoints"
+			{
+				"library"	"server"
+				"linux"		"@_ZN11CBaseObject17CreateBuildPointsEv"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x08\x53\x56\x8B\xD9\x57\x6A\x20"
+			}
 		}
 		"Offsets"
 		{
@@ -185,6 +191,13 @@
 						"type"	"cbaseentity"
 					}
 				}
+			}
+			"CBaseObject::CreateBuildPoints"
+			{
+				"signature"	"CBaseObject::CreateBuildPoints"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"entity"
 			}
 		}
 	}

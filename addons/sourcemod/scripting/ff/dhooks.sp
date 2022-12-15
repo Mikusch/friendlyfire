@@ -38,6 +38,7 @@ void DHooks_Initialize(GameData gamedata)
 {
 	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeam_Pre, _);
 	CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
+	CreateDynamicDetour(gamedata, "CBaseObject::CreateBuildPoints", DHookCallback_CreateBuildPoints_Pre);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
@@ -372,6 +373,16 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 	}
 	
 	g_ThinkFunction = ThinkFunction_None;
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_CreateBuildPoints_Pre(int obj)
+{
+	if (g_ThinkFunction == ThinkFunction_SentryThink)
+	{
+		return MRES_Supercede;
+	}
 	
 	return MRES_Ignored;
 }
