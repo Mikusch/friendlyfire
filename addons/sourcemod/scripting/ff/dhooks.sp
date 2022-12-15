@@ -39,7 +39,6 @@ void DHooks_Initialize(GameData gamedata)
 {
 	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeam_Pre, _);
 	CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
-	CreateDynamicDetour(gamedata, "CBaseObject::CreateBuildPoints", DHookCallback_CreateBuildPoints_Pre);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
@@ -277,21 +276,25 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 			}
 		}
 		
-		// Buildings work in a similar manner, but we can change their team directly without side effects.
+		// Buildings work in a similar way.
+		// NOTE: Previously, we would use CBaseObject::ChangeTeam, but we switched to AddObject/RemoveObject calls,
+		// due to ChangeTeam recreating the build points, causing issues with sapper placement.
 		int obj = -1;
 		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 		{
 			if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 			{
-				Entity(obj).m_preHookTeam = TF2_GetTeam(obj);
+				TFTeam team = TF2_GetTeam(obj);
+				Entity(obj).m_preHookTeam = team;
+				bool friendly = TF2_IsObjectFriendly(entity, obj);
 				
-				if (TF2_IsObjectFriendly(entity, obj))
+				if (friendly && team == enemyTeam)
 				{
-					SDKCall_ChangeTeam(obj, myTeam);
+					SDKCall_RemoveObject(pEnemyTeam, obj);
 				}
-				else
+				else if (!friendly && team != enemyTeam)
 				{
-					SDKCall_ChangeTeam(obj, enemyTeam);
+					SDKCall_AddObject(pEnemyTeam, obj);
 				}
 			}
 		}
@@ -340,7 +343,8 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 	{
 		case ThinkFunction_SentryThink:
 		{
-			TFTeam enemyTeam = GetEnemyTeam(TF2_GetTeam(entity));
+			TFTeam myTeam = TF2_GetTeam(entity);
+			TFTeam enemyTeam = GetEnemyTeam(myTeam);
 			Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
 			
 			for (int client = 1; client <= MaxClients; client++)
@@ -368,10 +372,20 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 			{
 				if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 				{
-					SDKCall_ChangeTeam(obj, Entity(obj).m_preHookTeam);
+					TFTeam team = Entity(obj).m_preHookTeam;
+					bool friendly = TF2_IsObjectFriendly(entity, obj);
+					
+					if (friendly && team == enemyTeam)
+					{
+						SDKCall_AddObject(pEnemyTeam, obj);
+					}
+					else if (!friendly && team != enemyTeam)
+					{
+						SDKCall_RemoveObject(pEnemyTeam, obj);
+					}
+					
+					Entity(obj).m_preHookTeam = TFTeam_Unassigned;
 				}
-				
-				Entity(obj).m_preHookTeam = TFTeam_Unassigned;
 			}
 		}
 		case ThinkFunction_DispenseThink:
@@ -390,17 +404,6 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 	}
 	
 	g_ThinkFunction = ThinkFunction_None;
-	
-	return MRES_Ignored;
-}
-
-MRESReturn DHookCallback_CreateBuildPoints_Pre(int obj)
-{
-	// ChangeTeam recalculates all build points, stop this
-	if (g_ThinkFunction == ThinkFunction_SentryThink)
-	{
-		return MRES_Supercede;
-	}
 	
 	return MRES_Ignored;
 }

@@ -23,6 +23,8 @@ static Handle g_SDKCallGetPenetrateType;
 static Handle g_SDKCallGetGlobalTeam;
 static Handle g_SDKCallAddPlayer;
 static Handle g_SDKCallRemovePlayer;
+static Handle g_SDKCallAddObject;
+static Handle g_SDKCallRemoveObject;
 static Handle g_SDKCallChangeTeam;
 
 void SDKCalls_Initialize(GameData gamedata)
@@ -32,6 +34,8 @@ void SDKCalls_Initialize(GameData gamedata)
 	g_SDKCallGetGlobalTeam = PrepSDKCall_GetGlobalTeam(gamedata);
 	g_SDKCallAddPlayer = PrepSDKCall_AddPlayer(gamedata);
 	g_SDKCallRemovePlayer = PrepSDKCall_RemovePlayer(gamedata);
+	g_SDKCallAddObject = PrepSDKCall_AddObject(gamedata);
+	g_SDKCallRemoveObject = PrepSDKCall_RemoveObject(gamedata);
 	g_SDKCallChangeTeam = PrepSDKCall_ChangeTeam(gamedata);
 }
 
@@ -102,6 +106,32 @@ static Handle PrepSDKCall_RemovePlayer(GameData gamedata)
 	return call;
 }
 
+static Handle PrepSDKCall_AddObject(GameData gamedata)
+{
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CTFTeam::AddObject");
+	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+	
+	Handle call = EndPrepSDKCall();
+	if (!call)
+		ThrowError("Failed to create SDKCall: CTFTeam::AddObject");
+	
+	return call;
+}
+
+static Handle PrepSDKCall_RemoveObject(GameData gamedata)
+{
+	StartPrepSDKCall(SDKCall_Raw);
+	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CTFTeam::RemoveObject");
+	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
+	
+	Handle call = EndPrepSDKCall();
+	if (!call)
+		ThrowError("Failed to create SDKCall: CTFTeam::RemoveObject");
+	
+	return call;
+}
+
 static Handle PrepSDKCall_ChangeTeam(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Entity);
@@ -149,6 +179,18 @@ void SDKCall_RemovePlayer(Address team, int client)
 {
 	if (g_SDKCallRemovePlayer)
 		SDKCall(g_SDKCallRemovePlayer, team, client);
+}
+
+void SDKCall_AddObject(Address team, int obj)
+{
+	if (g_SDKCallAddObject)
+		SDKCall(g_SDKCallAddObject, team, obj);
+}
+
+void SDKCall_RemoveObject(Address team, int obj)
+{
+	if (g_SDKCallRemoveObject)
+		SDKCall(g_SDKCallRemoveObject, team, obj);
 }
 
 void SDKCall_ChangeTeam(int entity, TFTeam team)
