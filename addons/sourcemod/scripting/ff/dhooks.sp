@@ -247,7 +247,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	if (StrEqual(classname, "obj_sentrygun"))
 	{
 		// CObjectSentrygun::SentryThink
-		if (SDKCall_GetNextThink(entity, "SentryThink") == TICK_NEVER_THINK)
+		if (SDKCall_GetNextThink(entity, "SentryThink") != TICK_NEVER_THINK)
 			return MRES_Ignored;
 		
 		g_ThinkFunction = ThinkFunction_SentryThink;
@@ -299,7 +299,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
 		// CObjectDispenser::DispenseThink
-		if (SDKCall_GetNextThink(entity, "DispenseThink") == TICK_NEVER_THINK)
+		if (SDKCall_GetNextThink(entity, "DispenseThink") != TICK_NEVER_THINK)
 			return MRES_Ignored;
 		
 		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
@@ -321,13 +321,13 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	}
 	else if (StrEqual(classname, "obj_attachment_sapper"))
 	{
-		// CObjectSapper::SapperThink
-		if (SDKCall_GetNextThink(entity, "SapperThink") == TICK_NEVER_THINK)
+		// CBaseObject::BaseObjectThink
+		if (SDKCall_GetNextThink(entity, "BaseObjectThink") != TICK_NEVER_THINK)
 			return MRES_Ignored;
 		
 		g_ThinkFunction = ThinkFunction_SapperThink;
 		
-		// Always set team to spectator so sapper can sap both teams
+		// Always set team to spectator so we can place sappers on buildings of both teams
 		SDKCall_ChangeTeam(entity, TFTeam_Spectator);
 	}
 	
