@@ -31,6 +31,7 @@ static DynamicHook g_DHookGetCustomDamageType;
 static DynamicHook g_DHookExplode;
 static DynamicHook g_DHookEventKilled;
 static DynamicHook g_DHookSmack;
+static DynamicHook g_DHookSecondaryAttack;
 
 static ThinkFunction g_ThinkFunction;
 
@@ -45,6 +46,7 @@ void DHooks_Initialize(GameData gamedata)
 	g_DHookExplode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
 	g_DHookEventKilled = CreateDynamicHook(gamedata, "CBasePlayer::Event_Killed");
 	g_DHookSmack = CreateDynamicHook(gamedata, "CTFWeaponBaseMelee::Smack");
+	g_DHookSecondaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBase::SecondaryAttack");
 }
 
 void DHooks_OnClientPutInServer(int client)
@@ -68,6 +70,11 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	else if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
 	{
 		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
+	}
+	else if (strncmp(classname, "tf_weapon_", 10) == 0)
+	{
+		g_DHookSecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
+		g_DHookSecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_SecondaryAttack_Post);
 	}
 	
 	if (IsWeaponBaseMelee(entity))
@@ -234,11 +241,15 @@ MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam param)
 MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 {
 	char classname[64];
-	GetEntityClassname(entity, classname, sizeof(classname));
+	if (!GetEntityClassname(entity, classname, sizeof(classname)))
+		return MRES_Ignored;
 	
 	if (StrEqual(classname, "obj_sentrygun"))
 	{
 		// CObjectSentrygun::SentryThink
+		if (SDKCall_GetNextThink(entity, "SentryThink") == TICK_NEVER_THINK)
+			return MRES_Ignored;
+		
 		g_ThinkFunction = ThinkFunction_SentryThink;
 		
 		TFTeam myTeam = TF2_GetTeam(entity);
@@ -267,29 +278,32 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 		}
 		
 		// Buildings work in a similar manner, but we can change their team directly without side effects.
-		int building = -1;
-		while ((building = FindEntityByClassname(building, "obj_*")) != -1)
+		int obj = -1;
+		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 		{
-			if (!GetEntProp(building, Prop_Send, "m_bPlacing"))
+			if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 			{
-				Entity(building).m_preHookTeam = TF2_GetTeam(building);
+				Entity(obj).m_preHookTeam = TF2_GetTeam(obj);
 				
-				if (TF2_IsObjectFriendly(entity, building))
+				if (TF2_IsObjectFriendly(entity, obj))
 				{
-					SDKCall_ChangeTeam(building, myTeam);
+					SDKCall_ChangeTeam(obj, myTeam);
 				}
 				else
 				{
-					SDKCall_ChangeTeam(building, enemyTeam);
+					SDKCall_ChangeTeam(obj, enemyTeam);
 				}
 			}
 		}
 	}
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
-		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding") && SDKCall_GetNextThink(entity, "DispenseThink") == TICK_NEVER_THINK)
+		// CObjectDispenser::DispenseThink
+		if (SDKCall_GetNextThink(entity, "DispenseThink") == TICK_NEVER_THINK)
+			return MRES_Ignored;
+		
+		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
 		{
-			// CObjectDispenser::DispenseThink
 			g_ThinkFunction = ThinkFunction_DispenseThink;
 			
 			// Disallow players able to be healed from dispenser
@@ -308,6 +322,9 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "obj_attachment_sapper"))
 	{
 		// CObjectSapper::SapperThink
+		if (SDKCall_GetNextThink(entity, "SapperThink") == TICK_NEVER_THINK)
+			return MRES_Ignored;
+		
 		g_ThinkFunction = ThinkFunction_SapperThink;
 		
 		// Always set team to spectator so sapper can sap both teams
@@ -346,15 +363,15 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 				}
 			}
 			
-			int building = -1;
-			while ((building = FindEntityByClassname(building, "obj_*")) != -1)
+			int obj = -1;
+			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 			{
-				if (!GetEntProp(building, Prop_Send, "m_bPlacing"))
+				if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 				{
-					SDKCall_ChangeTeam(building, Entity(building).m_preHookTeam);
+					SDKCall_ChangeTeam(obj, Entity(obj).m_preHookTeam);
 				}
 				
-				Entity(building).m_preHookTeam = TFTeam_Unassigned;
+				Entity(obj).m_preHookTeam = TFTeam_Unassigned;
 			}
 		}
 		case ThinkFunction_DispenseThink:
@@ -379,9 +396,48 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 
 MRESReturn DHookCallback_CreateBuildPoints_Pre(int obj)
 {
+	// ChangeTeam recalculates all build points, stop this
 	if (g_ThinkFunction == ThinkFunction_SentryThink)
 	{
 		return MRES_Supercede;
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
+{
+	if (TF2Util_GetWeaponID(weapon) == TF_WEAPON_PIPEBOMBLAUNCHER)
+	{
+		Entity(weapon).ChangeToSpectator();
+		
+		int pipe = -1;
+		while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
+		{
+			if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
+			{
+				Entity(pipe).ChangeToSpectator();
+			}
+		}
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
+{
+	if (TF2Util_GetWeaponID(weapon) == TF_WEAPON_PIPEBOMBLAUNCHER)
+	{
+		Entity(weapon).ResetTeam();
+		
+		int pipe = -1;
+		while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
+		{
+			if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
+			{
+				Entity(pipe).ResetTeam();
+			}
+		}
 	}
 	
 	return MRES_Ignored;

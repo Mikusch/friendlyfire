@@ -108,6 +108,12 @@
 				"linux"		"476"
 				"windows"	"469"
 			}
+			"CTFWeaponBase::SecondaryAttack"
+			{
+				"library"	"server"
+				"linux"		"293"
+				"windows"	"287"
+			}
 		}
 		"Functions"
 		{
@@ -174,6 +180,13 @@
 			"CTFWeaponBaseMelee::Smack"
 			{
 				"offset"	"CTFWeaponBaseMelee::Smack"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
+			}
+			"CTFWeaponBase::SecondaryAttack"
+			{
+				"offset"	"CTFWeaponBase::SecondaryAttack"
 				"hooktype"	"entity"
 				"return"	"void"
 				"this"		"entity"

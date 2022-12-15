@@ -61,15 +61,17 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_Dispenser_StartTouch);
 		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_Dispenser_StartTouchPost);
 	}
-	if (strncmp(classname, "obj_", 4) == 0)
+	else if (strncmp(classname, "obj_", 4) == 0)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Object_OnTakeDamage);
 	}
-	if (strncmp(classname, "tf_projectile_", 14) == 0)
+	else if (strncmp(classname, "tf_projectile_", 14) == 0)
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
 		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
+		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Projectile_OnTakeDamage);
+		SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Projectile_OnTakeDamagePost);
 	}
 	else if (StrEqual(classname, "tf_flame_manager"))
 	{
@@ -258,6 +260,25 @@ void SDKHookCB_Projectile_TouchPost(int entity, int other)
 		{
 			Entity(other).ResetTeam();
 		}
+	}
+}
+
+Action SDKHookCB_Projectile_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	if (attacker != -1)
+	{
+		// Allows destroying projectiles (e.g. pipebombs)
+		Entity(attacker).ChangeToSpectator();
+	}
+	
+	return Plugin_Continue;
+}
+
+void SDKHookCB_Projectile_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+{
+	if (attacker != -1)
+	{
+		Entity(attacker).ResetTeam();
 	}
 }
 
