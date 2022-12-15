@@ -58,13 +58,12 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
-		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_Dispenser_StartTouch);
-		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_Dispenser_StartTouchPost);
+		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
+		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 	}
 	else if (strncmp(classname, "obj_", 4) == 0)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
-		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Object_OnTakeDamage);
 	}
 	else if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
 	{
@@ -221,7 +220,7 @@ Action SDKHookCB_Client_SetTransmit(int entity, int client)
 	return Plugin_Continue;
 }
 
-Action SDKHookCB_Dispenser_StartTouch(int entity, int other)
+Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
 	if (IsEntityClient(other) && !TF2_IsObjectFriendly(entity, other))
 	{
@@ -231,7 +230,7 @@ Action SDKHookCB_Dispenser_StartTouch(int entity, int other)
 	return Plugin_Continue;
 }
 
-void SDKHookCB_Dispenser_StartTouchPost(int entity, int other)
+void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
 	if (IsEntityClient(other) && !TF2_IsObjectFriendly(entity, other))
 	{
@@ -243,15 +242,6 @@ void SDKHookCB_Object_SpawnPost(int entity)
 {
 	// Enable collisions for both teams
 	SetEntityCollisionGroup(entity, TFCOLLISION_GROUP_OBJECT_SOLIDTOPLAYERMOVEMENT);
-}
-
-Action SDKHookCB_Object_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
-	// Don't allow buildings to take damage from friendly players
-	if (TF2_IsObjectFriendly(victim, attacker))
-		return Plugin_Stop;
-	
-	return Plugin_Continue;
 }
 
 Action SDKHookCB_Projectile_Touch(int entity, int other)
@@ -297,9 +287,9 @@ Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, in
 {
 	if (attacker != -1)
 	{
-		// Do not damage our own projectiles
+		// We might already be in spectate from another hook, do not allow damaging our own pipebombs
 		if (FindParentOwnerEntity(victim) == attacker)
-			return Plugin_Stop;
+			return Plugin_Handled;
 		
 		// Allows destroying projectiles (e.g. pipebombs)
 		Entity(attacker).ChangeToSpectator();
