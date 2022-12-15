@@ -418,8 +418,17 @@ MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
 {
 	if (TF2Util_GetWeaponID(weapon) == TF_WEAPON_PIPEBOMBLAUNCHER)
 	{
+		// Switch the weapon
 		Entity(weapon).ChangeToSpectator();
 		
+		// Switch the weapon's owner
+		int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
+		if (owner != -1)
+		{
+			Entity(owner).ChangeToSpectator();
+		}
+		
+		// Switch every pipebomb created by this weapon
 		int pipe = -1;
 		while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
 		{
@@ -438,6 +447,12 @@ MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
 	if (TF2Util_GetWeaponID(weapon) == TF_WEAPON_PIPEBOMBLAUNCHER)
 	{
 		Entity(weapon).ResetTeam();
+		
+		int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
+		if (owner != -1)
+		{
+			Entity(owner).ResetTeam();
+		}
 		
 		int pipe = -1;
 		while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)

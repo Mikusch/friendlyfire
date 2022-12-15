@@ -66,12 +66,15 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Object_OnTakeDamage);
 	}
-	else if (strncmp(classname, "tf_projectile_", 14) == 0)
+	else if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
 		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
-		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Projectile_OnTakeDamage);
-		SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Projectile_OnTakeDamagePost);
+	}
+	else if (StrEqual(classname, "tf_projectile_pipe_remote"))
+	{
+		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
+		SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 	}
 	else if (StrEqual(classname, "tf_flame_manager"))
 	{
@@ -253,6 +256,9 @@ Action SDKHookCB_Object_OnTakeDamage(int victim, int &attacker, int &inflictor, 
 
 Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
+	if (other == 0)
+		return Plugin_Continue;
+	
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
@@ -271,6 +277,9 @@ Action SDKHookCB_Projectile_Touch(int entity, int other)
 
 void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
+	if (other == 0)
+		return;
+	
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
@@ -284,10 +293,14 @@ void SDKHookCB_Projectile_TouchPost(int entity, int other)
 	}
 }
 
-Action SDKHookCB_Projectile_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (attacker != -1)
 	{
+		// Do not damage our own projectiles
+		if (FindParentOwnerEntity(victim) == attacker)
+			return Plugin_Stop;
+		
 		// Allows destroying projectiles (e.g. pipebombs)
 		Entity(attacker).ChangeToSpectator();
 	}
@@ -295,10 +308,13 @@ Action SDKHookCB_Projectile_OnTakeDamage(int victim, int &attacker, int &inflict
 	return Plugin_Continue;
 }
 
-void SDKHookCB_Projectile_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	if (attacker != -1)
 	{
+		if (FindParentOwnerEntity(victim) == attacker)
+			return;
+		
 		Entity(attacker).ResetTeam();
 	}
 }
