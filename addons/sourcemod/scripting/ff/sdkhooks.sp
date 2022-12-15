@@ -100,6 +100,25 @@ void SDKHookCB_Client_PreThinkPost(int client)
 // CTFWeaponBase::ItemPostFrame
 void SDKHookCB_Client_PostThink(int client)
 {
+	// CTFPlayer::DoTauntAttack
+	if (TF2_IsPlayerInCondition(client, TFCond_Taunting))
+	{
+		g_postThinkType = PostThinkType_EnemyTeam;
+		
+		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
+		
+		// Allows taunt kill work on both teams, moving client to spectator doesn't work perfectly due to taunt kill stuns during truce
+		for (int other = 1; other <= MaxClients; other++)
+		{
+			if (IsClientInGame(other) && other != client)
+			{
+				Entity(other).SetTeam(enemyTeam);
+			}
+		}
+		
+		return;
+	}
+	
 	int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 	if (activeWeapon == -1)
 		return;
@@ -111,11 +130,13 @@ void SDKHookCB_Client_PostThink(int client)
 		{
 			g_postThinkType = PostThinkType_EnemyTeam;
 			
+			TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
+			
 			for (int other = 1; other <= MaxClients; other++)
 			{
 				if (IsClientInGame(other) && other != client)
 				{
-					Entity(other).SetTeam(GetEnemyTeam(TF2_GetClientTeam(client)));
+					Entity(other).SetTeam(enemyTeam);
 				}
 			}
 		}
