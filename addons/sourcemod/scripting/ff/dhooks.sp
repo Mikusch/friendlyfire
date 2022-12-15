@@ -159,7 +159,6 @@ MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn re
 MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
 	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
-	// https://github.com/Mentrillum/Slender-Fortress-Modified-Versions/blob/7c162f2a82eb1d1058c56fb23faf1be942b965d0/addons/sourcemod/scripting/sf2/pvp.sp#L982-L995
 	int penetrateType = SDKCall_GetPenetrateType(entity);
 	if (penetrateType == TF_DMG_CUSTOM_NONE)
 	{
