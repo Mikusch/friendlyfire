@@ -28,6 +28,7 @@ enum struct EntityProperties
 	int m_index;
 	int m_teamCount;
 	TFTeam m_preHookTeam;
+	TFTeam m_preHookDisguiseTeam;
 	TFTeam m_teamHistory[8];
 }
 
@@ -97,6 +98,18 @@ methodmap Entity
 		public set(TFTeam team)
 		{
 			g_entityProperties.Set(this._listIndex, team, EntityProperties::m_preHookTeam);
+		}
+	}
+	
+	property TFTeam m_preHookDisguiseTeam
+	{
+		public get()
+		{
+			return g_entityProperties.Get(this._listIndex, EntityProperties::m_preHookDisguiseTeam);
+		}
+		public set(TFTeam team)
+		{
+			g_entityProperties.Set(this._listIndex, team, EntityProperties::m_preHookDisguiseTeam);
 		}
 	}
 	

@@ -304,6 +304,13 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 				{
 					SDKCall_AddPlayer(pEnemyTeam, client);
 				}
+				
+				// Sentry Guns don't shoot spies disguised as the same team, spoof the disguise team
+				if (!friendly)
+				{
+					Entity(client).m_preHookDisguiseTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
+					SetEntProp(client, Prop_Send, "m_nDisguiseTeam", TFTeam_Spectator);
+				}
 			}
 		}
 		
@@ -383,6 +390,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 				if (IsClientInGame(client))
 				{
 					TFTeam team = Entity(client).m_preHookTeam;
+					Entity(client).m_preHookTeam = TFTeam_Unassigned;
 					bool friendly = TF2_IsObjectFriendly(entity, client);
 					
 					if (friendly && team == enemyTeam)
@@ -394,7 +402,11 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 						SDKCall_RemovePlayer(pEnemyTeam, client);
 					}
 					
-					Entity(client).m_preHookTeam = TFTeam_Unassigned;
+					if (!friendly)
+					{
+						SetEntProp(client, Prop_Send, "m_nDisguiseTeam", Entity(client).m_preHookDisguiseTeam);
+						Entity(client).m_preHookDisguiseTeam = TFTeam_Unassigned;
+					}
 				}
 			}
 			
