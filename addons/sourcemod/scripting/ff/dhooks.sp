@@ -28,7 +28,8 @@ enum ThinkFunction
 
 static DynamicHook g_DHookCanCollideWithTeammates;
 static DynamicHook g_DHookGetCustomDamageType;
-static DynamicHook g_DHookExplode;
+static DynamicHook g_DHookBaseGrenadeExplode;
+static DynamicHook g_DHookBaseRocketExplode;
 static DynamicHook g_DHookEventKilled;
 static DynamicHook g_DHookSmack;
 static DynamicHook g_DHookSecondaryAttack;
@@ -42,7 +43,8 @@ void DHooks_Initialize(GameData gamedata)
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_DHookGetCustomDamageType = CreateDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
-	g_DHookExplode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
+	g_DHookBaseGrenadeExplode = CreateDynamicHook(gamedata, "CBaseGrenade::Explode");
+	g_DHookBaseRocketExplode = CreateDynamicHook(gamedata, "CTFBaseRocket::Explode");
 	g_DHookEventKilled = CreateDynamicHook(gamedata, "CBasePlayer::Event_Killed");
 	g_DHookSmack = CreateDynamicHook(gamedata, "CTFWeaponBaseMelee::Smack");
 	g_DHookSecondaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBase::SecondaryAttack");
@@ -60,8 +62,14 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	{
 		if (strncmp(classname, "tf_projectile_jar", 17) == 0)
 		{
-			g_DHookExplode.HookEntity(Hook_Pre, entity, DHookCallback_Explode_Pre);
-			g_DHookExplode.HookEntity(Hook_Post, entity, DHookCallback_Explode_Post);
+			g_DHookBaseGrenadeExplode.HookEntity(Hook_Pre, entity, DHookCallback_BaseGrenadeExplode_Pre);
+			g_DHookBaseGrenadeExplode.HookEntity(Hook_Post, entity, DHookCallback_BaseGrenadeExplode_Post);
+		}
+		
+		if (StrEqual(classname, "tf_projectile_flare"))
+		{
+			g_DHookBaseRocketExplode.HookEntity(Hook_Pre, entity, DHookCallback_BaseRocketExplode_Pre);
+			g_DHookBaseRocketExplode.HookEntity(Hook_Post, entity, DHookCallback_BaseRocketExplode_Post);
 		}
 		
 		g_DHookCanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
@@ -124,7 +132,7 @@ MRESReturn DHookCallback_EventKilled_Post(int player, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_Explode_Pre(int entity, DHookParam params)
+MRESReturn DHookCallback_BaseGrenadeExplode_Pre(int entity, DHookParam params)
 {
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	if (thrower != -1)
@@ -136,7 +144,7 @@ MRESReturn DHookCallback_Explode_Pre(int entity, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_Explode_Post(int entity, DHookParam params)
+MRESReturn DHookCallback_BaseGrenadeExplode_Post(int entity, DHookParam params)
 {
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	if (thrower != -1)
@@ -144,6 +152,24 @@ MRESReturn DHookCallback_Explode_Post(int entity, DHookParam params)
 		Entity(thrower).ResetTeam();
 		Entity(entity).ResetTeam();
 	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_BaseRocketExplode_Pre(int entity, DHookParam params)
+{
+	int other = params.Get(2);
+	
+	Entity(other).ChangeToSpectator();
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_BaseRocketExplode_Post(int entity, DHookParam params)
+{
+	int other = params.Get(2);
+	
+	Entity(other).ResetTeam();
 	
 	return MRES_Ignored;
 }

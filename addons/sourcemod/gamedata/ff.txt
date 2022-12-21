@@ -84,6 +84,12 @@
 				"linux"		"236"
 				"windows"	"235"
 			}
+			"CTFBaseRocket::Explode"
+			{
+				"library"	"server"
+				"linux"		"240"
+				"windows"	"239"
+			}
 			"CTeam::AddPlayer"
 			{
 				"library"	"server"
@@ -141,7 +147,7 @@
 			{
 				"offset"	"CBaseGrenade::Explode"
 				"hooktype"	"entity"
-				"return"	"bool"
+				"return"	"void"
 				"this"		"entity"
 				"arguments"
 				{
@@ -152,6 +158,24 @@
 					"bitsDamageType"
 					{
 						"type"	"int"
+					}
+				}
+			}
+			"CTFBaseRocket::Explode"
+			{
+				"offset"	"CTFBaseRocket::Explode"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"pTrace"
+					{
+						"type"	"int"
+					}
+					"pOther"
+					{
+						"type"	"cbaseentity"
 					}
 				}
 			}
