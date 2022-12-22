@@ -74,11 +74,13 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 		
 		g_DHookCanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
 	}
-	else if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
+	
+	if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
 	{
 		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
 	}
-	else if (strncmp(classname, "tf_weapon_", 10) == 0)
+	
+	if (strncmp(classname, "tf_weapon_", 10) == 0)
 	{
 		g_DHookSecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
 		g_DHookSecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_SecondaryAttack_Post);

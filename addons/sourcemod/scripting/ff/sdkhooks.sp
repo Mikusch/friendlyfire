@@ -56,31 +56,36 @@ void SDKHooks_OnClientPutInServer(int client)
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
+	if (strncmp(classname, "obj_", 4) == 0)
+	{
+		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+	}
+	
 	if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
 		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
 		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 	}
-	else if (strncmp(classname, "obj_", 4) == 0)
-	{
-		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
-	}
-	else if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
+	
+	if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
 		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 	}
-	else if (StrEqual(classname, "tf_projectile_pipe_remote"))
+	
+	if (StrEqual(classname, "tf_projectile_pipe_remote"))
 	{
 		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
 		SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 	}
-	else if (StrEqual(classname, "tf_flame_manager"))
+	
+	if (StrEqual(classname, "tf_flame_manager"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
 		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
 	}
-	else if (StrEqual(classname, "tf_gas_manager"))
+	
+	if (StrEqual(classname, "tf_gas_manager"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
 	}
@@ -241,7 +246,8 @@ void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 void SDKHookCB_Object_SpawnPost(int entity)
 {
 	// Enable collisions for both teams
-	SetEntityCollisionGroup(entity, TFCOLLISION_GROUP_OBJECT_SOLIDTOPLAYERMOVEMENT);
+	SetVariantInt(SOLID_TO_PLAYER_YES);
+	AcceptEntityInput(entity, "SetSolidToPlayer");
 }
 
 Action SDKHookCB_Projectile_Touch(int entity, int other)
