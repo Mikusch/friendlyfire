@@ -56,35 +56,41 @@ void SDKHooks_OnClientPutInServer(int client)
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
+	// Makes objects solid to teammates
 	if (strncmp(classname, "obj_", 4) == 0)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 	}
 	
+	// Prevents Dispensers from healing teammates
 	if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
 		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
 		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 	}
 	
+	// Fixes the cleaver and pipes dealing no damage to certain entities
 	if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
 		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 	}
 	
+	// Allows detonating teammate's pipebombs
 	if (StrEqual(classname, "tf_projectile_pipe_remote"))
 	{
 		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
 		SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 	}
 	
+	// Fixes Flame Throwers dealing no damage to teammates
 	if (StrEqual(classname, "tf_flame_manager"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
 		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
 	}
 	
+	// Prevents Gas Passer clouds from coating the thrower
 	if (StrEqual(classname, "tf_gas_manager"))
 	{
 		SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);

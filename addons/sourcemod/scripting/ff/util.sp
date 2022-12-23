@@ -117,3 +117,8 @@ bool IsWeaponBaseMelee(int entity)
 {
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseMeleeSmack");
 }
+
+bool IsProjectileCTFWeaponBaseGrenade(int entity)
+{
+	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
+}

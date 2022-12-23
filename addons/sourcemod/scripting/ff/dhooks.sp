@@ -33,6 +33,7 @@ static DynamicHook g_DHookBaseRocketExplode;
 static DynamicHook g_DHookEventKilled;
 static DynamicHook g_DHookSmack;
 static DynamicHook g_DHookSecondaryAttack;
+static DynamicHook g_DHookVPhysicsUpdate;
 
 static ThinkFunction g_ThinkFunction;
 
@@ -48,6 +49,7 @@ void DHooks_Initialize(GameData gamedata)
 	g_DHookEventKilled = CreateDynamicHook(gamedata, "CBasePlayer::Event_Killed");
 	g_DHookSmack = CreateDynamicHook(gamedata, "CTFWeaponBaseMelee::Smack");
 	g_DHookSecondaryAttack = CreateDynamicHook(gamedata, "CTFWeaponBase::SecondaryAttack");
+	g_DHookVPhysicsUpdate = CreateDynamicHook(gamedata, "CBaseEntity::VPhysicsUpdate");
 }
 
 void DHooks_OnClientPutInServer(int client)
@@ -60,32 +62,45 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (strncmp(classname, "tf_projectile_", 14) == 0)
 	{
+		// Fixes jars not applying effects to teammates when hitting the world
 		if (strncmp(classname, "tf_projectile_jar", 17) == 0)
 		{
 			g_DHookBaseGrenadeExplode.HookEntity(Hook_Pre, entity, DHookCallback_BaseGrenadeExplode_Pre);
 			g_DHookBaseGrenadeExplode.HookEntity(Hook_Post, entity, DHookCallback_BaseGrenadeExplode_Post);
 		}
 		
+		// Fixes Scorch Shot knockback on teammates
 		if (StrEqual(classname, "tf_projectile_flare"))
 		{
 			g_DHookBaseRocketExplode.HookEntity(Hook_Pre, entity, DHookCallback_BaseRocketExplode_Pre);
 			g_DHookBaseRocketExplode.HookEntity(Hook_Post, entity, DHookCallback_BaseRocketExplode_Post);
 		}
 		
+		// Fixes grenades rarely bouncing off friendly objects
+		if (IsProjectileCTFWeaponBaseGrenade(entity))
+		{
+			g_DHookVPhysicsUpdate.HookEntity(Hook_Pre, entity, DHookCallback_VPhysicsUpdate_Pre);
+			g_DHookVPhysicsUpdate.HookEntity(Hook_Post, entity, DHookCallback_VPhysicsUpdate_Post);
+		}
+		
+		// Fixes projectiles sometimes not colliding with teammates
 		g_DHookCanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
 	}
 	
+	// Fixes Sniper Rifles dealing no damage to teammates
 	if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
 	{
 		g_DHookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
 	}
 	
-	if (strncmp(classname, "tf_weapon_", 10) == 0)
+	// Fixes pipebomb launchers not being able to knock around friendly pipebombs
+	if (TF2Util_IsEntityWeapon(entity) && TF2Util_GetWeaponID(entity) == TF_WEAPON_PIPEBOMBLAUNCHER)
 	{
 		g_DHookSecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
 		g_DHookSecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_SecondaryAttack_Post);
 	}
 	
+	// Fixes wrenches not being able to upgrade friendly objects and a few other melee weapons
 	if (IsWeaponBaseMelee(entity))
 	{
 		g_DHookSmack.HookEntity(Hook_Pre, entity, DHookCallback_Smack_Pre);
@@ -210,7 +225,7 @@ MRESReturn DHookCallback_Smack_Pre(int entity)
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 			{
-				if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
+				if (!TF2_IsObjectFriendly(obj, owner))
 					continue;
 				
 				Entity(obj).ChangeToSpectator();
@@ -233,7 +248,7 @@ MRESReturn DHookCallback_Smack_Post(int entity)
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 			{
-				if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") != owner)
+				if (!TF2_IsObjectFriendly(obj, owner))
 					continue;
 				
 				Entity(obj).ResetTeam();
@@ -455,26 +470,23 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 
 MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
 {
-	if (TF2Util_GetWeaponID(weapon) == TF_WEAPON_PIPEBOMBLAUNCHER)
+	// Switch the weapon
+	Entity(weapon).ChangeToSpectator();
+	
+	// Switch the weapon's owner
+	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
+	if (owner != -1)
 	{
-		// Switch the weapon
-		Entity(weapon).ChangeToSpectator();
-		
-		// Switch the weapon's owner
-		int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
-		if (owner != -1)
+		Entity(owner).ChangeToSpectator();
+	}
+	
+	// Switch every pipebomb created by this weapon
+	int pipe = -1;
+	while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
+	{
+		if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
 		{
-			Entity(owner).ChangeToSpectator();
-		}
-		
-		// Switch every pipebomb created by this weapon
-		int pipe = -1;
-		while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
-		{
-			if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
-			{
-				Entity(pipe).ChangeToSpectator();
-			}
+			Entity(pipe).ChangeToSpectator();
 		}
 	}
 	
@@ -483,24 +495,72 @@ MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
 
 MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
 {
-	if (TF2Util_GetWeaponID(weapon) == TF_WEAPON_PIPEBOMBLAUNCHER)
+	Entity(weapon).ResetTeam();
+	
+	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
+	if (owner != -1)
 	{
-		Entity(weapon).ResetTeam();
-		
-		int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
-		if (owner != -1)
+		Entity(owner).ResetTeam();
+	}
+	
+	int pipe = -1;
+	while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
+	{
+		if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
 		{
-			Entity(owner).ResetTeam();
+			Entity(pipe).ResetTeam();
 		}
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_VPhysicsUpdate_Pre(int entity, DHookParam params)
+{
+	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	TFTeam enemyTeam = GetEnemyTeam(TF2_GetTeam(entity));
+	
+	// Not needed because of our CanCollideWithTeammates hook, but can't hurt
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (!IsClientInGame(client))
+			continue;
 		
-		int pipe = -1;
-		while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
-		{
-			if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
-			{
-				Entity(pipe).ResetTeam();
-			}
-		}
+		Entity(client).SetTeam(enemyTeam);
+	}
+	
+	// Fix projectiles rarely bouncing off buildings
+	int obj = -1;
+	while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+	{
+		if (!TF2_IsObjectFriendly(obj, thrower))
+			continue;
+		
+		Entity(obj).SetTeam(enemyTeam);
+	}
+	
+	return MRES_Ignored;
+}
+
+MRESReturn DHookCallback_VPhysicsUpdate_Post(int entity, DHookParam params)
+{
+	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (!IsClientInGame(client))
+			continue;
+		
+		Entity(client).ResetTeam();
+	}
+	
+	int obj = -1;
+	while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+	{
+		if (!TF2_IsObjectFriendly(obj, thrower))
+			continue;
+		
+		Entity(obj).ResetTeam();
 	}
 	
 	return MRES_Ignored;

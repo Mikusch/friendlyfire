@@ -126,6 +126,12 @@
 				"linux"		"293"
 				"windows"	"287"
 			}
+			"CBaseEntity::VPhysicsUpdate"
+			{
+				"library"	"server"
+				"linux"		"164"
+				"windows"	"163"
+			}
 		}
 		"Functions"
 		{
@@ -220,6 +226,20 @@
 				"hooktype"	"entity"
 				"return"	"void"
 				"this"		"entity"
+			}
+			"CBaseEntity::VPhysicsUpdate"
+			{
+				"offset"	"CBaseEntity::VPhysicsUpdate"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"pPhysics"
+					{
+						"type"	"objectptr"
+					}
+				}
 			}
 			"CBaseEntity::InSameTeam"
 			{
