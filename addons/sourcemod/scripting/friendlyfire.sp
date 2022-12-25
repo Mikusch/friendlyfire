@@ -121,11 +121,6 @@ public void OnPluginStart()
 	}
 }
 
-void ConVarChanged_FriendlyFire(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	OnFriendlyFireChanged(convar.BoolValue);
-}
-
 public void OnConfigsExecuted()
 {
 	OnFriendlyFireChanged(mp_friendlyfire.BoolValue);
@@ -148,12 +143,6 @@ public void OnEntityCreated(int entity, const char[] classname)
 	SDKHooks_OnEntityCreated(entity, classname);
 }
 
-public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
-{
-	result = IsObjectFriendly(teleporter, client);
-	return Plugin_Handled;
-}
-
 public void OnEntityDestroyed(int entity)
 {
 	if (!IsValidEntity(entity))
@@ -171,6 +160,17 @@ public void OnEntityDestroyed(int entity)
 	}
 	
 	Entity(entity).Destroy();
+}
+
+public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
+{
+	result = IsObjectFriendly(teleporter, client);
+	return Plugin_Handled;
+}
+
+static void ConVarChanged_FriendlyFire(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	OnFriendlyFireChanged(convar.BoolValue);
 }
 
 static void OnFriendlyFireChanged(bool enabled)

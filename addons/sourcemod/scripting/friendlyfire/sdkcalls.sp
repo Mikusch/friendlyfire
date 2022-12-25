@@ -48,7 +48,7 @@ static Handle PrepSDKCall_GetNextThink(GameData gamedata)
 	
 	Handle call = EndPrepSDKCall();
 	if (!call)
-		LogError("Failed to create SDKCall: CBaseEntity::GetNextThink");
+		ThrowError("Failed to create SDKCall: CBaseEntity::GetNextThink");
 	
 	return call;
 }

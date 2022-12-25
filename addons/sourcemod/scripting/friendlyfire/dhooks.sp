@@ -35,7 +35,7 @@ static DynamicHook g_DHookSmack;
 static DynamicHook g_DHookSecondaryAttack;
 static DynamicHook g_DHookVPhysicsUpdate;
 
-static ThinkFunction g_ThinkFunction;
+static ThinkFunction g_ThinkFunction = ThinkFunction_None;
 
 void DHooks_Initialize(GameData gamedata)
 {
@@ -111,25 +111,21 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 static void CreateDynamicDetour(GameData gamedata, const char[] name, DHookCallback callbackPre = INVALID_FUNCTION, DHookCallback callbackPost = INVALID_FUNCTION)
 {
 	DynamicDetour detour = DynamicDetour.FromConf(gamedata, name);
-	if (detour)
-	{
-		if (callbackPre != INVALID_FUNCTION)
-			detour.Enable(Hook_Pre, callbackPre);
-		
-		if (callbackPost != INVALID_FUNCTION)
-			detour.Enable(Hook_Post, callbackPost);
-	}
-	else
-	{
-		LogError("Failed to create detour: %s", name);
-	}
+	if (!detour)
+		ThrowError("Failed to create detour setup handle for %s", name);
+	
+	if (callbackPre != INVALID_FUNCTION && !detour.Enable(Hook_Pre, callbackPre))
+		ThrowError("Failed to enable pre detour for %s", name);
+	
+	if (callbackPost != INVALID_FUNCTION && !detour.Enable(Hook_Post, callbackPost))
+		ThrowError("Failed to enable post detour for %s", name);
 }
 
 static DynamicHook CreateDynamicHook(GameData gamedata, const char[] name)
 {
 	DynamicHook hook = DynamicHook.FromConf(gamedata, name);
 	if (!hook)
-		LogError("Failed to create hook setup handle for %s", name);
+		ThrowError("Failed to create hook setup handle for %s", name);
 	
 	return hook;
 }
