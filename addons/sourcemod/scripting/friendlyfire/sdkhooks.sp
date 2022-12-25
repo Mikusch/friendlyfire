@@ -98,7 +98,7 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 }
 
 // CTFPlayerShared::OnPreDataChanged
-void SDKHookCB_Client_PreThink(int client)
+static void SDKHookCB_Client_PreThink(int client)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -108,7 +108,7 @@ void SDKHookCB_Client_PreThink(int client)
 }
 
 // CTFPlayerShared::OnPreDataChanged
-void SDKHookCB_Client_PreThinkPost(int client)
+static void SDKHookCB_Client_PreThinkPost(int client)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -117,7 +117,7 @@ void SDKHookCB_Client_PreThinkPost(int client)
 }
 
 // CTFWeaponBase::ItemPostFrame
-void SDKHookCB_Client_PostThink(int client)
+static void SDKHookCB_Client_PostThink(int client)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -168,7 +168,7 @@ void SDKHookCB_Client_PostThink(int client)
 }
 
 // CTFWeaponBase::ItemPostFrame
-void SDKHookCB_Client_PostThinkPost(int client)
+static void SDKHookCB_Client_PostThinkPost(int client)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -195,7 +195,7 @@ void SDKHookCB_Client_PostThinkPost(int client)
 	g_postThinkType = PostThinkType_None;
 }
 
-Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
@@ -213,7 +213,7 @@ Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, 
 	return Plugin_Continue;
 }
 
-void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -228,7 +228,7 @@ void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, 
 	}
 }
 
-Action SDKHookCB_Client_SetTransmit(int entity, int client)
+static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
@@ -243,7 +243,7 @@ Action SDKHookCB_Client_SetTransmit(int entity, int client)
 	return Plugin_Continue;
 }
 
-Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
+static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
@@ -256,7 +256,7 @@ Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 	return Plugin_Continue;
 }
 
-void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
+static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -267,7 +267,7 @@ void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 	}
 }
 
-void SDKHookCB_Object_SpawnPost(int entity)
+static void SDKHookCB_Object_SpawnPost(int entity)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -277,7 +277,7 @@ void SDKHookCB_Object_SpawnPost(int entity)
 	AcceptEntityInput(entity, "SetSolidToPlayer");
 }
 
-Action SDKHookCB_Projectile_Touch(int entity, int other)
+static Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
@@ -295,7 +295,7 @@ Action SDKHookCB_Projectile_Touch(int entity, int other)
 	return Plugin_Continue;
 }
 
-void SDKHookCB_Projectile_TouchPost(int entity, int other)
+static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -311,7 +311,7 @@ void SDKHookCB_Projectile_TouchPost(int entity, int other)
 	}
 }
 
-Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
@@ -329,7 +329,7 @@ Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, in
 	return Plugin_Continue;
 }
 
-void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -343,7 +343,7 @@ void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, i
 	}
 }
 
-Action SDKHookCB_FlameManager_Touch(int entity, int other)
+static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
@@ -358,7 +358,7 @@ Action SDKHookCB_FlameManager_Touch(int entity, int other)
 	return Plugin_Continue;
 }
 
-void SDKHookCB_FlameManager_TouchPost(int entity, int other)
+static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
 	if (!IsFriendlyFireEnabled())
 		return;
@@ -370,7 +370,7 @@ void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 	}
 }
 
-Action SDKHookCB_GasManager_Touch(int entity, int other)
+static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;

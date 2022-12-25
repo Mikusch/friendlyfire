@@ -130,7 +130,7 @@ static DynamicHook CreateDynamicHook(GameData gamedata, const char[] name)
 	return hook;
 }
 
-MRESReturn DHookCallback_EventKilled_Pre(int player, DHookParam params)
+static MRESReturn DHookCallback_EventKilled_Pre(int player, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -141,7 +141,7 @@ MRESReturn DHookCallback_EventKilled_Pre(int player, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_EventKilled_Post(int player, DHookParam params)
+static MRESReturn DHookCallback_EventKilled_Post(int player, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -151,7 +151,7 @@ MRESReturn DHookCallback_EventKilled_Post(int player, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_BaseGrenadeExplode_Pre(int entity, DHookParam params)
+static MRESReturn DHookCallback_BaseGrenadeExplode_Pre(int entity, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -166,7 +166,7 @@ MRESReturn DHookCallback_BaseGrenadeExplode_Pre(int entity, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_BaseGrenadeExplode_Post(int entity, DHookParam params)
+static MRESReturn DHookCallback_BaseGrenadeExplode_Post(int entity, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -181,7 +181,7 @@ MRESReturn DHookCallback_BaseGrenadeExplode_Post(int entity, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_BaseRocketExplode_Pre(int entity, DHookParam params)
+static MRESReturn DHookCallback_BaseRocketExplode_Pre(int entity, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -193,7 +193,7 @@ MRESReturn DHookCallback_BaseRocketExplode_Pre(int entity, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_BaseRocketExplode_Post(int entity, DHookParam params)
+static MRESReturn DHookCallback_BaseRocketExplode_Post(int entity, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -205,7 +205,7 @@ MRESReturn DHookCallback_BaseRocketExplode_Post(int entity, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
+static MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -216,7 +216,7 @@ MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn re
 	return MRES_Supercede;
 }
 
-MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
+static MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -232,7 +232,7 @@ MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_Smack_Pre(int entity)
+static MRESReturn DHookCallback_Smack_Pre(int entity)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -259,7 +259,7 @@ MRESReturn DHookCallback_Smack_Pre(int entity)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_Smack_Post(int entity)
+static MRESReturn DHookCallback_Smack_Post(int entity)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -285,7 +285,7 @@ MRESReturn DHookCallback_Smack_Post(int entity)
 	return MRES_Ignored;
 }
 
-MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
+static MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -324,7 +324,7 @@ MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 	return MRES_Supercede;
 }
 
-MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
+static MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -434,7 +434,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
+static MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -513,7 +513,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
+static MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -541,7 +541,7 @@ MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
+static MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -566,7 +566,7 @@ MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_VPhysicsUpdate_Pre(int entity, DHookParam params)
+static MRESReturn DHookCallback_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -596,7 +596,7 @@ MRESReturn DHookCallback_VPhysicsUpdate_Pre(int entity, DHookParam params)
 	return MRES_Ignored;
 }
 
-MRESReturn DHookCallback_VPhysicsUpdate_Post(int entity, DHookParam params)
+static MRESReturn DHookCallback_VPhysicsUpdate_Post(int entity, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
