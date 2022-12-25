@@ -35,8 +35,45 @@ enum
 	SOLID_TO_PLAYER_NO,
 };
 
+enum
+{
+	TF_PROJECTILE_NONE,
+	TF_PROJECTILE_BULLET,
+	TF_PROJECTILE_ROCKET,
+	TF_PROJECTILE_PIPEBOMB,
+	TF_PROJECTILE_PIPEBOMB_REMOTE,
+	TF_PROJECTILE_SYRINGE,
+	TF_PROJECTILE_FLARE,
+	TF_PROJECTILE_JAR,
+	TF_PROJECTILE_ARROW,
+	TF_PROJECTILE_FLAME_ROCKET,
+	TF_PROJECTILE_JAR_MILK,
+	TF_PROJECTILE_HEALING_BOLT,
+	TF_PROJECTILE_ENERGY_BALL,
+	TF_PROJECTILE_ENERGY_RING,
+	TF_PROJECTILE_PIPEBOMB_PRACTICE,
+	TF_PROJECTILE_CLEAVER,
+	TF_PROJECTILE_STICKY_BALL,
+	TF_PROJECTILE_CANNONBALL,
+	TF_PROJECTILE_BUILDING_REPAIR_BOLT,
+	TF_PROJECTILE_FESTIVE_ARROW,
+	TF_PROJECTILE_THROWABLE,
+	TF_PROJECTILE_SPELL,
+	TF_PROJECTILE_FESTIVE_JAR,
+	TF_PROJECTILE_FESTIVE_HEALING_BOLT,
+	TF_PROJECTILE_BREADMONSTER_JARATE,
+	TF_PROJECTILE_BREADMONSTER_MADMILK,
+
+	TF_PROJECTILE_GRAPPLINGHOOK,
+	TF_PROJECTILE_SENTRY_ROCKET,
+	TF_PROJECTILE_BREAD_MONSTER,
+
+	TF_NUM_PROJECTILES
+};
+
 ConVar mp_friendlyfire;
 ConVar tf_avoidteammates;
+ConVar tf_spawn_glows_duration;
 
 #include "ff/data.sp"
 #include "ff/dhooks.sp"
@@ -58,6 +95,9 @@ public void OnPluginStart()
 	mp_friendlyfire = FindConVar("mp_friendlyfire");
 	mp_friendlyfire.AddChangeHook(ConVarChanged_FriendlyFire);
 	tf_avoidteammates = FindConVar("tf_avoidteammates");
+	tf_spawn_glows_duration = FindConVar("tf_spawn_glows_duration");
+	
+	RegPluginLibrary("ff");
 	
 	GameData gamedata = new GameData("ff");
 	if (gamedata)
@@ -134,9 +174,11 @@ static void OnFriendlyFireChanged(bool enabled)
 	if (enabled)
 	{
 		tf_avoidteammates.BoolValue = false;
+		tf_spawn_glows_duration.IntValue = 0;
 	}
 	else
 	{
 		tf_avoidteammates.RestoreDefault();
+		tf_spawn_glows_duration.RestoreDefault();
 	}
 }

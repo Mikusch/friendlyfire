@@ -289,7 +289,7 @@ MRESReturn DHookCallback_Smack_Post(int entity)
 	return MRES_Ignored;
 }
 
-MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam param)
+MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;
@@ -302,15 +302,25 @@ MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam param)
 	if (StrEqual(classname, "func_respawnroom"))
 		return MRES_Ignored;
 	
-	if (param.IsNull(1))
+	if (params.IsNull(1))
 	{
 		ret.Value = false;
 		return MRES_Supercede;
 	}
 	
-	int other = param.Get(1);
+	int other = params.Get(1);
 	
-	// Unless the top-most parent is us, assume every entity is not on the same team
+	// Allow Rescue Ranger healing bolts to work on friendly buildings
+	if (StrEqual(classname, "tf_projectile_arrow") &&
+		GetEntProp(entity, Prop_Send, "m_iProjectileType") == TF_PROJECTILE_BUILDING_REPAIR_BOLT &&
+		IsBaseObject(other) &&
+		IsObjectFriendly(other, GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")))
+	{
+		ret.Value = true;
+		return MRES_Supercede;
+	}
+	
+	// Unless we are the owner, assume every other entity is an enemy
 	entity = FindParentOwnerEntity(entity);
 	other = FindParentOwnerEntity(other);
 	
