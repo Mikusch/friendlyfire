@@ -39,7 +39,7 @@ static ThinkFunction g_ThinkFunction = ThinkFunction_None;
 
 void DHooks_Initialize(GameData gamedata)
 {
-	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeam_Pre, _);
+	CreateDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHook_InSameTeam_Pre);
 	CreateDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_PhysicsDispatchThink_Pre, DHookCallback_PhysicsDispatchThink_Post);
 	
 	g_DHookCanCollideWithTeammates = CreateDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
