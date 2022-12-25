@@ -26,7 +26,8 @@
 #include <tf2utils>
 
 #define TICK_NEVER_THINK	-1.0
-#define TF_DMG_CUSTOM_NONE	0
+
+#define TF_CUSTOM_NONE		0
 
 enum
 {

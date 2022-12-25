@@ -227,9 +227,9 @@ MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 	
 	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
 	int penetrateType = SDKCall_GetPenetrateType(entity);
-	if (penetrateType == TF_DMG_CUSTOM_NONE)
+	if (penetrateType == TF_CUSTOM_NONE)
 	{
-		ret.Value = TF_DMG_CUSTOM_NONE;
+		ret.Value = TF_CUSTOM_NONE;
 		return MRES_Supercede;
 	}
 	

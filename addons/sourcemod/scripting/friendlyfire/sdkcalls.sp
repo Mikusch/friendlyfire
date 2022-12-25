@@ -158,7 +158,7 @@ int SDKCall_GetPenetrateType(int weapon)
 	if (g_SDKCallGetPenetrateType)
 		return SDKCall(g_SDKCallGetPenetrateType, weapon);
 	
-	return TF_DMG_CUSTOM_NONE;
+	return TF_CUSTOM_NONE;
 }
 
 Address SDKCall_GetGlobalTeam(TFTeam team)
