@@ -25,37 +25,8 @@
 #include <tf2_stocks>
 #include <tf2utils>
 
-#define TF_DMG_CUSTOM_NONE	0
-
 #define TICK_NEVER_THINK	-1.0
-
-enum
-{
-	COLLISION_GROUP_NONE  = 0,
-	COLLISION_GROUP_DEBRIS,			// Collides with nothing but world and static stuff
-	COLLISION_GROUP_DEBRIS_TRIGGER, // Same as debris, but hits triggers
-	COLLISION_GROUP_INTERACTIVE_DEBRIS,	// Collides with everything except other interactive debris or debris
-	COLLISION_GROUP_INTERACTIVE,	// Collides with everything except interactive debris or debris
-	COLLISION_GROUP_PLAYER,
-	COLLISION_GROUP_BREAKABLE_GLASS,
-	COLLISION_GROUP_VEHICLE,
-	COLLISION_GROUP_PLAYER_MOVEMENT,  // For HL2, same as Collision_Group_Player, for
-										// TF2, this filters out other players and CBaseObjects
-	COLLISION_GROUP_NPC,			// Generic NPC group
-	COLLISION_GROUP_IN_VEHICLE,		// for any entity inside a vehicle
-	COLLISION_GROUP_WEAPON,			// for any weapons that need collision detection
-	COLLISION_GROUP_VEHICLE_CLIP,	// vehicle clip brush to restrict vehicle movement
-	COLLISION_GROUP_PROJECTILE,		// Projectiles!
-	COLLISION_GROUP_DOOR_BLOCKER,	// Blocks entities not permitted to get near moving doors
-	COLLISION_GROUP_PASSABLE_DOOR,	// Doors that the player shouldn't collide with
-	COLLISION_GROUP_DISSOLVING,		// Things that are dissolving are in this group
-	COLLISION_GROUP_PUSHAWAY,		// Nonsolid on client and server, pushaway in player code
-
-	COLLISION_GROUP_NPC_ACTOR,		// Used so NPCs in scripts ignore the player.
-	COLLISION_GROUP_NPC_SCRIPTED,	// USed for NPCs in scripts that should not collide with each other
-
-	LAST_SHARED_COLLISION_GROUP
-};
+#define TF_DMG_CUSTOM_NONE	0
 
 enum
 {
@@ -68,27 +39,37 @@ ConVar mp_friendlyfire;
 ConVar tf_avoidteammates;
 
 #include "ff/data.sp"
-
 #include "ff/dhooks.sp"
 #include "ff/sdkcalls.sp"
 #include "ff/sdkhooks.sp"
 #include "ff/util.sp"
 
+public Plugin myinfo =
+{
+	name = "[TF2] Fixed Friendly Fire",
+	author = "Mikusch",
+	description = "Fixes mp_friendlyfire in Team Fortress 2.",
+	version = "1.0.0",
+	url = "https://github.com/Mikusch/friendly-fire"
+}
+
 public void OnPluginStart()
 {
 	mp_friendlyfire = FindConVar("mp_friendlyfire");
+	mp_friendlyfire.AddChangeHook(ConVarChanged_FriendlyFire);
 	tf_avoidteammates = FindConVar("tf_avoidteammates");
 	
 	GameData gamedata = new GameData("ff");
-	if (!gamedata)
+	if (gamedata)
+	{
+		DHooks_Initialize(gamedata);
+		SDKCalls_Initialize(gamedata);
+		delete gamedata;
+	}
+	else
 	{
 		SetFailState("Could not find ff gamedata");
 	}
-	
-	// Initialize everything based on gamedata
-	DHooks_Initialize(gamedata);
-	SDKCalls_Initialize(gamedata);
-	delete gamedata;
 	
 	for (int client = 1; client <= MaxClients; client++)
 	{
@@ -99,16 +80,19 @@ public void OnPluginStart()
 	}
 }
 
+void ConVarChanged_FriendlyFire(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	OnFriendlyFireChanged(convar.BoolValue);
+}
+
 public void OnConfigsExecuted()
 {
-	mp_friendlyfire.BoolValue = true;
-	tf_avoidteammates.BoolValue = false;
+	OnFriendlyFireChanged(mp_friendlyfire.BoolValue);
 }
 
 public void OnPluginEnd()
 {
-	mp_friendlyfire.RestoreDefault();
-	tf_avoidteammates.RestoreDefault();
+	OnFriendlyFireChanged(false);
 }
 
 public void OnClientPutInServer(int client)
@@ -125,7 +109,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 
 public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 {
-	result = TF2_IsObjectFriendly(teleporter, client);
+	result = IsObjectFriendly(teleporter, client);
 	return Plugin_Handled;
 }
 
@@ -143,4 +127,16 @@ public void OnEntityDestroyed(int entity)
 	}
 	
 	Entity(entity).Destroy();
+}
+
+static void OnFriendlyFireChanged(bool enabled)
+{
+	if (enabled)
+	{
+		tf_avoidteammates.BoolValue = false;
+	}
+	else
+	{
+		tf_avoidteammates.RestoreDefault();
+	}
 }

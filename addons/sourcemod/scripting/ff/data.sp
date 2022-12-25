@@ -18,6 +18,8 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+#define MAX_HISTORY_ENTRIES		8
+
 static ArrayList g_entityProperties;
 
 /**
@@ -29,7 +31,7 @@ enum struct EntityProperties
 	int m_teamCount;
 	TFTeam m_preHookTeam;
 	TFTeam m_preHookDisguiseTeam;
-	TFTeam m_teamHistory[8];
+	TFTeam m_teamHistory[MAX_HISTORY_ENTRIES];
 }
 
 methodmap Entity
@@ -116,8 +118,8 @@ methodmap Entity
 	public void SetTeam(TFTeam team)
 	{
 		int index = this.m_teamCount++;
-		this.SetTeamInternal(TF2_GetTeam(this.ref), index);
-		TF2_SetTeam(this.ref, team);
+		this.SetTeamInternal(TF2_GetEntityTeam(this.ref), index);
+		TF2_SetEntityTeam(this.ref, team);
 	}
 	
 	public void ChangeToSpectator()
@@ -134,7 +136,7 @@ methodmap Entity
 		}
 		else
 		{
-			this.SetTeam(TF2_GetTeam(this.ref));
+			this.SetTeam(TF2_GetEntityTeam(this.ref));
 		}
 	}
 	
@@ -142,11 +144,23 @@ methodmap Entity
 	{
 		int index = --this.m_teamCount;
 		TFTeam team = this.GetTeamInternal(index);
-		TF2_SetTeam(this.ref, team);
+		TF2_SetEntityTeam(this.ref, team);
+	}
+	
+	public void CheckArrayBounds(int index)
+	{
+		if (index < 0 || index >= sizeof(EntityProperties::m_teamHistory))
+		{
+			// If you hit this, you have a fatal bug in your code!
+			// Ensure that every `SetTeam` call is paired with a `ResetTeam` call.
+			SetFailState("Array index out-of-bounds (index %d, limit %d)", index, sizeof(EntityProperties::m_teamHistory));
+		}
 	}
 	
 	public TFTeam GetTeamInternal(int index)
 	{
+		this.CheckArrayBounds(index);
+		
 		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
@@ -162,6 +176,8 @@ methodmap Entity
 	
 	public void SetTeamInternal(TFTeam team, int index)
 	{
+		this.CheckArrayBounds(index);
+		
 		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;

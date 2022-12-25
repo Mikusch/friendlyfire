@@ -100,6 +100,9 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 // CTFPlayerShared::OnPreDataChanged
 void SDKHookCB_Client_PreThink(int client)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	// Disable radius buffs like Buff Banner or King Rune
 	Entity(client).ChangeToSpectator();
 }
@@ -107,28 +110,25 @@ void SDKHookCB_Client_PreThink(int client)
 // CTFPlayerShared::OnPreDataChanged
 void SDKHookCB_Client_PreThinkPost(int client)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	Entity(client).ResetTeam();
 }
 
 // CTFWeaponBase::ItemPostFrame
 void SDKHookCB_Client_PostThink(int client)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	// CTFPlayer::DoTauntAttack
 	if (TF2_IsPlayerInCondition(client, TFCond_Taunting))
 	{
-		g_postThinkType = PostThinkType_EnemyTeam;
+		g_postThinkType = PostThinkType_Spectator;
 		
-		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
-		
-		// Allows taunt kill work on both teams, moving client to spectator doesn't work perfectly due to taunt kill stuns during truce
-		for (int other = 1; other <= MaxClients; other++)
-		{
-			if (IsClientInGame(other) && other != client)
-			{
-				Entity(other).SetTeam(enemyTeam);
-			}
-		}
-		
+		// Allows taunt kill work on both teams
+		Entity(client).ChangeToSpectator();
 		return;
 	}
 	
@@ -170,6 +170,9 @@ void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 void SDKHookCB_Client_PostThinkPost(int client)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	// Change everything back to how it was accordingly
 	switch (g_postThinkType)
 	{
@@ -194,6 +197,9 @@ void SDKHookCB_Client_PostThinkPost(int client)
 
 Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
+	if (!IsFriendlyFireEnabled())
+		return Plugin_Continue;
+	
 	if (IsEntityClient(attacker))
 	{
 		Entity(attacker).ChangeToSpectator();
@@ -209,6 +215,9 @@ Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, 
 
 void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	if (IsEntityClient(attacker))
 	{
 		Entity(attacker).ResetTeam();
@@ -221,11 +230,14 @@ void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, 
 
 Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
+	if (!IsFriendlyFireEnabled())
+		return Plugin_Continue;
+	
 	// Don't transmit invisible spies to living players
 	if (entity == client || !IsPlayerAlive(client))
 		return Plugin_Continue;
 	
-	if (TF2_GetPercentInvisible(entity) >= 1.0)
+	if (GetPercentInvisible(entity) >= 1.0)
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
@@ -233,7 +245,10 @@ Action SDKHookCB_Client_SetTransmit(int entity, int client)
 
 Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
-	if (IsEntityClient(other) && !TF2_IsObjectFriendly(entity, other))
+	if (!IsFriendlyFireEnabled())
+		return Plugin_Continue;
+	
+	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
 	{
 		Entity(other).ChangeToSpectator();
 	}
@@ -243,7 +258,10 @@ Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 
 void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
-	if (IsEntityClient(other) && !TF2_IsObjectFriendly(entity, other))
+	if (!IsFriendlyFireEnabled())
+		return;
+	
+	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
 	{
 		Entity(other).ResetTeam();
 	}
@@ -251,6 +269,9 @@ void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 void SDKHookCB_Object_SpawnPost(int entity)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	// Enable collisions for both teams
 	SetVariantInt(SOLID_TO_PLAYER_YES);
 	AcceptEntityInput(entity, "SetSolidToPlayer");
@@ -258,6 +279,9 @@ void SDKHookCB_Object_SpawnPost(int entity)
 
 Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
+	if (!IsFriendlyFireEnabled())
+		return Plugin_Continue;
+	
 	if (other == 0)
 		return Plugin_Continue;
 	
@@ -268,7 +292,7 @@ Action SDKHookCB_Projectile_Touch(int entity, int other)
 		Entity(entity).ChangeToSpectator();
 		
 		// Rescue Ranger healing bolts require buildings to be on the same team as them
-		if (IsBaseObject(other) && TF2_IsObjectFriendly(other, owner))
+		if (IsBaseObject(other) && IsObjectFriendly(other, owner))
 		{
 			Entity(other).ChangeToSpectator();
 		}
@@ -279,6 +303,9 @@ Action SDKHookCB_Projectile_Touch(int entity, int other)
 
 void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	if (other == 0)
 		return;
 	
@@ -288,7 +315,7 @@ void SDKHookCB_Projectile_TouchPost(int entity, int other)
 		Entity(owner).ResetTeam();
 		Entity(entity).ResetTeam();
 		
-		if (IsBaseObject(other) && TF2_IsObjectFriendly(other, owner))
+		if (IsBaseObject(other) && IsObjectFriendly(other, owner))
 		{
 			Entity(other).ResetTeam();
 		}
@@ -297,6 +324,9 @@ void SDKHookCB_Projectile_TouchPost(int entity, int other)
 
 Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
+	if (!IsFriendlyFireEnabled())
+		return Plugin_Continue;
+	
 	if (attacker != -1)
 	{
 		// We might already be in spectate from another hook, do not allow damaging our own pipebombs
@@ -312,6 +342,9 @@ Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, in
 
 void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	if (attacker != -1)
 	{
 		if (FindParentOwnerEntity(victim) == attacker)
@@ -323,6 +356,9 @@ void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, i
 
 Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
+	if (!IsFriendlyFireEnabled())
+		return Plugin_Continue;
+	
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
@@ -335,6 +371,9 @@ Action SDKHookCB_FlameManager_Touch(int entity, int other)
 
 void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
+	if (!IsFriendlyFireEnabled())
+		return;
+	
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
@@ -344,6 +383,9 @@ void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 
 Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
+	if (!IsFriendlyFireEnabled())
+		return Plugin_Continue;
+	
 	if (FindParentOwnerEntity(entity) == other)
 	{
 		// Do not coat ourselves in our own gas

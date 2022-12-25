@@ -136,6 +136,9 @@ static DynamicHook CreateDynamicHook(GameData gamedata, const char[] name)
 
 MRESReturn DHookCallback_EventKilled_Pre(int player, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	// Switch back to the original team to force proper skin for ragdolls and other on-death effects
 	Entity(player).ChangeToOriginalTeam();
 	
@@ -144,6 +147,9 @@ MRESReturn DHookCallback_EventKilled_Pre(int player, DHookParam params)
 
 MRESReturn DHookCallback_EventKilled_Post(int player, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	Entity(player).ResetTeam();
 	
 	return MRES_Ignored;
@@ -151,6 +157,9 @@ MRESReturn DHookCallback_EventKilled_Post(int player, DHookParam params)
 
 MRESReturn DHookCallback_BaseGrenadeExplode_Pre(int entity, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	if (thrower != -1)
 	{
@@ -163,6 +172,9 @@ MRESReturn DHookCallback_BaseGrenadeExplode_Pre(int entity, DHookParam params)
 
 MRESReturn DHookCallback_BaseGrenadeExplode_Post(int entity, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	if (thrower != -1)
 	{
@@ -175,6 +187,9 @@ MRESReturn DHookCallback_BaseGrenadeExplode_Post(int entity, DHookParam params)
 
 MRESReturn DHookCallback_BaseRocketExplode_Pre(int entity, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int other = params.Get(2);
 	
 	Entity(other).ChangeToSpectator();
@@ -184,6 +199,9 @@ MRESReturn DHookCallback_BaseRocketExplode_Pre(int entity, DHookParam params)
 
 MRESReturn DHookCallback_BaseRocketExplode_Post(int entity, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int other = params.Get(2);
 	
 	Entity(other).ResetTeam();
@@ -193,6 +211,9 @@ MRESReturn DHookCallback_BaseRocketExplode_Post(int entity, DHookParam params)
 
 MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	// Always make projectiles collide with teammates
 	ret.Value = true;
 	
@@ -201,6 +222,9 @@ MRESReturn DHookCallback_CanCollideWithTeammates_Post(int entity, DHookReturn re
 
 MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
 	int penetrateType = SDKCall_GetPenetrateType(entity);
 	if (penetrateType == TF_DMG_CUSTOM_NONE)
@@ -214,6 +238,9 @@ MRESReturn DHookCallback_GetCustomDamageType_Post(int entity, DHookReturn ret)
 
 MRESReturn DHookCallback_Smack_Pre(int entity)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
@@ -225,7 +252,7 @@ MRESReturn DHookCallback_Smack_Pre(int entity)
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 			{
-				if (!TF2_IsObjectFriendly(obj, owner))
+				if (!IsObjectFriendly(obj, owner))
 					continue;
 				
 				Entity(obj).ChangeToSpectator();
@@ -238,6 +265,9 @@ MRESReturn DHookCallback_Smack_Pre(int entity)
 
 MRESReturn DHookCallback_Smack_Post(int entity)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
@@ -248,7 +278,7 @@ MRESReturn DHookCallback_Smack_Post(int entity)
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 			{
-				if (!TF2_IsObjectFriendly(obj, owner))
+				if (!IsObjectFriendly(obj, owner))
 					continue;
 				
 				Entity(obj).ResetTeam();
@@ -261,6 +291,9 @@ MRESReturn DHookCallback_Smack_Post(int entity)
 
 MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam param)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	char classname[64];
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
@@ -287,6 +320,9 @@ MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam param)
 
 MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	char classname[64];
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
@@ -299,7 +335,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 		
 		g_ThinkFunction = ThinkFunction_SentryThink;
 		
-		TFTeam myTeam = TF2_GetTeam(entity);
+		TFTeam myTeam = TF2_GetEntityTeam(entity);
 		TFTeam enemyTeam = GetEnemyTeam(myTeam);
 		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
 		
@@ -311,7 +347,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 			{
 				TFTeam team = TF2_GetClientTeam(client);
 				Entity(client).m_preHookTeam = team;
-				bool friendly = TF2_IsObjectFriendly(entity, client);
+				bool friendly = IsObjectFriendly(entity, client);
 				
 				if (friendly && team == enemyTeam)
 				{
@@ -339,9 +375,9 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 		{
 			if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 			{
-				TFTeam team = TF2_GetTeam(obj);
+				TFTeam team = TF2_GetEntityTeam(obj);
 				Entity(obj).m_preHookTeam = team;
-				bool friendly = TF2_IsObjectFriendly(entity, obj);
+				bool friendly = IsObjectFriendly(entity, obj);
 				
 				if (friendly && team == enemyTeam)
 				{
@@ -369,7 +405,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 			{
 				if (IsClientInGame(client))
 				{
-					if (!TF2_IsObjectFriendly(entity, client))
+					if (!IsObjectFriendly(entity, client))
 					{
 						Entity(client).ChangeToSpectator();
 					}
@@ -394,11 +430,14 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 
 MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	switch (g_ThinkFunction)
 	{
 		case ThinkFunction_SentryThink:
 		{
-			TFTeam myTeam = TF2_GetTeam(entity);
+			TFTeam myTeam = TF2_GetEntityTeam(entity);
 			TFTeam enemyTeam = GetEnemyTeam(myTeam);
 			Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
 			
@@ -408,7 +447,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 				{
 					TFTeam team = Entity(client).m_preHookTeam;
 					Entity(client).m_preHookTeam = TFTeam_Unassigned;
-					bool friendly = TF2_IsObjectFriendly(entity, client);
+					bool friendly = IsObjectFriendly(entity, client);
 					
 					if (friendly && team == enemyTeam)
 					{
@@ -433,7 +472,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 				if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 				{
 					TFTeam team = Entity(obj).m_preHookTeam;
-					bool friendly = TF2_IsObjectFriendly(entity, obj);
+					bool friendly = IsObjectFriendly(entity, obj);
 					
 					if (friendly && team == enemyTeam)
 					{
@@ -454,7 +493,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 			{
 				if (IsClientInGame(client))
 				{
-					if (!TF2_IsObjectFriendly(entity, client))
+					if (!IsObjectFriendly(entity, client))
 					{
 						Entity(client).ResetTeam();
 					}
@@ -470,6 +509,9 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 
 MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	// Switch the weapon
 	Entity(weapon).ChangeToSpectator();
 	
@@ -495,6 +537,9 @@ MRESReturn DHookCallback_SecondaryAttack_Pre(int weapon)
 
 MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	Entity(weapon).ResetTeam();
 	
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
@@ -517,8 +562,11 @@ MRESReturn DHookCallback_SecondaryAttack_Post(int weapon)
 
 MRESReturn DHookCallback_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	TFTeam enemyTeam = GetEnemyTeam(TF2_GetTeam(entity));
+	TFTeam enemyTeam = GetEnemyTeam(TF2_GetEntityTeam(entity));
 	
 	// Not needed because of our CanCollideWithTeammates hook, but can't hurt
 	for (int client = 1; client <= MaxClients; client++)
@@ -533,7 +581,7 @@ MRESReturn DHookCallback_VPhysicsUpdate_Pre(int entity, DHookParam params)
 	int obj = -1;
 	while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 	{
-		if (!TF2_IsObjectFriendly(obj, thrower))
+		if (!IsObjectFriendly(obj, thrower))
 			continue;
 		
 		Entity(obj).SetTeam(enemyTeam);
@@ -544,6 +592,9 @@ MRESReturn DHookCallback_VPhysicsUpdate_Pre(int entity, DHookParam params)
 
 MRESReturn DHookCallback_VPhysicsUpdate_Post(int entity, DHookParam params)
 {
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	
 	for (int client = 1; client <= MaxClients; client++)
@@ -557,7 +608,7 @@ MRESReturn DHookCallback_VPhysicsUpdate_Post(int entity, DHookParam params)
 	int obj = -1;
 	while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 	{
-		if (!TF2_IsObjectFriendly(obj, thrower))
+		if (!IsObjectFriendly(obj, thrower))
 			continue;
 		
 		Entity(obj).ResetTeam();

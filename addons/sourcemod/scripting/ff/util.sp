@@ -18,19 +18,26 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-bool IsEntityClient(int entity)
+bool IsFriendlyFireEnabled()
 {
-	return 0 < entity <= MaxClients;
+	return mp_friendlyfire.BoolValue && !GameRules_GetProp("m_bTruceActive");
 }
 
-TFTeam TF2_GetTeam(int entity)
+TFTeam TF2_GetEntityTeam(int entity)
 {
 	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
 }
 
-void TF2_SetTeam(int entity, TFTeam team)
+// WARNING: This is unsafe and will lead to crashes!
+// Use `Entity.SetTeam` together with `Entity.ResetTeam` instead.
+void TF2_SetEntityTeam(int entity, TFTeam team)
 {
 	SetEntProp(entity, Prop_Send, "m_iTeamNum", team);
+}
+
+bool IsEntityClient(int entity)
+{
+	return 0 < entity <= MaxClients;
 }
 
 // Useful to get the parent owner for entities that have a chain of owners
@@ -76,7 +83,7 @@ TFTeam GetEnemyTeam(TFTeam team)
 	}
 }
 
-bool TF2_IsObjectFriendly(int obj, int entity)
+bool IsObjectFriendly(int obj, int entity)
 {
 	if (IsValidEntity(entity))
 	{
@@ -99,12 +106,9 @@ bool TF2_IsObjectFriendly(int obj, int entity)
 	return false;
 }
 
-float TF2_GetPercentInvisible(int client)
+float GetPercentInvisible(int client)
 {
-	static int offset = -1;
-	if (offset == -1)
-		offset = FindSendPropInfo("CTFPlayer", "m_flInvisChangeCompleteTime") - 8;
-	
+	int offset = FindSendPropInfo("CTFPlayer", "m_flInvisChangeCompleteTime") - 8;
 	return GetEntDataFloat(client, offset);
 }
 
