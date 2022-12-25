@@ -75,11 +75,11 @@ ConVar mp_friendlyfire;
 ConVar tf_avoidteammates;
 ConVar tf_spawn_glows_duration;
 
-#include "ff/data.sp"
-#include "ff/dhooks.sp"
-#include "ff/sdkcalls.sp"
-#include "ff/sdkhooks.sp"
-#include "ff/util.sp"
+#include "friendlyfire/data.sp"
+#include "friendlyfire/dhooks.sp"
+#include "friendlyfire/sdkcalls.sp"
+#include "friendlyfire/sdkhooks.sp"
+#include "friendlyfire/util.sp"
 
 public Plugin myinfo =
 {
@@ -87,7 +87,7 @@ public Plugin myinfo =
 	author = "Mikusch",
 	description = "Fixes mp_friendlyfire in Team Fortress 2.",
 	version = "1.0.0",
-	url = "https://github.com/Mikusch/friendly-fire"
+	url = "https://github.com/Mikusch/friendlyfire"
 }
 
 public void OnPluginStart()
@@ -97,9 +97,9 @@ public void OnPluginStart()
 	tf_avoidteammates = FindConVar("tf_avoidteammates");
 	tf_spawn_glows_duration = FindConVar("tf_spawn_glows_duration");
 	
-	RegPluginLibrary("ff");
+	RegPluginLibrary("friendlyfire");
 	
-	GameData gamedata = new GameData("ff");
+	GameData gamedata = new GameData("friendlyfire");
 	if (gamedata)
 	{
 		DHooks_Initialize(gamedata);
@@ -108,7 +108,7 @@ public void OnPluginStart()
 	}
 	else
 	{
-		SetFailState("Could not find ff gamedata");
+		SetFailState("Could not find friendlyfire gamedata");
 	}
 	
 	for (int client = 1; client <= MaxClients; client++)
