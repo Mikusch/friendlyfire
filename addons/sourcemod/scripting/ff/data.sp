@@ -27,11 +27,13 @@ static ArrayList g_entityProperties;
  */
 enum struct EntityProperties
 {
-	int m_index;
-	int m_teamCount;
-	TFTeam m_preHookTeam;
-	TFTeam m_preHookDisguiseTeam;
-	TFTeam m_teamHistory[MAX_HISTORY_ENTRIES];
+	int ref;
+	
+	int teamCount;
+	TFTeam teamHistory[MAX_HISTORY_ENTRIES];
+	
+	TFTeam preHookTeam;
+	TFTeam preHookDisguiseTeam;
 }
 
 methodmap Entity
@@ -49,18 +51,18 @@ methodmap Entity
 		}
 		
 		// Convert it twice to ensure we store it as an entity reference
-		entity = EntIndexToEntRef(EntRefToEntIndex(entity));
+		int ref = EntIndexToEntRef(EntRefToEntIndex(entity));
 		
-		if (g_entityProperties.FindValue(entity, EntityProperties::m_index) == -1)
+		if (g_entityProperties.FindValue(ref, EntityProperties::ref) == -1)
 		{
 			// Fill basic properties
 			EntityProperties properties;
-			properties.m_index = entity;
+			properties.ref = ref;
 			
 			g_entityProperties.PushArray(properties);
 		}
 		
-		return view_as<Entity>(entity);
+		return view_as<Entity>(ref);
 	}
 	
 	property int ref
@@ -71,53 +73,53 @@ methodmap Entity
 		}
 	}
 	
-	property int _listIndex
+	property int m_iListIndex
 	{
 		public get()
 		{
-			return g_entityProperties.FindValue(view_as<int>(this), EntityProperties::m_index);
+			return g_entityProperties.FindValue(view_as<int>(this), EntityProperties::ref);
 		}
 	}
 	
-	property int m_teamCount
+	property int TeamCount
 	{
 		public get()
 		{
-			return g_entityProperties.Get(this._listIndex, EntityProperties::m_teamCount);
+			return g_entityProperties.Get(this.m_iListIndex, EntityProperties::teamCount);
 		}
 		public set(int count)
 		{
-			g_entityProperties.Set(this._listIndex, count, EntityProperties::m_teamCount);
+			g_entityProperties.Set(this.m_iListIndex, count, EntityProperties::teamCount);
 		}
 	}
 	
-	property TFTeam m_preHookTeam
+	property TFTeam PreHookTeam
 	{
 		public get()
 		{
-			return g_entityProperties.Get(this._listIndex, EntityProperties::m_preHookTeam);
+			return g_entityProperties.Get(this.m_iListIndex, EntityProperties::preHookTeam);
 		}
 		public set(TFTeam team)
 		{
-			g_entityProperties.Set(this._listIndex, team, EntityProperties::m_preHookTeam);
+			g_entityProperties.Set(this.m_iListIndex, team, EntityProperties::preHookTeam);
 		}
 	}
 	
-	property TFTeam m_preHookDisguiseTeam
+	property TFTeam PreHookDisguiseTeam
 	{
 		public get()
 		{
-			return g_entityProperties.Get(this._listIndex, EntityProperties::m_preHookDisguiseTeam);
+			return g_entityProperties.Get(this.m_iListIndex, EntityProperties::preHookDisguiseTeam);
 		}
 		public set(TFTeam team)
 		{
-			g_entityProperties.Set(this._listIndex, team, EntityProperties::m_preHookDisguiseTeam);
+			g_entityProperties.Set(this.m_iListIndex, team, EntityProperties::preHookDisguiseTeam);
 		}
 	}
 	
 	public void SetTeam(TFTeam team)
 	{
-		int index = this.m_teamCount++;
+		int index = this.TeamCount++;
 		this.SetTeamInternal(TF2_GetEntityTeam(this.ref), index);
 		TF2_SetEntityTeam(this.ref, team);
 	}
@@ -130,7 +132,7 @@ methodmap Entity
 	// Creates a history entry regardless of whether we already are in our original team or not
 	public void ChangeToOriginalTeam()
 	{
-		if (this.m_teamCount > 0)
+		if (this.TeamCount > 0)
 		{
 			this.SetTeam(this.GetTeamInternal(0));
 		}
@@ -142,18 +144,18 @@ methodmap Entity
 	
 	public void ResetTeam()
 	{
-		int index = --this.m_teamCount;
+		int index = --this.TeamCount;
 		TFTeam team = this.GetTeamInternal(index);
 		TF2_SetEntityTeam(this.ref, team);
 	}
 	
 	public void CheckArrayBounds(int index)
 	{
-		if (index < 0 || index >= sizeof(EntityProperties::m_teamHistory))
+		if (index < 0 || index >= sizeof(EntityProperties::teamHistory))
 		{
 			// If you hit this, you have a fatal bug in your code!
 			// Ensure that every `SetTeam` call is paired with a `ResetTeam` call.
-			SetFailState("Array index out-of-bounds (index %d, limit %d)", index, sizeof(EntityProperties::m_teamHistory));
+			SetFailState("Array index out-of-bounds (index %d, limit %d)", index, sizeof(EntityProperties::teamHistory));
 		}
 	}
 	
@@ -164,9 +166,9 @@ methodmap Entity
 		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
-			if (g_entityProperties.GetArray(this._listIndex, properties))
+			if (g_entityProperties.GetArray(this.m_iListIndex, properties))
 			{
-				return properties.m_teamHistory[index];
+				return properties.teamHistory[index];
 			}
 		}
 		
@@ -181,10 +183,10 @@ methodmap Entity
 		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
-			if (g_entityProperties.GetArray(this._listIndex, properties) > 0)
+			if (g_entityProperties.GetArray(this.m_iListIndex, properties) > 0)
 			{
-				properties.m_teamHistory[index] = team;
-				g_entityProperties.SetArray(this._listIndex, properties);
+				properties.teamHistory[index] = team;
+				g_entityProperties.SetArray(this.m_iListIndex, properties);
 				return;
 			}
 		}
@@ -194,10 +196,10 @@ methodmap Entity
 	
 	public void Destroy()
 	{
-		if (this._listIndex == -1)
+		if (this.m_iListIndex == -1)
 			return;
 		
 		// Remove the entry from local storage
-		g_entityProperties.Erase(this._listIndex);
+		g_entityProperties.Erase(this.m_iListIndex);
 	}
 }

@@ -155,9 +155,12 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 
 public void OnEntityDestroyed(int entity)
 {
+	if (!IsValidEntity(entity))
+		return;
+	
 	// If an entity was removed prematurely, reset its owner's team as far back as we need to.
 	// This can happen with projectiles when they collide with the world, not calling the post-hook.
-	for (int i = 0; i < Entity(entity).m_teamCount; i++)
+	for (int i = 0; i < Entity(entity).TeamCount; i++)
 	{
 		int owner = FindParentOwnerEntity(entity);
 		if (owner != -1)

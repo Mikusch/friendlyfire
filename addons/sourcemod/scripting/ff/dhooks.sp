@@ -298,8 +298,8 @@ MRESReturn DHook_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
 	
-	// Respawn rooms should still work normally, for local testing
-	if (StrEqual(classname, "func_respawnroom"))
+	// Ignore some entities
+	if (StrEqual(classname, "func_respawnroom") || StrEqual(classname, "entity_revive_marker"))
 		return MRES_Ignored;
 	
 	if (params.IsNull(1))
@@ -356,7 +356,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 			if (IsClientInGame(client))
 			{
 				TFTeam team = TF2_GetClientTeam(client);
-				Entity(client).m_preHookTeam = team;
+				Entity(client).PreHookTeam = team;
 				bool friendly = IsObjectFriendly(entity, client);
 				
 				if (friendly && team == enemyTeam)
@@ -371,7 +371,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 				// Sentry Guns don't shoot spies disguised as the same team, spoof the disguise team
 				if (!friendly)
 				{
-					Entity(client).m_preHookDisguiseTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
+					Entity(client).PreHookDisguiseTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
 					SetEntProp(client, Prop_Send, "m_nDisguiseTeam", TFTeam_Spectator);
 				}
 			}
@@ -386,7 +386,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Pre(int entity)
 			if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 			{
 				TFTeam team = TF2_GetEntityTeam(obj);
-				Entity(obj).m_preHookTeam = team;
+				Entity(obj).PreHookTeam = team;
 				bool friendly = IsObjectFriendly(entity, obj);
 				
 				if (friendly && team == enemyTeam)
@@ -455,8 +455,8 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 			{
 				if (IsClientInGame(client))
 				{
-					TFTeam team = Entity(client).m_preHookTeam;
-					Entity(client).m_preHookTeam = TFTeam_Unassigned;
+					TFTeam team = Entity(client).PreHookTeam;
+					Entity(client).PreHookTeam = TFTeam_Unassigned;
 					bool friendly = IsObjectFriendly(entity, client);
 					
 					if (friendly && team == enemyTeam)
@@ -470,8 +470,8 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 					
 					if (!friendly)
 					{
-						SetEntProp(client, Prop_Send, "m_nDisguiseTeam", Entity(client).m_preHookDisguiseTeam);
-						Entity(client).m_preHookDisguiseTeam = TFTeam_Unassigned;
+						SetEntProp(client, Prop_Send, "m_nDisguiseTeam", Entity(client).PreHookDisguiseTeam);
+						Entity(client).PreHookDisguiseTeam = TFTeam_Unassigned;
 					}
 				}
 			}
@@ -481,7 +481,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 			{
 				if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 				{
-					TFTeam team = Entity(obj).m_preHookTeam;
+					TFTeam team = Entity(obj).PreHookTeam;
 					bool friendly = IsObjectFriendly(entity, obj);
 					
 					if (friendly && team == enemyTeam)
@@ -493,7 +493,7 @@ MRESReturn DHookCallback_PhysicsDispatchThink_Post(int entity)
 						SDKCall_RemoveObject(pEnemyTeam, obj);
 					}
 					
-					Entity(obj).m_preHookTeam = TFTeam_Unassigned;
+					Entity(obj).PreHookTeam = TFTeam_Unassigned;
 				}
 			}
 		}
