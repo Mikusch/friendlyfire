@@ -69,14 +69,14 @@
 			"CTFSniperRifle::GetCustomDamageType"
 			{
 				"library"	"server"
-				"linux"		"386"
-				"windows"	"380"
+				"linux"		"387"
+				"windows"	"381"
 			}
 			"CTFSniperRifle::GetPenetrateType"
 			{
 				"library"	"server"
-				"linux"		"406"
-				"windows"	"399"
+				"linux"		"407"
+				"windows"	"400"
 			}
 			"CBaseGrenade::Explode"
 			{
@@ -117,8 +117,8 @@
 			"CTFWeaponBaseMelee::Smack"
 			{
 				"library"	"server"
-				"linux"		"476"
-				"windows"	"469"
+				"linux"		"477"
+				"windows"	"470"
 			}
 			"CTFWeaponBase::SecondaryAttack"
 			{
