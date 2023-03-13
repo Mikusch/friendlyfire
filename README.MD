@@ -4,6 +4,11 @@ This plugin attempts to fix the incredibly broken friendly fire in Team Fortress
 
 **Note:** This does nothing if `mp_friendlyfire` is not enabled.
 
+## Requirements
+
+* SourceMod 1.11+
+* [TF2 Utils](https://github.com/nosoop/SM-TFUtils)
+
 ## What does this fix?
 
 The full list is far too big to write out in detail, but some notable fixes include:
