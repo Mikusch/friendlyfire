@@ -42,6 +42,4 @@ The full list is far too big to write out in detail, but some notable fixes incl
 
 ## Found a bug?
 
-That's great... and bad!
-
-Please [open an issue](https://github.com/Mikusch/friendlyfire/issues) with detailed steps on how to reproduce your bug. I'll take a look at is as soon as I'm available.
+Please [open an issue](https://github.com/Mikusch/friendlyfire/issues) with detailed steps on how to reproduce your bug.

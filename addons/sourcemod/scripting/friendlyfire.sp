@@ -124,10 +124,10 @@ public void OnConfigsExecuted()
 
 public void OnPluginEnd()
 {
-	if (g_isEnabled)
-	{
-		TogglePlugin(!g_isEnabled);
-	}
+	if (!g_isEnabled)
+		return;
+	
+	TogglePlugin(!g_isEnabled);
 }
 
 public void OnClientPutInServer(int client)
