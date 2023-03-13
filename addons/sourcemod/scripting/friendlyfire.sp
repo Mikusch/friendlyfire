@@ -132,18 +132,27 @@ public void OnPluginEnd()
 
 public void OnClientPutInServer(int client)
 {
+	if (!g_isEnabled)
+		return;
+	
 	DHooks_OnClientPutInServer(client);
 	SDKHooks_OnClientPutInServer(client);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
+	if (!g_isEnabled)
+		return;
+	
 	DHooks_OnEntityCreated(entity, classname);
 	SDKHooks_OnEntityCreated(entity, classname);
 }
 
 public void OnEntityDestroyed(int entity)
 {
+	if (!g_isEnabled)
+		return;
+	
 	if (!IsValidEntity(entity))
 		return;
 	
@@ -163,6 +172,9 @@ public void OnEntityDestroyed(int entity)
 
 public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 {
+	if (!g_isEnabled)
+		return Plugin_Continue;
+	
 	result = IsObjectFriendly(teleporter, client);
 	return Plugin_Handled;
 }
