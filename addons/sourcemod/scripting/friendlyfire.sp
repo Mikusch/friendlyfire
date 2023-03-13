@@ -25,6 +25,8 @@
 #include <tf2_stocks>
 #include <tf2utils>
 
+#define PLUGIN_VERSION	"1.0.0"
+
 #define TICK_NEVER_THINK	-1.0
 
 #define TF_CUSTOM_NONE		0
@@ -73,9 +75,10 @@ enum
 };
 
 ConVar mp_friendlyfire;
-ConVar tf_avoidteammates;
-ConVar tf_spawn_glows_duration;
 
+bool g_isEnabled;
+
+#include "friendlyfire/convars.sp"
 #include "friendlyfire/data.sp"
 #include "friendlyfire/dhooks.sp"
 #include "friendlyfire/sdkcalls.sp"
@@ -87,18 +90,16 @@ public Plugin myinfo =
 	name = "[TF2] Fixed Friendly Fire",
 	author = "Mikusch",
 	description = "Fixes mp_friendlyfire in Team Fortress 2.",
-	version = "1.0.0",
+	version = PLUGIN_VERSION,
 	url = "https://github.com/Mikusch/friendlyfire"
 }
 
 public void OnPluginStart()
 {
-	mp_friendlyfire = FindConVar("mp_friendlyfire");
-	mp_friendlyfire.AddChangeHook(ConVarChanged_FriendlyFire);
-	tf_avoidteammates = FindConVar("tf_avoidteammates");
-	tf_spawn_glows_duration = FindConVar("tf_spawn_glows_duration");
-	
 	RegPluginLibrary("friendlyfire");
+	
+	ConVars_Initialize();
+	SDKHooks_Initialize();
 	
 	GameData gamedata = new GameData("friendlyfire");
 	if (gamedata)
@@ -111,24 +112,22 @@ public void OnPluginStart()
 	{
 		SetFailState("Could not find friendlyfire gamedata");
 	}
-	
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (IsClientInGame(client))
-		{
-			OnClientPutInServer(client);
-		}
-	}
 }
 
 public void OnConfigsExecuted()
 {
-	OnFriendlyFireChanged(mp_friendlyfire.BoolValue);
+	if (g_isEnabled != mp_friendlyfire.BoolValue)
+	{
+		TogglePlugin(mp_friendlyfire.BoolValue);
+	}
 }
 
 public void OnPluginEnd()
 {
-	OnFriendlyFireChanged(false);
+	if (g_isEnabled)
+	{
+		TogglePlugin(!g_isEnabled);
+	}
 }
 
 public void OnClientPutInServer(int client)
@@ -168,21 +167,21 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 	return Plugin_Handled;
 }
 
-static void ConVarChanged_FriendlyFire(ConVar convar, const char[] oldValue, const char[] newValue)
+void TogglePlugin(bool enable)
 {
-	OnFriendlyFireChanged(convar.BoolValue);
-}
-
-static void OnFriendlyFireChanged(bool enabled)
-{
-	if (enabled)
+	g_isEnabled = enable;
+	
+	ConVars_Toggle(enable);
+	DHooks_Toggle(enable);
+	
+	for (int client = 1; client <= MaxClients; client++)
 	{
-		tf_avoidteammates.BoolValue = false;
-		tf_spawn_glows_duration.IntValue = 0;
-	}
-	else
-	{
-		tf_avoidteammates.RestoreDefault();
-		tf_spawn_glows_duration.RestoreDefault();
+		if (!IsClientInGame(client))
+			continue;
+		
+		if (enable)
+			OnClientPutInServer(client);
+		else
+			SDKHooks_UnhookClient(client);
 	}
 }
