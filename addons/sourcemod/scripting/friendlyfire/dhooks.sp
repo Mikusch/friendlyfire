@@ -111,8 +111,8 @@ void DHooks_Toggle(bool enable)
 
 void DHooks_OnClientPutInServer(int client)
 {
-	g_dhookEventKilled.HookEntity(Hook_Pre, client, DHookCallback_EventKilled_Pre);
-	g_dhookEventKilled.HookEntity(Hook_Post, client, DHookCallback_EventKilled_Post);
+	DHooks_HookEntity(g_dhookEventKilled, Hook_Pre, client, DHookCallback_EventKilled_Pre);
+	DHooks_HookEntity(g_dhookEventKilled, Hook_Post, client, DHookCallback_EventKilled_Post);
 }
 
 void DHooks_OnEntityCreated(int entity, const char[] classname)
@@ -122,46 +122,46 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 		// Fixes jars not applying effects to teammates when hitting the world
 		if (strncmp(classname, "tf_projectile_jar", 17) == 0)
 		{
-			g_dhookBaseGrenadeExplode.HookEntity(Hook_Pre, entity, DHookCallback_BaseGrenadeExplode_Pre);
-			g_dhookBaseGrenadeExplode.HookEntity(Hook_Post, entity, DHookCallback_BaseGrenadeExplode_Post);
+			DHooks_HookEntity(g_dhookBaseGrenadeExplode, Hook_Pre, entity, DHookCallback_BaseGrenadeExplode_Pre);
+			DHooks_HookEntity(g_dhookBaseGrenadeExplode, Hook_Post, entity, DHookCallback_BaseGrenadeExplode_Post);
 		}
 		
 		// Fixes Scorch Shot knockback on teammates
 		if (StrEqual(classname, "tf_projectile_flare"))
 		{
-			g_dhookBaseRocketExplode.HookEntity(Hook_Pre, entity, DHookCallback_BaseRocketExplode_Pre);
-			g_dhookBaseRocketExplode.HookEntity(Hook_Post, entity, DHookCallback_BaseRocketExplode_Post);
+			DHooks_HookEntity(g_dhookBaseRocketExplode, Hook_Pre, entity, DHookCallback_BaseRocketExplode_Pre);
+			DHooks_HookEntity(g_dhookBaseRocketExplode, Hook_Post, entity, DHookCallback_BaseRocketExplode_Post);
 		}
 		
 		// Fixes grenades rarely bouncing off friendly objects
 		if (IsProjectileCTFWeaponBaseGrenade(entity))
 		{
-			g_dhookVPhysicsUpdate.HookEntity(Hook_Pre, entity, DHookCallback_VPhysicsUpdate_Pre);
-			g_dhookVPhysicsUpdate.HookEntity(Hook_Post, entity, DHookCallback_VPhysicsUpdate_Post);
+			DHooks_HookEntity(g_dhookVPhysicsUpdate, Hook_Pre, entity, DHookCallback_VPhysicsUpdate_Pre);
+			DHooks_HookEntity(g_dhookVPhysicsUpdate, Hook_Post, entity, DHookCallback_VPhysicsUpdate_Post);
 		}
 		
 		// Fixes projectiles sometimes not colliding with teammates
-		g_dhookCanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
+		DHooks_HookEntity(g_dhookCanCollideWithTeammates, Hook_Post, entity, DHookCallback_CanCollideWithTeammates_Post);
 	}
 	
 	// Fixes Sniper Rifles dealing no damage to teammates
 	if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
 	{
-		g_dhookGetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
+		DHooks_HookEntity(g_dhookGetCustomDamageType, Hook_Post, entity, DHookCallback_GetCustomDamageType_Post);
 	}
 	
 	// Fixes pipebomb launchers not being able to knock around friendly pipebombs
 	if (TF2Util_IsEntityWeapon(entity) && TF2Util_GetWeaponID(entity) == TF_WEAPON_PIPEBOMBLAUNCHER)
 	{
-		g_dhookSecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
-		g_dhookSecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_SecondaryAttack_Post);
+		DHooks_HookEntity(g_dhookSecondaryAttack, Hook_Pre, entity, DHookCallback_SecondaryAttack_Pre);
+		DHooks_HookEntity(g_dhookSecondaryAttack, Hook_Post, entity, DHookCallback_SecondaryAttack_Post);
 	}
 	
 	// Fixes wrenches not being able to upgrade friendly objects and a few other melee weapons
 	if (IsWeaponBaseMelee(entity))
 	{
-		g_dhookSmack.HookEntity(Hook_Pre, entity, DHookCallback_Smack_Pre);
-		g_dhookSmack.HookEntity(Hook_Post, entity, DHookCallback_Smack_Post);
+		DHooks_HookEntity(g_dhookSmack, Hook_Pre, entity, DHookCallback_Smack_Pre);
+		DHooks_HookEntity(g_dhookSmack, Hook_Post, entity, DHookCallback_Smack_Post);
 	}
 }
 
@@ -192,6 +192,27 @@ static DynamicHook DHooks_AddDynamicHook(GameData gamedata, const char[] name)
 	}
 	
 	return hook;
+}
+
+static void DHooks_HookEntity(DynamicHook hook, HookMode mode, int entity, DHookCallback callback)
+{
+	if (hook)
+	{
+		int hookid = hook.HookEntity(mode, entity, callback, DHookRemovalCB_OnHookRemoved);
+		if (hookid != INVALID_HOOK_ID)
+		{
+			g_dynamicHookIds.Push(hookid);
+		}
+	}
+}
+
+public void DHookRemovalCB_OnHookRemoved(int hookid)
+{
+	int index = g_dynamicHookIds.FindValue(hookid);
+	if (index != -1)
+	{
+		g_dynamicHookIds.Erase(index);
+	}
 }
 
 static MRESReturn DHookCallback_EventKilled_Pre(int player, DHookParam params)
