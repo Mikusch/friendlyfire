@@ -49,7 +49,7 @@ int g_enemyItemIDs[] =
 
 static ArrayList g_sdkHookData;
 static PostThinkType g_postThinkType;
-static RoundState g_RoundState;
+static RoundState g_roundState;
 
 void SDKHooks_Initialize()
 {
@@ -208,7 +208,7 @@ static void SDKHookCB_Client_PostThink(int client)
 		if (TF2Util_GetWeaponID(activeWeapon) == g_spectatorItemIDs[i])
 		{
 			g_postThinkType = PostThinkType_Spectator;
-			g_RoundState = GameRules_GetRoundState();
+			g_roundState = GameRules_GetRoundState();
 
 			RoundState state = (GameRules_GetProp("m_nGameType") == TF_GAMETYPE_ARENA) ? RoundState_Stalemate : RoundState_RoundRunning;
 			GameRules_SetProp("m_iRoundState", view_as<int>(state));
@@ -229,7 +229,7 @@ static void SDKHookCB_Client_PostThinkPost(int client)
 		case PostThinkType_Spectator:
 		{
 			Entity(client).ResetTeam();
-			GameRules_SetProp("m_iRoundState", view_as<int>(g_RoundState));
+			GameRules_SetProp("m_iRoundState", view_as<int>(g_roundState));
 		}
 		case PostThinkType_EnemyTeam:
 		{
