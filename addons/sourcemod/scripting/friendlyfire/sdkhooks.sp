@@ -49,6 +49,7 @@ int g_enemyItemIDs[] =
 
 static ArrayList g_sdkHookData;
 static PostThinkType g_postThinkType;
+static RoundState g_RoundState;
 
 void SDKHooks_Initialize()
 {
@@ -200,10 +201,17 @@ static void SDKHookCB_Client_PostThink(int client)
 	// For functions that do simple GetTeamNumber() checks, move ourselves to spectator team
 	for (int i = 0; i < sizeof(g_spectatorItemIDs); i++)
 	{
+		// Don't let losing team attack with those weapons
+		if (GameRules_GetRoundState() == RoundState_TeamWin && TF2_GetClientTeam(client) != view_as<TFTeam>(GameRules_GetProp("m_iWinningTeam")))
+			break;
+
 		if (TF2Util_GetWeaponID(activeWeapon) == g_spectatorItemIDs[i])
 		{
 			g_postThinkType = PostThinkType_Spectator;
-			
+			g_RoundState = GameRules_GetRoundState();
+
+			RoundState state = (GameRules_GetProp("m_nGameType") == TF_GAMETYPE_ARENA) ? RoundState_Stalemate : RoundState_RoundRunning;
+			GameRules_SetProp("m_iRoundState", view_as<int>(state));
 			Entity(client).ChangeToSpectator();
 		}
 	}
@@ -221,6 +229,7 @@ static void SDKHookCB_Client_PostThinkPost(int client)
 		case PostThinkType_Spectator:
 		{
 			Entity(client).ResetTeam();
+			GameRules_SetProp("m_iRoundState", view_as<int>(g_RoundState));
 		}
 		case PostThinkType_EnemyTeam:
 		{

@@ -31,6 +31,8 @@
 
 #define TF_CUSTOM_NONE		0
 
+#define TF_GAMETYPE_ARENA	4
+
 enum
 {
 	SOLID_TO_PLAYER_USE_DEFAULT = 0,
