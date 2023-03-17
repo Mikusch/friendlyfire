@@ -154,11 +154,12 @@ public void OnClientPutInServer(int client)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	if (!g_isEnabled || !g_isMapRunning)
+	SDKHooks_OnEntityCreated(entity, classname);
+	
+	if (!g_isEnabled)
 		return;
 	
 	DHooks_OnEntityCreated(entity, classname);
-	SDKHooks_OnEntityCreated(entity, classname);
 }
 
 public void OnEntityDestroyed(int entity)

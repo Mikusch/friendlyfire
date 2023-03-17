@@ -47,13 +47,13 @@ int g_enemyItemIDs[] =
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static ArrayList g_sdkHookData;
+static ArrayList g_clientHookData;
 static PostThinkType g_postThinkType;
 static RoundState g_roundState;
 
 void SDKHooks_Initialize()
 {
-	g_sdkHookData = new ArrayList(sizeof(SDKHookData));
+	g_clientHookData = new ArrayList(sizeof(SDKHookData));
 	
 	SDKHooks_AddHook(SDKHook_PreThink, SDKHookCB_Client_PreThink);
 	SDKHooks_AddHook(SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
@@ -66,10 +66,10 @@ void SDKHooks_Initialize()
 
 void SDKHooks_OnClientPutInServer(int client)
 {
-	for (int i = 0; i < g_sdkHookData.Length; i++)
+	for (int i = 0; i < g_clientHookData.Length; i++)
 	{
 		SDKHookData data;
-		if (g_sdkHookData.GetArray(i, data))
+		if (g_clientHookData.GetArray(i, data))
 		{
 			SDKHook(client, data.type, data.callback);
 		}
@@ -78,10 +78,10 @@ void SDKHooks_OnClientPutInServer(int client)
 
 void SDKHooks_UnhookClient(int client)
 {
-	for (int i = 0; i < g_sdkHookData.Length; i++)
+	for (int i = 0; i < g_clientHookData.Length; i++)
 	{
 		SDKHookData data;
-		if (g_sdkHookData.GetArray(i, data))
+		if (g_clientHookData.GetArray(i, data))
 		{
 			SDKUnhook(client, data.type, data.callback);
 		}
@@ -137,7 +137,7 @@ static void SDKHooks_AddHook(SDKHookType type, SDKHookCB callback)
 	data.type = type;
 	data.callback = callback;
 	
-	g_sdkHookData.PushArray(data);
+	g_clientHookData.PushArray(data);
 }
 
 // CTFPlayerShared::OnPreDataChanged
@@ -204,12 +204,12 @@ static void SDKHookCB_Client_PostThink(int client)
 		// Don't let losing team attack with those weapons
 		if (GameRules_GetRoundState() == RoundState_TeamWin && TF2_GetClientTeam(client) != view_as<TFTeam>(GameRules_GetProp("m_iWinningTeam")))
 			break;
-
+		
 		if (TF2Util_GetWeaponID(activeWeapon) == g_spectatorItemIDs[i])
 		{
 			g_postThinkType = PostThinkType_Spectator;
 			g_roundState = GameRules_GetRoundState();
-
+			
 			RoundState state = (GameRules_GetProp("m_nGameType") == TF_GAMETYPE_ARENA) ? RoundState_Stalemate : RoundState_RoundRunning;
 			GameRules_SetProp("m_iRoundState", view_as<int>(state));
 			Entity(client).ChangeToSpectator();
@@ -296,7 +296,7 @@ static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 
 static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -309,7 +309,7 @@ static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 
 static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -320,7 +320,7 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || !g_isMapRunning || GameRules_GetProp("m_bTruceActive"))
 		return;
 	
 	// Enable collisions for both teams
@@ -330,7 +330,7 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 
 static Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 	
 	if (other == 0)
@@ -348,7 +348,7 @@ static Action SDKHookCB_Projectile_Touch(int entity, int other)
 
 static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return;
 	
 	if (other == 0)
@@ -364,7 +364,7 @@ static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 
 static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 	
 	if (attacker != -1)
@@ -382,7 +382,7 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 
 static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return;
 	
 	if (attacker != -1)
@@ -396,7 +396,7 @@ static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int atta
 
 static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -411,7 +411,7 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 
 static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -423,7 +423,7 @@ static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 
 static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 	
 	if (FindParentOwnerEntity(entity) == other)
