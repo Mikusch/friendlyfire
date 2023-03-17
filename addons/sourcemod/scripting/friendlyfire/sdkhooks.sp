@@ -47,13 +47,13 @@ int g_enemyItemIDs[] =
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static ArrayList g_clientHookData;
+static ArrayList g_sdkHookData;
 static PostThinkType g_postThinkType;
 static RoundState g_roundState;
 
 void SDKHooks_Initialize()
 {
-	g_clientHookData = new ArrayList(sizeof(SDKHookData));
+	g_sdkHookData = new ArrayList(sizeof(SDKHookData));
 	
 	SDKHooks_AddHook(SDKHook_PreThink, SDKHookCB_Client_PreThink);
 	SDKHooks_AddHook(SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
@@ -66,10 +66,10 @@ void SDKHooks_Initialize()
 
 void SDKHooks_OnClientPutInServer(int client)
 {
-	for (int i = 0; i < g_clientHookData.Length; i++)
+	for (int i = 0; i < g_sdkHookData.Length; i++)
 	{
 		SDKHookData data;
-		if (g_clientHookData.GetArray(i, data))
+		if (g_sdkHookData.GetArray(i, data))
 		{
 			SDKHook(client, data.type, data.callback);
 		}
@@ -78,10 +78,10 @@ void SDKHooks_OnClientPutInServer(int client)
 
 void SDKHooks_UnhookClient(int client)
 {
-	for (int i = 0; i < g_clientHookData.Length; i++)
+	for (int i = 0; i < g_sdkHookData.Length; i++)
 	{
 		SDKHookData data;
-		if (g_clientHookData.GetArray(i, data))
+		if (g_sdkHookData.GetArray(i, data))
 		{
 			SDKUnhook(client, data.type, data.callback);
 		}
@@ -137,13 +137,13 @@ static void SDKHooks_AddHook(SDKHookType type, SDKHookCB callback)
 	data.type = type;
 	data.callback = callback;
 	
-	g_clientHookData.PushArray(data);
+	g_sdkHookData.PushArray(data);
 }
 
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThink(int client)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	// Disable radius buffs like Buff Banner or King Rune
@@ -153,7 +153,7 @@ static void SDKHookCB_Client_PreThink(int client)
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThinkPost(int client)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	Entity(client).ResetTeam();
@@ -162,7 +162,7 @@ static void SDKHookCB_Client_PreThinkPost(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThink(int client)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	// CTFPlayer::DoTauntAttack
@@ -220,7 +220,7 @@ static void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThinkPost(int client)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	// Change everything back to how it was accordingly
@@ -248,7 +248,7 @@ static void SDKHookCB_Client_PostThinkPost(int client)
 
 static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
 	if (IsEntityClient(attacker))
@@ -266,7 +266,7 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 
 static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	if (IsEntityClient(attacker))
@@ -281,7 +281,7 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 
 static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
 	// Don't transmit invisible spies to living players
@@ -296,7 +296,7 @@ static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 
 static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -309,7 +309,7 @@ static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 
 static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -320,7 +320,7 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
-	if (!g_isEnabled || !g_isMapRunning || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	// Enable collisions for both teams
@@ -330,7 +330,7 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 
 static Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
 	if (other == 0)
@@ -348,7 +348,7 @@ static Action SDKHookCB_Projectile_Touch(int entity, int other)
 
 static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	if (other == 0)
@@ -364,7 +364,7 @@ static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 
 static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
 	if (attacker != -1)
@@ -382,7 +382,7 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 
 static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	if (attacker != -1)
@@ -396,7 +396,7 @@ static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int atta
 
 static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -411,7 +411,7 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 
 static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -423,7 +423,7 @@ static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 
 static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
-	if (!g_isEnabled || GameRules_GetProp("m_bTruceActive"))
+	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
 	if (FindParentOwnerEntity(entity) == other)
