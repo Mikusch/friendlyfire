@@ -154,6 +154,7 @@ public void OnClientPutInServer(int client)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
+	// Always hook entities, just so we don't have to unhook and re-hook everything
 	SDKHooks_OnEntityCreated(entity, classname);
 	
 	if (!g_isEnabled)
