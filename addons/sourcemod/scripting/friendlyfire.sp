@@ -164,8 +164,8 @@ public void OnClientPutInServer(int client)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	SDKHooks_OnEntityCreated(entity, classname);
 	DHooks_OnEntityCreated(entity, classname);
+	SDKHooks_OnEntityCreated(entity, classname);
 }
 
 public void OnEntityDestroyed(int entity)
