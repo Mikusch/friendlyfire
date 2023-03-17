@@ -18,6 +18,11 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+bool IsFriendlyFireEnabled()
+{
+	return g_isEnabled && g_isMapRunning && !GameRules_GetProp("m_bTruceActive");
+}
+
 TFTeam TF2_GetEntityTeam(int entity)
 {
 	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
