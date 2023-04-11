@@ -47,13 +47,15 @@ int g_enemyItemIDs[] =
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static ArrayList g_sdkHookData;
+static ArrayList g_hookData;
+static StringMap g_hookParams_OnTakeDamage;
 static PostThinkType g_postThinkType;
 static RoundState g_roundState;
 
 void SDKHooks_Initialize()
 {
-	g_sdkHookData = new ArrayList(sizeof(SDKHookData));
+	g_hookData = new ArrayList(sizeof(SDKHookData));
+	g_hookParams_OnTakeDamage = new StringMap();
 	
 	SDKHooks_AddHook(SDKHook_PreThink, SDKHookCB_Client_PreThink);
 	SDKHooks_AddHook(SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
@@ -66,10 +68,10 @@ void SDKHooks_Initialize()
 
 void SDKHooks_OnClientPutInServer(int client)
 {
-	for (int i = 0; i < g_sdkHookData.Length; i++)
+	for (int i = 0; i < g_hookData.Length; i++)
 	{
 		SDKHookData data;
-		if (g_sdkHookData.GetArray(i, data))
+		if (g_hookData.GetArray(i, data))
 		{
 			SDKHook(client, data.type, data.callback);
 		}
@@ -78,10 +80,10 @@ void SDKHooks_OnClientPutInServer(int client)
 
 void SDKHooks_UnhookClient(int client)
 {
-	for (int i = 0; i < g_sdkHookData.Length; i++)
+	for (int i = 0; i < g_hookData.Length; i++)
 	{
 		SDKHookData data;
-		if (g_sdkHookData.GetArray(i, data))
+		if (g_hookData.GetArray(i, data))
 		{
 			SDKUnhook(client, data.type, data.callback);
 		}
@@ -137,7 +139,7 @@ static void SDKHooks_AddHook(SDKHookType type, SDKHookCB callback)
 	data.type = type;
 	data.callback = callback;
 	
-	g_sdkHookData.PushArray(data);
+	g_hookData.PushArray(data);
 }
 
 // CTFPlayerShared::OnPreDataChanged
@@ -251,6 +253,10 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 	if (!IsFriendlyFireEnabled())
 		return Plugin_Continue;
 	
+	// Attacker and victim are commonly modified by other plugins, store them off
+	g_hookParams_OnTakeDamage.SetValue("victim", victim);
+	g_hookParams_OnTakeDamage.SetValue("attacker", attacker);
+	
 	if (IsEntityClient(attacker))
 	{
 		Entity(attacker).ChangeToSpectator();
@@ -268,6 +274,9 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 {
 	if (!IsFriendlyFireEnabled())
 		return;
+	
+	g_hookParams_OnTakeDamage.GetValue("victim", victim);
+	g_hookParams_OnTakeDamage.GetValue("attacker", attacker);
 	
 	if (IsEntityClient(attacker))
 	{
