@@ -18,28 +18,28 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-static Handle g_SDKCallGetNextThink;
-static Handle g_SDKCallGetPenetrateType;
-static Handle g_SDKCallGetGlobalTeam;
-static Handle g_SDKCallAddPlayer;
-static Handle g_SDKCallRemovePlayer;
-static Handle g_SDKCallAddObject;
-static Handle g_SDKCallRemoveObject;
-static Handle g_SDKCallChangeTeam;
+static Handle g_sdkCall_CBaseEntity_GetNextThink;
+static Handle g_sdkCall_CTFSniperRifle_GetPenetrateType;
+static Handle g_sdkCall_GetGlobalTeam;
+static Handle g_sdkCall_CTeam_AddPlayer;
+static Handle g_sdkCall_CTeam_RemovePlayer;
+static Handle g_sdkCall_CTeam_AddObject;
+static Handle g_sdkCall_CTeam_RemoveObject;
+static Handle g_sdkCall_CBaseEntity_ChangeTeam;
 
 void SDKCalls_Initialize(GameData gamedata)
 {
-	g_SDKCallGetNextThink = PrepSDKCall_GetNextThink(gamedata);
-	g_SDKCallGetPenetrateType = PrepSDKCall_GetPenetrateType(gamedata);
-	g_SDKCallGetGlobalTeam = PrepSDKCall_GetGlobalTeam(gamedata);
-	g_SDKCallAddPlayer = PrepSDKCall_AddPlayer(gamedata);
-	g_SDKCallRemovePlayer = PrepSDKCall_RemovePlayer(gamedata);
-	g_SDKCallAddObject = PrepSDKCall_AddObject(gamedata);
-	g_SDKCallRemoveObject = PrepSDKCall_RemoveObject(gamedata);
-	g_SDKCallChangeTeam = PrepSDKCall_ChangeTeam(gamedata);
+	g_sdkCall_CBaseEntity_GetNextThink = PrepSDKCall_CBaseEntity_GetNextThink(gamedata);
+	g_sdkCall_CTFSniperRifle_GetPenetrateType = PrepSDKCall_CTFSniperRifle_GetPenetrateType(gamedata);
+	g_sdkCall_GetGlobalTeam = PrepSDKCall_GetGlobalTeam(gamedata);
+	g_sdkCall_CTeam_AddPlayer = PrepSDKCall_CTeam_AddPlayer(gamedata);
+	g_sdkCall_CTeam_RemovePlayer = PrepSDKCall_CTeam_RemovePlayer(gamedata);
+	g_sdkCall_CTeam_AddObject = PrepSDKCall_CTeam_AddObject(gamedata);
+	g_sdkCall_CTeam_RemoveObject = PrepSDKCall_CTeam_RemoveObject(gamedata);
+	g_sdkCall_CBaseEntity_ChangeTeam = PrepSDKCall_CBaseEntity_ChangeTeam(gamedata);
 }
 
-static Handle PrepSDKCall_GetNextThink(GameData gamedata)
+static Handle PrepSDKCall_CBaseEntity_GetNextThink(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CBaseEntity::GetNextThink");
@@ -53,7 +53,7 @@ static Handle PrepSDKCall_GetNextThink(GameData gamedata)
 	return call;
 }
 
-static Handle PrepSDKCall_GetPenetrateType(GameData gamedata)
+static Handle PrepSDKCall_CTFSniperRifle_GetPenetrateType(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Virtual, "CTFSniperRifle::GetPenetrateType");
@@ -80,7 +80,7 @@ static Handle PrepSDKCall_GetGlobalTeam(GameData gamedata)
 	return call;
 }
 
-static Handle PrepSDKCall_AddPlayer(GameData gamedata)
+static Handle PrepSDKCall_CTeam_AddPlayer(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Virtual, "CTeam::AddPlayer");
@@ -93,7 +93,7 @@ static Handle PrepSDKCall_AddPlayer(GameData gamedata)
 	return call;
 }
 
-static Handle PrepSDKCall_RemovePlayer(GameData gamedata)
+static Handle PrepSDKCall_CTeam_RemovePlayer(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Virtual, "CTeam::RemovePlayer");
@@ -106,7 +106,7 @@ static Handle PrepSDKCall_RemovePlayer(GameData gamedata)
 	return call;
 }
 
-static Handle PrepSDKCall_AddObject(GameData gamedata)
+static Handle PrepSDKCall_CTeam_AddObject(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CTFTeam::AddObject");
@@ -119,7 +119,7 @@ static Handle PrepSDKCall_AddObject(GameData gamedata)
 	return call;
 }
 
-static Handle PrepSDKCall_RemoveObject(GameData gamedata)
+static Handle PrepSDKCall_CTeam_RemoveObject(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Raw);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "CTFTeam::RemoveObject");
@@ -132,7 +132,7 @@ static Handle PrepSDKCall_RemoveObject(GameData gamedata)
 	return call;
 }
 
-static Handle PrepSDKCall_ChangeTeam(GameData gamedata)
+static Handle PrepSDKCall_CBaseEntity_ChangeTeam(GameData gamedata)
 {
 	StartPrepSDKCall(SDKCall_Entity);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Virtual, "CBaseEntity::ChangeTeam");
@@ -145,56 +145,56 @@ static Handle PrepSDKCall_ChangeTeam(GameData gamedata)
 	return call;
 }
 
-float SDKCall_GetNextThink(int entity, const char[] context = "")
+float SDKCall_CBaseEntity_GetNextThink(int entity, const char[] context = "")
 {
-	if (g_SDKCallGetNextThink)
-		return SDKCall(g_SDKCallGetNextThink, entity, context);
+	if (g_sdkCall_CBaseEntity_GetNextThink)
+		return SDKCall(g_sdkCall_CBaseEntity_GetNextThink, entity, context);
 	
 	return TICK_NEVER_THINK;
 }
 
-int SDKCall_GetPenetrateType(int weapon)
+int SDKCall_CTFSniperRifle_GetPenetrateType(int weapon)
 {
-	if (g_SDKCallGetPenetrateType)
-		return SDKCall(g_SDKCallGetPenetrateType, weapon);
+	if (g_sdkCall_CTFSniperRifle_GetPenetrateType)
+		return SDKCall(g_sdkCall_CTFSniperRifle_GetPenetrateType, weapon);
 	
 	return TF_CUSTOM_NONE;
 }
 
 Address SDKCall_GetGlobalTeam(TFTeam team)
 {
-	if (g_SDKCallGetGlobalTeam)
-		return SDKCall(g_SDKCallGetGlobalTeam, team);
+	if (g_sdkCall_GetGlobalTeam)
+		return SDKCall(g_sdkCall_GetGlobalTeam, team);
 	
 	return Address_Null;
 }
 
-void SDKCall_AddPlayer(Address team, int client)
+void SDKCall_CTeam_AddPlayer(Address team, int client)
 {
-	if (g_SDKCallAddPlayer)
-		SDKCall(g_SDKCallAddPlayer, team, client);
+	if (g_sdkCall_CTeam_AddPlayer)
+		SDKCall(g_sdkCall_CTeam_AddPlayer, team, client);
 }
 
-void SDKCall_RemovePlayer(Address team, int client)
+void SDKCall_CTeam_RemovePlayer(Address team, int client)
 {
-	if (g_SDKCallRemovePlayer)
-		SDKCall(g_SDKCallRemovePlayer, team, client);
+	if (g_sdkCall_CTeam_RemovePlayer)
+		SDKCall(g_sdkCall_CTeam_RemovePlayer, team, client);
 }
 
-void SDKCall_AddObject(Address team, int obj)
+void SDKCall_CTeam_AddObject(Address team, int obj)
 {
-	if (g_SDKCallAddObject)
-		SDKCall(g_SDKCallAddObject, team, obj);
+	if (g_sdkCall_CTeam_AddObject)
+		SDKCall(g_sdkCall_CTeam_AddObject, team, obj);
 }
 
-void SDKCall_RemoveObject(Address team, int obj)
+void SDKCall_CTeam_RemoveObject(Address team, int obj)
 {
-	if (g_SDKCallRemoveObject)
-		SDKCall(g_SDKCallRemoveObject, team, obj);
+	if (g_sdkCall_CTeam_RemoveObject)
+		SDKCall(g_sdkCall_CTeam_RemoveObject, team, obj);
 }
 
-void SDKCall_ChangeTeam(int entity, TFTeam team)
+void SDKCall_CBaseEntity_ChangeTeam(int entity, TFTeam team)
 {
-	if (g_SDKCallChangeTeam)
-		SDKCall(g_SDKCallChangeTeam, entity, team);
+	if (g_sdkCall_CBaseEntity_ChangeTeam)
+		SDKCall(g_sdkCall_CBaseEntity_ChangeTeam, entity, team);
 }
