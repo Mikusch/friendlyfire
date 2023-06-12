@@ -65,7 +65,7 @@ methodmap Entity
 		return view_as<Entity>(ref);
 	}
 	
-	property int ref
+	property int Ref
 	{
 		public get()
 		{
@@ -73,7 +73,7 @@ methodmap Entity
 		}
 	}
 	
-	property int m_iListIndex
+	property int ListIndex
 	{
 		public get()
 		{
@@ -85,11 +85,11 @@ methodmap Entity
 	{
 		public get()
 		{
-			return g_entityProperties.Get(this.m_iListIndex, EntityProperties::teamCount);
+			return g_entityProperties.Get(this.ListIndex, EntityProperties::teamCount);
 		}
 		public set(int count)
 		{
-			g_entityProperties.Set(this.m_iListIndex, count, EntityProperties::teamCount);
+			g_entityProperties.Set(this.ListIndex, count, EntityProperties::teamCount);
 		}
 	}
 	
@@ -97,11 +97,11 @@ methodmap Entity
 	{
 		public get()
 		{
-			return g_entityProperties.Get(this.m_iListIndex, EntityProperties::preHookTeam);
+			return g_entityProperties.Get(this.ListIndex, EntityProperties::preHookTeam);
 		}
 		public set(TFTeam team)
 		{
-			g_entityProperties.Set(this.m_iListIndex, team, EntityProperties::preHookTeam);
+			g_entityProperties.Set(this.ListIndex, team, EntityProperties::preHookTeam);
 		}
 	}
 	
@@ -109,19 +109,19 @@ methodmap Entity
 	{
 		public get()
 		{
-			return g_entityProperties.Get(this.m_iListIndex, EntityProperties::preHookDisguiseTeam);
+			return g_entityProperties.Get(this.ListIndex, EntityProperties::preHookDisguiseTeam);
 		}
 		public set(TFTeam team)
 		{
-			g_entityProperties.Set(this.m_iListIndex, team, EntityProperties::preHookDisguiseTeam);
+			g_entityProperties.Set(this.ListIndex, team, EntityProperties::preHookDisguiseTeam);
 		}
 	}
 	
 	public void SetTeam(TFTeam team)
 	{
 		int index = this.TeamCount++;
-		this.SetTeamInternal(TF2_GetEntityTeam(this.ref), index);
-		TF2_SetEntityTeam(this.ref, team);
+		this.SetTeamInternal(TF2_GetEntityTeam(this.Ref), index);
+		TF2_SetEntityTeam(this.Ref, team);
 	}
 	
 	public void ChangeToSpectator()
@@ -138,7 +138,7 @@ methodmap Entity
 		}
 		else
 		{
-			this.SetTeam(TF2_GetEntityTeam(this.ref));
+			this.SetTeam(TF2_GetEntityTeam(this.Ref));
 		}
 	}
 	
@@ -146,7 +146,7 @@ methodmap Entity
 	{
 		int index = --this.TeamCount;
 		TFTeam team = this.GetTeamInternal(index);
-		TF2_SetEntityTeam(this.ref, team);
+		TF2_SetEntityTeam(this.Ref, team);
 	}
 	
 	public void CheckArrayBounds(int index)
@@ -166,7 +166,7 @@ methodmap Entity
 		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
-			if (g_entityProperties.GetArray(this.m_iListIndex, properties))
+			if (g_entityProperties.GetArray(this.ListIndex, properties))
 			{
 				return properties.teamHistory[index];
 			}
@@ -183,10 +183,10 @@ methodmap Entity
 		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
-			if (g_entityProperties.GetArray(this.m_iListIndex, properties) > 0)
+			if (g_entityProperties.GetArray(this.ListIndex, properties))
 			{
 				properties.teamHistory[index] = team;
-				g_entityProperties.SetArray(this.m_iListIndex, properties);
+				g_entityProperties.SetArray(this.ListIndex, properties);
 				return;
 			}
 		}
@@ -196,10 +196,10 @@ methodmap Entity
 	
 	public void Destroy()
 	{
-		if (this.m_iListIndex == -1)
+		if (this.ListIndex == -1)
 			return;
 		
 		// Remove the entry from local storage
-		g_entityProperties.Erase(this.m_iListIndex);
+		g_entityProperties.Erase(this.ListIndex);
 	}
 }

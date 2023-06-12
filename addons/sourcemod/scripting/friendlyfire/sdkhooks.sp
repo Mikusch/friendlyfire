@@ -93,7 +93,7 @@ void SDKHooks_UnhookClient(int client)
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	// Makes objects solid to teammates
-	if (strncmp(classname, "obj_", 4) == 0)
+	if (!strncmp(classname, "obj_", 4))
 	{
 		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 	}

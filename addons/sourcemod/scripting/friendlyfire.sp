@@ -25,7 +25,7 @@
 #include <tf2_stocks>
 #include <tf2utils>
 
-#define PLUGIN_VERSION	"1.0.3"
+#define PLUGIN_VERSION	"1.1.0"
 
 #define TICK_NEVER_THINK	-1.0
 
@@ -79,7 +79,6 @@ enum
 ConVar mp_friendlyfire;
 
 bool g_isEnabled;
-bool g_isMapRunning;
 
 #include "friendlyfire/convars.sp"
 #include "friendlyfire/data.sp"
@@ -115,26 +114,6 @@ public void OnPluginStart()
 	{
 		SetFailState("Could not find friendlyfire gamedata");
 	}
-	
-	int entity = -1;
-	while ((entity = FindEntityByClassname(entity, "*")) != -1)
-	{
-		char classname[64];
-		if (GetEntityClassname(entity, classname, sizeof(classname)))
-		{
-			OnEntityCreated(entity, classname);
-		}
-	}
-}
-
-public void OnMapStart()
-{
-	g_isMapRunning = true;
-}
-
-public void OnMapEnd()
-{
-	g_isMapRunning = false;
 }
 
 public void OnConfigsExecuted()
@@ -164,6 +143,9 @@ public void OnClientPutInServer(int client)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
+	if (!g_isEnabled)
+		return;
+	
 	DHooks_OnEntityCreated(entity, classname);
 	SDKHooks_OnEntityCreated(entity, classname);
 }
@@ -206,14 +188,24 @@ void TogglePlugin(bool enable)
 	ConVars_Toggle(enable);
 	DHooks_Toggle(enable);
 	
-	for (int client = 1; client <= MaxClients; client++)
+	if (enable)
 	{
-		if (!IsClientInGame(client))
-			continue;
-		
-		if (enable)
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (!IsClientInGame(client))
+				continue;
+			
 			OnClientPutInServer(client);
-		else
+		}
+	}
+	else
+	{
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (!IsClientInGame(client))
+				continue;
+			
 			SDKHooks_UnhookClient(client);
+		}
 	}
 }

@@ -117,51 +117,51 @@ void DHooks_OnClientPutInServer(int client)
 
 void DHooks_OnEntityCreated(int entity, const char[] classname)
 {
-	if (strncmp(classname, "tf_projectile_", 14) == 0)
+	if (!strncmp(classname, "tf_projectile_", 14))
 	{
 		// Fixes jars not applying effects to teammates when hitting the world
-		if (strncmp(classname, "tf_projectile_jar", 17) == 0)
+		if (!strncmp(classname, "tf_projectile_jar", 17))
 		{
-			g_dhook_CBaseGrenade_Explode.HookEntity(Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
-			g_dhook_CBaseGrenade_Explode.HookEntity(Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
+			DHooks_HookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
+			DHooks_HookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
 		}
 		
 		// Fixes Scorch Shot knockback on teammates
 		if (StrEqual(classname, "tf_projectile_flare"))
 		{
-			g_dhook_CTFBaseRocket_Explode.HookEntity(Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
-			g_dhook_CTFBaseRocket_Explode.HookEntity(Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
+			DHooks_HookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
+			DHooks_HookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
 		}
 		
 		// Fixes grenades rarely bouncing off friendly objects
 		if (IsProjectileCTFWeaponBaseGrenade(entity))
 		{
-			g_dhook_CBaseEntity_VPhysicsUpdate.HookEntity(Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre);
-			g_dhook_CBaseEntity_VPhysicsUpdate.HookEntity(Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
+			DHooks_HookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre);
+			DHooks_HookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
 		}
 		
 		// Fixes projectiles sometimes not colliding with teammates
-		g_dhook_CBaseProjectile_CanCollideWithTeammates.HookEntity(Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
+		DHooks_HookEntity(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
 	}
 	
 	// Fixes Sniper Rifles dealing no damage to teammates
-	if (strncmp(classname, "tf_weapon_sniperrifle", 21) == 0)
+	if (!strncmp(classname, "tf_weapon_sniperrifle", 21))
 	{
-		g_dhook_CTFSniperRifle_GetCustomDamageType.HookEntity(Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
+		DHooks_HookEntity(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
 	}
 	
 	// Fixes pipebomb launchers not being able to knock around friendly pipebombs
 	if (TF2Util_IsEntityWeapon(entity) && TF2Util_GetWeaponID(entity) == TF_WEAPON_PIPEBOMBLAUNCHER)
 	{
-		g_dhook_CTFWeaponBase_SecondaryAttack.HookEntity(Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
-		g_dhook_CTFWeaponBase_SecondaryAttack.HookEntity(Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
+		DHooks_HookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
+		DHooks_HookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
 	}
 	
 	// Fixes wrenches not being able to upgrade friendly objects and a few other melee weapons
 	if (IsWeaponBaseMelee(entity))
 	{
-		g_dhook_CTFWeaponBaseMelee_Smack.HookEntity(Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
-		g_dhook_CTFWeaponBaseMelee_Smack.HookEntity(Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
+		DHooks_HookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
+		DHooks_HookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
 	}
 }
 

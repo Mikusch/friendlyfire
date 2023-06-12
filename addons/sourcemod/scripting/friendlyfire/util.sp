@@ -20,7 +20,7 @@
 
 bool IsFriendlyFireEnabled()
 {
-	return g_isEnabled && g_isMapRunning && !GameRules_GetProp("m_bTruceActive");
+	return g_isEnabled && !GameRules_GetProp("m_bTruceActive");
 }
 
 TFTeam TF2_GetEntityTeam(int entity)
