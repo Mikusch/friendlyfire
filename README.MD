@@ -55,7 +55,7 @@ The full changelog is far too big to include, but some notable changes include:
     * Crusader's Crossbow
         * Arrows no longer heal teammates
     * Medi Gun
-        * Cannot heal teammates anymore (configurable with `sm_friendlyfire_allow_healing`)
+        * Cannot heal teammates anymore (configurable with `sm_friendlyfire_medic_allow_healing`)
 * **Sniper**
     * Sniper Rifle
         * Fixed being unable to deal damage to teammates
