@@ -77,6 +77,7 @@ enum
 };
 
 ConVar mp_friendlyfire;
+ConVar sm_friendlyfire_medic_allow_healing;
 
 bool g_isEnabled;
 

@@ -35,6 +35,7 @@ void ConVars_Initialize()
 	g_conVars = new StringMap();
 	
 	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+	sm_friendlyfire_medic_allow_healing = CreateConVar("sm_friendlyfire_medic_allow_healing", "0", "Whether Medics are allowed to heal teammates during friendly fire.", _, true, 0.0, true, 1.0);
 	
 	mp_friendlyfire = FindConVar("mp_friendlyfire");
 	mp_friendlyfire.AddChangeHook(ConVarChanged_FriendlyFire);

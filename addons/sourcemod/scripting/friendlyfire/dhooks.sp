@@ -20,6 +20,7 @@
 
 enum struct DetourData
 {
+	char name[64];
 	DynamicDetour detour;
 	DHookCallback callbackPre;
 	DHookCallback callbackPost;
@@ -54,6 +55,7 @@ void DHooks_Initialize(GameData gamedata)
 	
 	DHooks_AddDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
 	DHooks_AddDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
+	DHooks_AddDynamicDetour(gamedata, "CWeaponMedigun::AllowedToHealTarget", DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre, DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post);
 	
 	g_dhook_CBaseProjectile_CanCollideWithTeammates = DHooks_AddDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
 	g_dhook_CTFSniperRifle_GetCustomDamageType = DHooks_AddDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
@@ -72,29 +74,7 @@ void DHooks_Toggle(bool enable)
 		DetourData data;
 		if (g_dynamicDetours.GetArray(i, data))
 		{
-			if (data.callbackPre != INVALID_FUNCTION)
-			{
-				if (enable)
-				{
-					data.detour.Enable(Hook_Pre, data.callbackPre);
-				}
-				else
-				{
-					data.detour.Disable(Hook_Pre, data.callbackPre);
-				}
-			}
-			
-			if (data.callbackPost != INVALID_FUNCTION)
-			{
-				if (enable)
-				{
-					data.detour.Enable(Hook_Post, data.callbackPost);
-				}
-				else
-				{
-					data.detour.Disable(Hook_Post, data.callbackPost);
-				}
-			}
+			DHooks_ToggleDetour(data, enable);
 		}
 	}
 	
@@ -171,6 +151,7 @@ static void DHooks_AddDynamicDetour(GameData gamedata, const char[] name, DHookC
 	if (detour)
 	{
 		DetourData data;
+		strcopy(data.name, sizeof(data.name), name);
 		data.detour = detour;
 		data.callbackPre = callbackPre;
 		data.callbackPost = callbackPost;
@@ -202,6 +183,51 @@ static void DHooks_HookEntity(DynamicHook hook, HookMode mode, int entity, DHook
 		if (hookid != INVALID_HOOK_ID)
 		{
 			g_dynamicHookIds.Push(hookid);
+		}
+	}
+}
+
+static bool DHooks_ToggleDetourByName(const char[] name, bool enable)
+{
+	int index = g_dynamicDetours.FindString(name);
+	if (index == -1)
+	{
+		LogError("Failed to find detour: %s", name);
+		return false;
+	}
+	
+	DetourData data;
+	if (g_dynamicDetours.GetArray(index, data))
+	{
+		DHooks_ToggleDetour(data, enable);
+	}
+	
+	return true;
+}
+
+static void DHooks_ToggleDetour(DetourData data, bool enable)
+{
+	if (data.callbackPre != INVALID_FUNCTION)
+	{
+		if (enable)
+		{
+			data.detour.Enable(Hook_Pre, data.callbackPre);
+		}
+		else
+		{
+			data.detour.Disable(Hook_Pre, data.callbackPre);
+		}
+	}
+	
+	if (data.callbackPost != INVALID_FUNCTION)
+	{
+		if (enable)
+		{
+			data.detour.Enable(Hook_Post, data.callbackPost);
+		}
+		else
+		{
+			data.detour.Disable(Hook_Post, data.callbackPost);
 		}
 	}
 }
@@ -591,6 +617,29 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 	}
 	
 	g_thinkFunction = ThinkFunction_None;
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medigun, DHookReturn ret, DHookParam params)
+{
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
+	// Temporarily remove our CBaseEntity::InSameTeam detour to allow healing teammates
+	if (sm_friendlyfire_medic_allow_healing.BoolValue)
+		DHooks_ToggleDetourByName("CBaseEntity::InSameTeam", false);
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medigun, DHookReturn ret, DHookParam params)
+{
+	if (!IsFriendlyFireEnabled())
+		return MRES_Ignored;
+	
+	if (sm_friendlyfire_medic_allow_healing.BoolValue)
+		DHooks_ToggleDetourByName("CBaseEntity::InSameTeam", true);
 	
 	return MRES_Ignored;
 }
