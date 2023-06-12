@@ -40,8 +40,8 @@ bool IsEntityClient(int entity)
 	return 0 < entity <= MaxClients;
 }
 
-// Useful to get the parent owner for entities that have a chain of owners
-// e.g. CTFFlameManager -> CTFFlameThrower -> CTFPlayer
+// Useful to get the parent owner for entities that have a chain of owners.
+// e.g. `CTFFlameManager` -> `CTFFlameThrower` -> `CTFPlayer`.
 int FindParentOwnerEntity(int entity)
 {
 	int parent = -1;
@@ -57,6 +57,10 @@ int FindParentOwnerEntity(int entity)
 	else if (HasEntProp(entity, Prop_Send, "m_hBuilder"))
 	{
 		parent = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+	}
+	else if (HasEntProp(entity, Prop_Send, "m_hOwner"))
+	{
+		parent = GetEntPropEnt(entity, Prop_Send, "m_hOwner");
 	}
 	else if (HasEntProp(entity, Prop_Send, "m_hOwnerEntity"))
 	{

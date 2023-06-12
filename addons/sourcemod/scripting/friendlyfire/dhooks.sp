@@ -379,15 +379,12 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
 	
-	// Ignore some entities
-	if (StrEqual(classname, "func_respawnroom") || StrEqual(classname, "entity_revive_marker"))
+	// Special case, respawn rooms should work regardless
+	if (StrEqual(classname, "func_respawnroom"))
 		return MRES_Ignored;
 	
 	if (params.IsNull(1))
-	{
-		ret.Value = false;
-		return MRES_Supercede;
-	}
+		return MRES_Ignored;
 	
 	int other = params.Get(1);
 	
