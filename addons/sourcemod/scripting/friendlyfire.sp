@@ -198,6 +198,16 @@ void TogglePlugin(bool enable)
 			
 			OnClientPutInServer(client);
 		}
+		
+		int entity = -1;
+		while ((entity = FindEntityByClassname(entity, "*")) != -1)
+		{
+			char classname[64];
+			if (GetEntityClassname(entity, classname, sizeof(classname)))
+			{
+				OnEntityCreated(entity, classname);
+			}
+		}
 	}
 	else
 	{
