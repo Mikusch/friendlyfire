@@ -18,6 +18,8 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+static RoundState g_roundState;
+
 bool IsFriendlyFireEnabled()
 {
 	return g_isEnabled && !GameRules_GetProp("m_bTruceActive");
@@ -129,4 +131,16 @@ bool IsWeaponBaseMelee(int entity)
 bool IsProjectileCTFWeaponBaseGrenade(int entity)
 {
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
+}
+
+void SetActiveRound()
+{
+	g_roundState = GameRules_GetRoundState();
+	RoundState state = (GameRules_GetProp("m_nGameType") == TF_GAMETYPE_ARENA) ? RoundState_Stalemate : RoundState_RoundRunning;
+	GameRules_SetProp("m_iRoundState", view_as<int>(state));
+}
+
+void ResetActiveRound()
+{
+	GameRules_SetProp("m_iRoundState", view_as<int>(g_roundState));
 }
