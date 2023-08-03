@@ -25,7 +25,7 @@
 #include <tf2_stocks>
 #include <tf2utils>
 
-#define PLUGIN_VERSION	"1.1.2"
+#define PLUGIN_VERSION	"1.1.3"
 
 #define TICK_NEVER_THINK	-1.0
 
@@ -80,6 +80,7 @@ ConVar mp_friendlyfire;
 ConVar sm_friendlyfire_medic_allow_healing;
 
 bool g_isEnabled;
+bool g_isMapRunning;
 
 #include "friendlyfire/convars.sp"
 #include "friendlyfire/data.sp"
@@ -117,6 +118,16 @@ public void OnPluginStart()
 	}
 }
 
+public void OnMapStart()
+{
+	g_isMapRunning = true;
+}
+
+public void OnMapEnd()
+{
+	g_isMapRunning = false;
+}
+
 public void OnConfigsExecuted()
 {
 	if (g_isEnabled != mp_friendlyfire.BoolValue)
@@ -144,7 +155,7 @@ public void OnClientPutInServer(int client)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	if (!g_isEnabled)
+	if (!g_isEnabled || !g_isMapRunning)
 		return;
 	
 	DHooks_OnEntityCreated(entity, classname);
