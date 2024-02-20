@@ -193,4 +193,17 @@ void TogglePlugin(bool enable)
 	ConVars_Toggle(enable);
 	DHooks_Toggle(enable);
 	SDKHooks_Toggle(enable);
+	
+	if (enable)
+	{
+		int entity = -1;
+		while ((entity = FindEntityByClassname(entity, "*")) != -1)
+		{
+			char classname[64];
+			if (!GetEntityClassname(entity, classname, sizeof(classname)))
+				continue;
+			
+			OnEntityCreated(entity, classname);
+		}
+	}
 }

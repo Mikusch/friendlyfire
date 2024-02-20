@@ -60,19 +60,7 @@ void SDKHooks_Initialize()
 
 void SDKHooks_Toggle(bool enable)
 {
-	if (enable)
-	{
-		int entity = -1;
-		while ((entity = FindEntityByClassname(entity, "*")) != -1)
-		{
-			char classname[64];
-			if (!GetEntityClassname(entity, classname, sizeof(classname)))
-				continue;
-			
-			SDKHooks_HookEntity(entity, classname);
-		}
-	}
-	else
+	if (!enable)
 	{
 		for (int i = g_hookData.Length - 1; i >= 0; i--)
 		{

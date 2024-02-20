@@ -84,7 +84,8 @@ void DHooks_Toggle(bool enable)
 		for (int i = g_dynamicHookIds.Length - 1; i >= 0; i--)
 		{
 			int hookid = g_dynamicHookIds.Get(i);
-			DynamicHook.RemoveHook(hookid);
+			if (!DynamicHook.RemoveHook(hookid))
+				LogError("Failed to remove dynamic hook (ID %d)", hookid);
 		}
 	}
 }
@@ -209,35 +210,25 @@ static void DHooks_ToggleDetour(DetourData data, bool enable)
 	if (data.callbackPre != INVALID_FUNCTION)
 	{
 		if (enable)
-		{
 			data.detour.Enable(Hook_Pre, data.callbackPre);
-		}
 		else
-		{
 			data.detour.Disable(Hook_Pre, data.callbackPre);
-		}
 	}
 	
 	if (data.callbackPost != INVALID_FUNCTION)
 	{
 		if (enable)
-		{
 			data.detour.Enable(Hook_Post, data.callbackPost);
-		}
 		else
-		{
 			data.detour.Disable(Hook_Post, data.callbackPost);
-		}
 	}
 }
 
-public void DHookRemovalCB_OnHookRemoved(int hookid)
+static void DHookRemovalCB_OnHookRemoved(int hookid)
 {
 	int index = g_dynamicHookIds.FindValue(hookid);
 	if (index != -1)
-	{
 		g_dynamicHookIds.Erase(index);
-	}
 }
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookParam params)
