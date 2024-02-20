@@ -28,6 +28,7 @@ jobs:
         with:
           version: "1.11.x"
           version-file: ./addons/sourcemod/scripting/friendlyfire.sp
+          define-name: "PLUGIN_VERSION"
 
       - name: Compile plugins
         run: |
