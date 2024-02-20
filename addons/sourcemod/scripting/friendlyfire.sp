@@ -150,7 +150,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 		return;
 	
 	DHooks_HookEntity(entity, classname);
-	SDKHooks_HookEntity(entity, classname, true);
+	SDKHooks_HookEntity(entity, classname);
 }
 
 public void OnEntityDestroyed(int entity)
@@ -160,6 +160,8 @@ public void OnEntityDestroyed(int entity)
 	
 	if (!IsValidEntity(entity))
 		return;
+	
+	SDKHooks_UnhookEntity(entity);
 	
 	// If an entity was removed prematurely, reset its owner's team as far back as we need to.
 	// This can happen with projectiles when they collide with the world, not calling the post-hook.
