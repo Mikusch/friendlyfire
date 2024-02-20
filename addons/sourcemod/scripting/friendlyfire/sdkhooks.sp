@@ -148,17 +148,13 @@ void SDKHooks_UnhookEntity(int entity)
 {
 	int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
 	
-	int index = g_hookData.FindValue(ref, SDKHookData::ref);
-	if (index == -1)
-		return;
-	
 	for (int i = g_hookData.Length - 1; i >= 0; i--)
 	{
 		SDKHookData data;
 		if (g_hookData.GetArray(i, data) && ref == data.ref)
 		{
 			SDKUnhook(data.ref, data.type, data.callback);
-			g_hookData.Erase(index);
+			g_hookData.Erase(i);
 		}
 	}
 }
