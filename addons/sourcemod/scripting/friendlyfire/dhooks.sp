@@ -102,6 +102,13 @@ void DHooks_HookEntity(int entity, const char[] classname)
 		// Fixes projectiles sometimes not colliding with teammates
 		DHooks_InternalHookEntity(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
 		
+		if (IsEntityBaseGrenadeProjectile(entity))
+		{
+			// Fixes grenades rarely bouncing off friendly objects
+			DHooks_InternalHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre);
+			DHooks_InternalHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
+		}
+		
 		if (!strncmp(classname, "tf_projectile_jar", 17))
 		{
 			// Fixes jars not applying effects to teammates when hitting the world
@@ -114,26 +121,18 @@ void DHooks_HookEntity(int entity, const char[] classname)
 			DHooks_InternalHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
 			DHooks_InternalHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
 		}
-		else if (IsProjectileCTFWeaponBaseGrenade(entity))
-		{
-			// Fixes grenades rarely bouncing off friendly objects
-			DHooks_InternalHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre);
-			DHooks_InternalHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
-		}
 	}
-	
-	if (TF2Util_IsEntityWeapon(entity))
+	else if (TF2Util_IsEntityWeapon(entity))
 	{
-		if (IsWeaponBaseMelee(entity))
+		if (IsEntityBaseMelee(entity))
 		{
-			// Fixes wrenches not being able to upgrade friendly objects and a few other melee weapons
+			// Fixes wrenches not being able to upgrade friendly objects, as well as a few other melee weapons
 			DHooks_InternalHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
 			DHooks_InternalHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
 		}
 		else
 		{
 			int weaponID = TF2Util_GetWeaponID(entity);
-			
 			if (weaponID == TF_WEAPON_SNIPERRIFLE || weaponID == TF_WEAPON_SNIPERRIFLE_DECAP || weaponID == TF_WEAPON_SNIPERRIFLE_CLASSIC)
 			{
 				// Fixes Sniper Rifles dealing no damage to teammates
@@ -417,7 +416,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	// Allow Rescue Ranger healing bolts to work on friendly buildings
 	if (StrEqual(classname, "tf_projectile_arrow") &&
 		GetEntProp(entity, Prop_Send, "m_iProjectileType") == TF_PROJECTILE_BUILDING_REPAIR_BOLT &&
-		IsBaseObject(other) &&
+		IsEntityBaseObject(other) &&
 		IsObjectFriendly(other, GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")))
 	{
 		ret.Value = true;
@@ -699,7 +698,7 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int wea
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre(int entity, DHookParam params)
+static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
 	if (!IsFriendlyFireEnabled())
 		return MRES_Ignored;

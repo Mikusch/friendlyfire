@@ -57,7 +57,6 @@ void SDKHooks_Initialize()
 	g_hookData = new ArrayList(sizeof(SDKHookData));
 	g_hookParams_OnTakeDamage = new StringMap();
 	
-	// Various fixes for player items
 	SDKHooks_AddHook("player", SDKHook_PreThink, SDKHookCB_Client_PreThink);
 	SDKHooks_AddHook("player", SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
 	SDKHooks_AddHook("player", SDKHook_PostThink, SDKHookCB_Client_PostThink);
@@ -66,8 +65,9 @@ void SDKHooks_Initialize()
 	SDKHooks_AddHook("player", SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
 	SDKHooks_AddHook("player", SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
 	
-	// Makes objects solid to teammates
-	SDKHooks_AddHook("obj_*", SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+	// Makes Engineer buildings solid to teammates
+	SDKHooks_AddHook("obj_dispenser", SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+	SDKHooks_AddHook("obj_sentrygun", SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 	
 	// Prevents Dispensers from healing teammates
 	SDKHooks_AddHook("obj_dispenser", SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
@@ -106,19 +106,14 @@ void SDKHooks_Toggle(bool enable)
 
 void SDKHooks_HookEntity(int entity, const char[] classname, bool hook)
 {
-	for (int i = 0; i < g_hookData.Length; i++)
+	int index = g_hookData.FindString(classname, SDKHookData::classname);
+	if (index == -1)
+		return;
+	
+	for (int i = index; i < g_hookData.Length; i++)
 	{
 		SDKHookData data;
-		if (!g_hookData.GetArray(i, data))
-			continue;
-		
-		int index = StrContains(data.classname, "*");
-		if (index != -1)
-		{
-			data.classname[index] = EOS;
-		}
-		
-		if (index != -1 && !strncmp(classname, data.classname, index) || StrEqual(data.classname, classname))
+		if (g_hookData.GetArray(i, data) && StrEqual(data.classname, classname))
 		{
 			if (hook)
 			{
