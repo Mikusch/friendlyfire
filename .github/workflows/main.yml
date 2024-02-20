@@ -1,0 +1,69 @@
+name: Compile and release
+
+on:
+  push:
+    branches:
+      master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: echo SCRIPTS_PATH=$(pwd) >> $GITHUB_ENV
+
+      - name: Download includes
+        run: wget -P ${{ env.SCRIPTS_PATH }}/addons/sourcemod/scripting/include https://raw.githubusercontent.com/nosoop/SM-TFUtils/master/scripting/include/tf2utils.inc
+
+      - name: Setup SourcePawn Compiler ${{ matrix.SM_VERSION }}
+        id: setup_sp
+        uses: rumblefrog/setup-sp@master
+        with:
+          version: "1.11.x"
+          version-file: ./addons/sourcemod/scripting/friendlyfire.sp
+
+      - name: Compile plugins
+        run: |
+          mkdir ../plugins
+          spcomp -v2 -E -i "include" -o"../plugins/friendlyfire.smx" friendlyfire.sp
+          echo "===OUT FILES==="
+          ls ../plugins
+          echo "===VERSION==="
+          echo ${{ steps.setup_sp.outputs.plugin-version }}
+        working-directory: ${{ env.SCRIPTS_PATH }}/addons/sourcemod/scripting
+
+      - name: Install zip
+        uses: montudor/action-zip@v1
+
+      - name: Zip output
+        run: |
+          zip -qq -y -r ${{ github.event.repository.name }}.zip configs plugins scripting extensions gamedata translations data
+        working-directory: ${{ env.SCRIPTS_PATH }}/addons/sourcemod
+
+      - name: List files in the directory
+        run: ls -R
+        working-directory: ${{ env.SCRIPTS_PATH }}/addons/sourcemod
+
+      - name: List files in the zip
+        run: unzip -l ${{ github.event.repository.name }}.zip
+        working-directory: ${{ env.SCRIPTS_PATH }}/addons/sourcemod
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.setup_sp.outputs.plugin-version }}
+          artifacts: "addons/sourcemod/${{ github.event.repository.name }}.zip"
+          draft: false
+          allowUpdates: true
+          prerelease: false
+          replacesArtifacts: true
