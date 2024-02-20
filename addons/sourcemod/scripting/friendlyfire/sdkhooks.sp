@@ -109,13 +109,7 @@ void SDKHooks_HookEntity(int entity, const char[] classname)
 			SDKHooks_HookEntityInternal(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 		}
 		
-		if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
-		{
-			// Prevents Dispensers from healing teammates
-			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
-			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
-		}
-		else if (!strncmp(classname, "tf_projectile_", 14))
+		if (!strncmp(classname, "tf_projectile_", 14))
 		{
 			if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
 			{
@@ -129,6 +123,12 @@ void SDKHooks_HookEntity(int entity, const char[] classname)
 				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
 				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 			}
+		}
+		else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
+		{
+			// Prevents Dispensers from healing teammates
+			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
+			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 		}
 		else if (StrEqual(classname, "tf_flame_manager"))
 		{
