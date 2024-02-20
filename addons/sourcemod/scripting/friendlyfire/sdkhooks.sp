@@ -20,6 +20,7 @@
 
 enum struct SDKHookData
 {
+	char classname[64];
 	SDKHookType type;
 	SDKHookCB callback;
 }
@@ -56,85 +57,85 @@ void SDKHooks_Initialize()
 	g_hookData = new ArrayList(sizeof(SDKHookData));
 	g_hookParams_OnTakeDamage = new StringMap();
 	
-	SDKHooks_AddHook(SDKHook_PreThink, SDKHookCB_Client_PreThink);
-	SDKHooks_AddHook(SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
-	SDKHooks_AddHook(SDKHook_PostThink, SDKHookCB_Client_PostThink);
-	SDKHooks_AddHook(SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
-	SDKHooks_AddHook(SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
-	SDKHooks_AddHook(SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
-	SDKHooks_AddHook(SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
-}
-
-void SDKHooks_OnClientPutInServer(int client)
-{
-	for (int i = 0; i < g_hookData.Length; i++)
-	{
-		SDKHookData data;
-		if (g_hookData.GetArray(i, data))
-		{
-			SDKHook(client, data.type, data.callback);
-		}
-	}
-}
-
-void SDKHooks_UnhookClient(int client)
-{
-	for (int i = 0; i < g_hookData.Length; i++)
-	{
-		SDKHookData data;
-		if (g_hookData.GetArray(i, data))
-		{
-			SDKUnhook(client, data.type, data.callback);
-		}
-	}
-}
-
-void SDKHooks_OnEntityCreated(int entity, const char[] classname)
-{
+	// Various fixes for player items
+	SDKHooks_AddHook("player", SDKHook_PreThink, SDKHookCB_Client_PreThink);
+	SDKHooks_AddHook("player", SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
+	SDKHooks_AddHook("player", SDKHook_PostThink, SDKHookCB_Client_PostThink);
+	SDKHooks_AddHook("player", SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
+	SDKHooks_AddHook("player", SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
+	SDKHooks_AddHook("player", SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
+	SDKHooks_AddHook("player", SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
+	
 	// Makes objects solid to teammates
-	if (!strncmp(classname, "obj_", 4))
-	{
-		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
-	}
+	SDKHooks_AddHook("obj_*", SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 	
 	// Prevents Dispensers from healing teammates
-	if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
-	{
-		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
-		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
-	}
+	SDKHooks_AddHook("obj_dispenser", SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
+	SDKHooks_AddHook("pd_dispenser", SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 	
 	// Fixes the cleaver and pipes dealing no damage to certain entities
-	if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
-	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
-	}
+	SDKHooks_AddHook("tf_projectile_cleaver", SDKHook_Touch, SDKHookCB_Projectile_Touch);
+	SDKHooks_AddHook("tf_projectile_cleaver", SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
+	SDKHooks_AddHook("tf_projectile_pipe", SDKHook_Touch, SDKHookCB_Projectile_Touch);
+	SDKHooks_AddHook("tf_projectile_pipe", SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 	
 	// Allows detonating teammate's pipebombs
-	if (StrEqual(classname, "tf_projectile_pipe_remote"))
-	{
-		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
-		SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
-	}
+	SDKHooks_AddHook("tf_projectile_pipe_remote", SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
+	SDKHooks_AddHook("tf_projectile_pipe_remote", SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 	
 	// Fixes Flame Throwers dealing no damage to teammates
-	if (StrEqual(classname, "tf_flame_manager"))
-	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
-	}
+	SDKHooks_AddHook("tf_flame_manager", SDKHook_Touch, SDKHookCB_FlameManager_Touch);
+	SDKHooks_AddHook("tf_flame_manager", SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
 	
 	// Prevents Gas Passer clouds from coating the thrower
-	if (StrEqual(classname, "tf_gas_manager"))
+	SDKHooks_AddHook("tf_gas_manager", SDKHook_Touch, SDKHookCB_GasManager_Touch);
+}
+
+void SDKHooks_Toggle(bool enable)
+{
+	int entity = -1;
+	while ((entity = FindEntityByClassname(entity, "*")) != -1)
 	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
+		char classname[64];
+		if (!GetEntityClassname(entity, classname, sizeof(classname)))
+			continue;
+		
+		SDKHooks_HookEntity(entity, classname, enable);
 	}
 }
 
-static void SDKHooks_AddHook(SDKHookType type, SDKHookCB callback)
+void SDKHooks_HookEntity(int entity, const char[] classname, bool hook)
+{
+	for (int i = 0; i < g_hookData.Length; i++)
+	{
+		SDKHookData data;
+		if (!g_hookData.GetArray(i, data))
+			continue;
+		
+		int index = StrContains(data.classname, "*");
+		if (index != -1)
+		{
+			data.classname[index] = EOS;
+		}
+		
+		if (index != -1 && !strncmp(classname, data.classname, index) || StrEqual(data.classname, classname))
+		{
+			if (hook)
+			{
+				SDKHook(entity, data.type, data.callback);
+			}
+			else
+			{
+				SDKUnhook(entity, data.type, data.callback);
+			}
+		}
+	}
+}
+
+static void SDKHooks_AddHook(const char[] classname, SDKHookType type, SDKHookCB callback)
 {
 	SDKHookData data;
+	strcopy(data.classname, sizeof(data.classname), classname);
 	data.type = type;
 	data.callback = callback;
 	

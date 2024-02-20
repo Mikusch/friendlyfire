@@ -89,59 +89,63 @@ void DHooks_Toggle(bool enable)
 	}
 }
 
-void DHooks_OnClientPutInServer(int client)
+void DHooks_HookEntity(int entity, const char[] classname)
 {
-	DHooks_HookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, client, DHookCallback_CTFPlayer_Event_Killed_Pre);
-	DHooks_HookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Post, client, DHookCallback_CTFPlayer_Event_Killed_Post);
-}
-
-void DHooks_OnEntityCreated(int entity, const char[] classname)
-{
-	if (!strncmp(classname, "tf_projectile_", 14))
+	if (IsEntityClient(entity))
 	{
-		// Fixes jars not applying effects to teammates when hitting the world
+		// Fixes on-death effects (e.g. ragdolls) showing spectator visuals
+		DHooks_InternalHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, entity, DHookCallback_CTFPlayer_Event_Killed_Pre);
+		DHooks_InternalHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Post, entity, DHookCallback_CTFPlayer_Event_Killed_Post);
+	}
+	else if (!strncmp(classname, "tf_projectile_", 14))
+	{
+		// Fixes projectiles sometimes not colliding with teammates
+		DHooks_InternalHookEntity(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
+		
 		if (!strncmp(classname, "tf_projectile_jar", 17))
 		{
-			DHooks_HookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
-			DHooks_HookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
+			// Fixes jars not applying effects to teammates when hitting the world
+			DHooks_InternalHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
+			DHooks_InternalHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
 		}
-		
-		// Fixes Scorch Shot knockback on teammates
-		if (StrEqual(classname, "tf_projectile_flare"))
+		else if (StrEqual(classname, "tf_projectile_flare"))
 		{
-			DHooks_HookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
-			DHooks_HookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
+			// Fixes Scorch Shot knockback on teammates
+			DHooks_InternalHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
+			DHooks_InternalHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
 		}
-		
-		// Fixes grenades rarely bouncing off friendly objects
-		if (IsProjectileCTFWeaponBaseGrenade(entity))
+		else if (IsProjectileCTFWeaponBaseGrenade(entity))
 		{
-			DHooks_HookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre);
-			DHooks_HookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
+			// Fixes grenades rarely bouncing off friendly objects
+			DHooks_InternalHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre);
+			DHooks_InternalHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
 		}
-		
-		// Fixes projectiles sometimes not colliding with teammates
-		DHooks_HookEntity(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
 	}
 	
-	// Fixes Sniper Rifles dealing no damage to teammates
-	if (!strncmp(classname, "tf_weapon_sniperrifle", 21))
+	if (TF2Util_IsEntityWeapon(entity))
 	{
-		DHooks_HookEntity(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
-	}
-	
-	// Fixes pipebomb launchers not being able to knock around friendly pipebombs
-	if (TF2Util_IsEntityWeapon(entity) && TF2Util_GetWeaponID(entity) == TF_WEAPON_PIPEBOMBLAUNCHER)
-	{
-		DHooks_HookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
-		DHooks_HookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
-	}
-	
-	// Fixes wrenches not being able to upgrade friendly objects and a few other melee weapons
-	if (IsWeaponBaseMelee(entity))
-	{
-		DHooks_HookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
-		DHooks_HookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
+		if (IsWeaponBaseMelee(entity))
+		{
+			// Fixes wrenches not being able to upgrade friendly objects and a few other melee weapons
+			DHooks_InternalHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
+			DHooks_InternalHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
+		}
+		else
+		{
+			int weaponID = TF2Util_GetWeaponID(entity);
+			
+			if (weaponID == TF_WEAPON_SNIPERRIFLE || weaponID == TF_WEAPON_SNIPERRIFLE_DECAP || weaponID == TF_WEAPON_SNIPERRIFLE_CLASSIC)
+			{
+				// Fixes Sniper Rifles dealing no damage to teammates
+				DHooks_InternalHookEntity(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
+			}
+			else if (weaponID == TF_WEAPON_PIPEBOMBLAUNCHER)
+			{
+				// Fixes pipebomb launchers not being able to knock around friendly pipebombs
+				DHooks_InternalHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
+				DHooks_InternalHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
+			}
+		}
 	}
 }
 
@@ -168,23 +172,19 @@ static DynamicHook DHooks_AddDynamicHook(GameData gamedata, const char[] name)
 {
 	DynamicHook hook = DynamicHook.FromConf(gamedata, name);
 	if (!hook)
-	{
 		LogError("Failed to create hook setup handle: %s", name);
-	}
 	
 	return hook;
 }
 
-static void DHooks_HookEntity(DynamicHook hook, HookMode mode, int entity, DHookCallback callback)
+static void DHooks_InternalHookEntity(DynamicHook hook, HookMode mode, int entity, DHookCallback callback)
 {
-	if (hook)
-	{
-		int hookid = hook.HookEntity(mode, entity, callback, DHookRemovalCB_OnHookRemoved);
-		if (hookid != INVALID_HOOK_ID)
-		{
-			g_dynamicHookIds.Push(hookid);
-		}
-	}
+	if (!hook)
+		return;
+	
+	int hookid = hook.HookEntity(mode, entity, callback, DHookRemovalCB_OnHookRemoved);
+	if (hookid != INVALID_HOOK_ID)
+		g_dynamicHookIds.Push(hookid);
 }
 
 static bool DHooks_ToggleDetourByName(const char[] name, bool enable)

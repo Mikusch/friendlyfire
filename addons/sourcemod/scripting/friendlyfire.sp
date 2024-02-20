@@ -144,22 +144,13 @@ public void OnPluginEnd()
 	TogglePlugin(false);
 }
 
-public void OnClientPutInServer(int client)
-{
-	if (!g_isEnabled)
-		return;
-	
-	DHooks_OnClientPutInServer(client);
-	SDKHooks_OnClientPutInServer(client);
-}
-
 public void OnEntityCreated(int entity, const char[] classname)
 {
 	if (!g_isEnabled || !g_isMapRunning)
 		return;
 	
-	DHooks_OnEntityCreated(entity, classname);
-	SDKHooks_OnEntityCreated(entity, classname);
+	DHooks_HookEntity(entity, classname);
+	SDKHooks_HookEntity(entity, classname, true);
 }
 
 public void OnEntityDestroyed(int entity)
@@ -199,35 +190,5 @@ void TogglePlugin(bool enable)
 	
 	ConVars_Toggle(enable);
 	DHooks_Toggle(enable);
-	
-	if (enable)
-	{
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (!IsClientInGame(client))
-				continue;
-			
-			OnClientPutInServer(client);
-		}
-		
-		int entity = -1;
-		while ((entity = FindEntityByClassname(entity, "*")) != -1)
-		{
-			char classname[64];
-			if (GetEntityClassname(entity, classname, sizeof(classname)))
-			{
-				OnEntityCreated(entity, classname);
-			}
-		}
-	}
-	else
-	{
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (!IsClientInGame(client))
-				continue;
-			
-			SDKHooks_UnhookClient(client);
-		}
-	}
+	SDKHooks_Toggle(enable);
 }
