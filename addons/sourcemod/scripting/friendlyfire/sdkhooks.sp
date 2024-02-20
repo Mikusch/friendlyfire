@@ -90,53 +90,56 @@ void SDKHooks_HookEntity(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))
 	{
-		SDKHooks_InternalHookEntity(entity, SDKHook_PreThink, SDKHookCB_Client_PreThink);
-		SDKHooks_InternalHookEntity(entity, SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
-		SDKHooks_InternalHookEntity(entity, SDKHook_PostThink, SDKHookCB_Client_PostThink);
-		SDKHooks_InternalHookEntity(entity, SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
-		SDKHooks_InternalHookEntity(entity, SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
-		SDKHooks_InternalHookEntity(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
-		SDKHooks_InternalHookEntity(entity, SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
+		// Fixes various weapons and items in friendly fire
+		SDKHooks_HookEntityInternal(entity, SDKHook_PreThink, SDKHookCB_Client_PreThink);
+		SDKHooks_HookEntityInternal(entity, SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
+		SDKHooks_HookEntityInternal(entity, SDKHook_PostThink, SDKHookCB_Client_PostThink);
+		SDKHooks_HookEntityInternal(entity, SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
+		SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
+		SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
+		
+		// Makes cloaked spies fully invisible
+		SDKHooks_HookEntityInternal(entity, SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
 	}
 	else
 	{
-		// Makes objects solid to teammates
 		if (!strncmp(classname, "obj_", 4))
 		{
-			SDKHooks_InternalHookEntity(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+			// Makes objects solid to teammates
+			SDKHooks_HookEntityInternal(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 		}
 		
-		// Prevents Dispensers from healing teammates
 		if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 		{
-			SDKHooks_InternalHookEntity(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
-			SDKHooks_InternalHookEntity(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
+			// Prevents Dispensers from healing teammates
+			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
+			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 		}
 		else if (!strncmp(classname, "tf_projectile_", 14))
 		{
 			if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
 			{
 				// Fixes the cleaver and pipes dealing no damage to certain entities
-				SDKHooks_InternalHookEntity(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
-				SDKHooks_InternalHookEntity(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
+				SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
+				SDKHooks_HookEntityInternal(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 			}
 			else if (StrEqual(classname, "tf_projectile_pipe_remote"))
 			{
 				// Allows detonating teammate's pipebombs
-				SDKHooks_InternalHookEntity(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
-				SDKHooks_InternalHookEntity(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
+				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
+				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 			}
 		}
 		else if (StrEqual(classname, "tf_flame_manager"))
 		{
 			// Fixes Flame Throwers dealing no damage to teammates
-			SDKHooks_InternalHookEntity(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
-			SDKHooks_InternalHookEntity(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
+			SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
+			SDKHooks_HookEntityInternal(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
 		}
 		else if (StrEqual(classname, "tf_gas_manager"))
 		{
 			// Prevents Gas Passer clouds from coating the thrower
-			SDKHooks_InternalHookEntity(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
+			SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
 		}
 	}
 }
@@ -160,7 +163,7 @@ void SDKHooks_UnhookEntity(int entity)
 	}
 }
 
-static void SDKHooks_InternalHookEntity(int entity, SDKHookType type, SDKHookCB callback)
+static void SDKHooks_HookEntityInternal(int entity, SDKHookType type, SDKHookCB callback)
 {
 	SDKHookData data;
 	data.ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
