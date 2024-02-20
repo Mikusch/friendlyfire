@@ -20,9 +20,9 @@
 
 static RoundState g_roundState;
 
-bool IsFriendlyFireEnabled()
+bool IsTruceActive()
 {
-	return g_isEnabled && !GameRules_GetProp("m_bTruceActive");
+	return GameRules_GetProp("m_bTruceActive") != 0;
 }
 
 TFTeam TF2_GetEntityTeam(int entity)
@@ -118,17 +118,17 @@ float GetPercentInvisible(int client)
 	return GetEntDataFloat(client, offset);
 }
 
-bool IsBaseObject(int entity)
+bool IsEntityBaseObject(int entity)
 {
 	return HasEntProp(entity, Prop_Data, "CBaseObjectUpgradeThink");
 }
 
-bool IsWeaponBaseMelee(int entity)
+bool IsEntityBaseMelee(int entity)
 {
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseMeleeSmack");
 }
 
-bool IsProjectileCTFWeaponBaseGrenade(int entity)
+bool IsEntityBaseGrenadeProjectile(int entity)
 {
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
 }

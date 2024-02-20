@@ -20,6 +20,7 @@
 
 enum struct SDKHookData
 {
+	int ref;
 	SDKHookType type;
 	SDKHookCB callback;
 }
@@ -55,96 +56,113 @@ void SDKHooks_Initialize()
 {
 	g_hookData = new ArrayList(sizeof(SDKHookData));
 	g_hookParams_OnTakeDamage = new StringMap();
-	
-	SDKHooks_AddHook(SDKHook_PreThink, SDKHookCB_Client_PreThink);
-	SDKHooks_AddHook(SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
-	SDKHooks_AddHook(SDKHook_PostThink, SDKHookCB_Client_PostThink);
-	SDKHooks_AddHook(SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
-	SDKHooks_AddHook(SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
-	SDKHooks_AddHook(SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
-	SDKHooks_AddHook(SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
 }
 
-void SDKHooks_OnClientPutInServer(int client)
+void SDKHooks_Toggle(bool enable)
 {
-	for (int i = 0; i < g_hookData.Length; i++)
+	if (!enable)
 	{
-		SDKHookData data;
-		if (g_hookData.GetArray(i, data))
+		for (int i = g_hookData.Length - 1; i >= 0; i--)
 		{
-			SDKHook(client, data.type, data.callback);
+			SDKHookData data;
+			if (g_hookData.GetArray(i, data))
+			{
+				SDKUnhook(data.ref, data.type, data.callback);
+				g_hookData.Erase(i);
+			}
 		}
 	}
 }
 
-void SDKHooks_UnhookClient(int client)
+void SDKHooks_HookEntity(int entity, const char[] classname)
 {
-	for (int i = 0; i < g_hookData.Length; i++)
+	if (IsEntityClient(entity))
 	{
-		SDKHookData data;
-		if (g_hookData.GetArray(i, data))
+		// Fixes various weapons and items in friendly fire
+		SDKHooks_HookEntityInternal(entity, SDKHook_PreThink, SDKHookCB_Client_PreThink);
+		SDKHooks_HookEntityInternal(entity, SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
+		SDKHooks_HookEntityInternal(entity, SDKHook_PostThink, SDKHookCB_Client_PostThink);
+		SDKHooks_HookEntityInternal(entity, SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
+		SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
+		SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
+		
+		// Makes cloaked spies fully invisible
+		SDKHooks_HookEntityInternal(entity, SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
+	}
+	else
+	{
+		if (!strncmp(classname, "obj_", 4))
 		{
-			SDKUnhook(client, data.type, data.callback);
+			// Makes objects solid to teammates
+			SDKHooks_HookEntityInternal(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+		}
+		
+		if (!strncmp(classname, "tf_projectile_", 14))
+		{
+			if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
+			{
+				// Fixes the cleaver and pipes dealing no damage to certain entities
+				SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
+				SDKHooks_HookEntityInternal(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
+			}
+			else if (StrEqual(classname, "tf_projectile_pipe_remote"))
+			{
+				// Allows detonating teammate's pipebombs
+				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
+				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
+			}
+		}
+		else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
+		{
+			// Prevents Dispensers from healing teammates
+			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
+			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
+		}
+		else if (StrEqual(classname, "tf_flame_manager"))
+		{
+			// Fixes Flame Throwers dealing no damage to teammates
+			SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
+			SDKHooks_HookEntityInternal(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
+		}
+		else if (StrEqual(classname, "tf_gas_manager"))
+		{
+			// Prevents Gas Passer clouds from coating the thrower
+			SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
 		}
 	}
 }
 
-void SDKHooks_OnEntityCreated(int entity, const char[] classname)
+void SDKHooks_UnhookEntity(int entity)
 {
-	// Makes objects solid to teammates
-	if (!strncmp(classname, "obj_", 4))
-	{
-		SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
-	}
+	int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
 	
-	// Prevents Dispensers from healing teammates
-	if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
+	for (int i = g_hookData.Length - 1; i >= 0; i--)
 	{
-		SDKHook(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
-		SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
-	}
-	
-	// Fixes the cleaver and pipes dealing no damage to certain entities
-	if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
-	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
-	}
-	
-	// Allows detonating teammate's pipebombs
-	if (StrEqual(classname, "tf_projectile_pipe_remote"))
-	{
-		SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
-		SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
-	}
-	
-	// Fixes Flame Throwers dealing no damage to teammates
-	if (StrEqual(classname, "tf_flame_manager"))
-	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
-		SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
-	}
-	
-	// Prevents Gas Passer clouds from coating the thrower
-	if (StrEqual(classname, "tf_gas_manager"))
-	{
-		SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
+		SDKHookData data;
+		if (g_hookData.GetArray(i, data) && ref == data.ref)
+		{
+			SDKUnhook(data.ref, data.type, data.callback);
+			g_hookData.Erase(i);
+		}
 	}
 }
 
-static void SDKHooks_AddHook(SDKHookType type, SDKHookCB callback)
+static void SDKHooks_HookEntityInternal(int entity, SDKHookType type, SDKHookCB callback)
 {
 	SDKHookData data;
+	data.ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
 	data.type = type;
 	data.callback = callback;
 	
 	g_hookData.PushArray(data);
+	
+	SDKHook(entity, type, callback);
 }
 
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThink(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	// Disable radius buffs like Buff Banner or King Rune
@@ -154,7 +172,7 @@ static void SDKHookCB_Client_PreThink(int client)
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThinkPost(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	Entity(client).ResetTeam();
@@ -163,7 +181,7 @@ static void SDKHookCB_Client_PreThinkPost(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThink(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	// CTFPlayer::DoTauntAttack
@@ -219,7 +237,7 @@ static void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThinkPost(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	// Change everything back to how it was accordingly
@@ -247,7 +265,7 @@ static void SDKHookCB_Client_PostThinkPost(int client)
 
 static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return Plugin_Continue;
 	
 	// Attacker and victim are commonly modified by other plugins, store them off
@@ -269,7 +287,7 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 
 static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	g_hookParams_OnTakeDamage.GetValue("victim", victim);
@@ -287,7 +305,7 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 
 static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return Plugin_Continue;
 	
 	// Don't transmit invisible spies to living players
@@ -302,7 +320,7 @@ static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 
 static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return Plugin_Continue;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -315,7 +333,7 @@ static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 
 static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -326,7 +344,7 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	// Enable collisions for both teams
@@ -336,7 +354,7 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 
 static Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return Plugin_Continue;
 	
 	if (other == 0)
@@ -354,7 +372,7 @@ static Action SDKHookCB_Projectile_Touch(int entity, int other)
 
 static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	if (other == 0)
@@ -370,7 +388,7 @@ static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 
 static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return Plugin_Continue;
 	
 	if (attacker != -1)
@@ -388,7 +406,7 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 
 static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	if (attacker != -1)
@@ -402,7 +420,7 @@ static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int atta
 
 static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return Plugin_Continue;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -417,7 +435,7 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 
 static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -429,7 +447,7 @@ static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 
 static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return Plugin_Continue;
 	
 	if (FindParentOwnerEntity(entity) == other)

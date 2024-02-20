@@ -144,22 +144,13 @@ public void OnPluginEnd()
 	TogglePlugin(false);
 }
 
-public void OnClientPutInServer(int client)
-{
-	if (!g_isEnabled)
-		return;
-	
-	DHooks_OnClientPutInServer(client);
-	SDKHooks_OnClientPutInServer(client);
-}
-
 public void OnEntityCreated(int entity, const char[] classname)
 {
 	if (!g_isEnabled || !g_isMapRunning)
 		return;
 	
-	DHooks_OnEntityCreated(entity, classname);
-	SDKHooks_OnEntityCreated(entity, classname);
+	DHooks_HookEntity(entity, classname);
+	SDKHooks_HookEntity(entity, classname);
 }
 
 public void OnEntityDestroyed(int entity)
@@ -169,6 +160,8 @@ public void OnEntityDestroyed(int entity)
 	
 	if (!IsValidEntity(entity))
 		return;
+	
+	SDKHooks_UnhookEntity(entity);
 	
 	// If an entity was removed prematurely, reset its owner's team as far back as we need to.
 	// This can happen with projectiles when they collide with the world, not calling the post-hook.
@@ -199,35 +192,18 @@ void TogglePlugin(bool enable)
 	
 	ConVars_Toggle(enable);
 	DHooks_Toggle(enable);
+	SDKHooks_Toggle(enable);
 	
 	if (enable)
 	{
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (!IsClientInGame(client))
-				continue;
-			
-			OnClientPutInServer(client);
-		}
-		
 		int entity = -1;
 		while ((entity = FindEntityByClassname(entity, "*")) != -1)
 		{
 			char classname[64];
-			if (GetEntityClassname(entity, classname, sizeof(classname)))
-			{
-				OnEntityCreated(entity, classname);
-			}
-		}
-	}
-	else
-	{
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (!IsClientInGame(client))
+			if (!GetEntityClassname(entity, classname, sizeof(classname)))
 				continue;
 			
-			SDKHooks_UnhookClient(client);
+			OnEntityCreated(entity, classname);
 		}
 	}
 }

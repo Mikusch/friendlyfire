@@ -84,64 +84,68 @@ void DHooks_Toggle(bool enable)
 		for (int i = g_dynamicHookIds.Length - 1; i >= 0; i--)
 		{
 			int hookid = g_dynamicHookIds.Get(i);
-			DynamicHook.RemoveHook(hookid);
+			if (!DynamicHook.RemoveHook(hookid))
+				LogError("Failed to remove dynamic hook (ID %d)", hookid);
 		}
 	}
 }
 
-void DHooks_OnClientPutInServer(int client)
+void DHooks_HookEntity(int entity, const char[] classname)
 {
-	DHooks_HookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, client, DHookCallback_CTFPlayer_Event_Killed_Pre);
-	DHooks_HookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Post, client, DHookCallback_CTFPlayer_Event_Killed_Post);
-}
-
-void DHooks_OnEntityCreated(int entity, const char[] classname)
-{
-	if (!strncmp(classname, "tf_projectile_", 14))
+	if (IsEntityClient(entity))
 	{
-		// Fixes jars not applying effects to teammates when hitting the world
+		// Fixes on-death effects (e.g. ragdolls) showing spectator visuals
+		DHooks_HookEntityInternal(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, entity, DHookCallback_CTFPlayer_Event_Killed_Pre);
+		DHooks_HookEntityInternal(g_dhook_CBasePlayer_Event_Killed, Hook_Post, entity, DHookCallback_CTFPlayer_Event_Killed_Post);
+	}
+	else if (!strncmp(classname, "tf_projectile_", 14))
+	{
+		// Fixes projectiles sometimes not colliding with teammates
+		DHooks_HookEntityInternal(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
+		
+		if (IsEntityBaseGrenadeProjectile(entity))
+		{
+			// Fixes grenades rarely bouncing off friendly objects
+			DHooks_HookEntityInternal(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre);
+			DHooks_HookEntityInternal(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
+		}
+		
 		if (!strncmp(classname, "tf_projectile_jar", 17))
 		{
-			DHooks_HookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
-			DHooks_HookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
+			// Fixes jars not applying effects to teammates when hitting the world
+			DHooks_HookEntityInternal(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
+			DHooks_HookEntityInternal(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
 		}
-		
-		// Fixes Scorch Shot knockback on teammates
-		if (StrEqual(classname, "tf_projectile_flare"))
+		else if (StrEqual(classname, "tf_projectile_flare"))
 		{
-			DHooks_HookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
-			DHooks_HookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
+			// Fixes Scorch Shot knockback on teammates
+			DHooks_HookEntityInternal(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
+			DHooks_HookEntityInternal(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
 		}
-		
-		// Fixes grenades rarely bouncing off friendly objects
-		if (IsProjectileCTFWeaponBaseGrenade(entity))
+	}
+	else if (TF2Util_IsEntityWeapon(entity))
+	{
+		if (IsEntityBaseMelee(entity))
 		{
-			DHooks_HookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre);
-			DHooks_HookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
+			// Fixes wrenches not being able to upgrade friendly objects, as well as a few other melee weapons
+			DHooks_HookEntityInternal(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
+			DHooks_HookEntityInternal(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
 		}
-		
-		// Fixes projectiles sometimes not colliding with teammates
-		DHooks_HookEntity(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
-	}
-	
-	// Fixes Sniper Rifles dealing no damage to teammates
-	if (!strncmp(classname, "tf_weapon_sniperrifle", 21))
-	{
-		DHooks_HookEntity(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
-	}
-	
-	// Fixes pipebomb launchers not being able to knock around friendly pipebombs
-	if (TF2Util_IsEntityWeapon(entity) && TF2Util_GetWeaponID(entity) == TF_WEAPON_PIPEBOMBLAUNCHER)
-	{
-		DHooks_HookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
-		DHooks_HookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
-	}
-	
-	// Fixes wrenches not being able to upgrade friendly objects and a few other melee weapons
-	if (IsWeaponBaseMelee(entity))
-	{
-		DHooks_HookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
-		DHooks_HookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
+		else
+		{
+			int weaponID = TF2Util_GetWeaponID(entity);
+			if (weaponID == TF_WEAPON_SNIPERRIFLE || weaponID == TF_WEAPON_SNIPERRIFLE_DECAP || weaponID == TF_WEAPON_SNIPERRIFLE_CLASSIC)
+			{
+				// Fixes Sniper Rifles dealing no damage to teammates
+				DHooks_HookEntityInternal(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
+			}
+			else if (weaponID == TF_WEAPON_PIPEBOMBLAUNCHER)
+			{
+				// Fixes pipebomb launchers not being able to knock around friendly pipebombs
+				DHooks_HookEntityInternal(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
+				DHooks_HookEntityInternal(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
+			}
+		}
 	}
 }
 
@@ -168,23 +172,19 @@ static DynamicHook DHooks_AddDynamicHook(GameData gamedata, const char[] name)
 {
 	DynamicHook hook = DynamicHook.FromConf(gamedata, name);
 	if (!hook)
-	{
 		LogError("Failed to create hook setup handle: %s", name);
-	}
 	
 	return hook;
 }
 
-static void DHooks_HookEntity(DynamicHook hook, HookMode mode, int entity, DHookCallback callback)
+static void DHooks_HookEntityInternal(DynamicHook hook, HookMode mode, int entity, DHookCallback callback)
 {
-	if (hook)
-	{
-		int hookid = hook.HookEntity(mode, entity, callback, DHookRemovalCB_OnHookRemoved);
-		if (hookid != INVALID_HOOK_ID)
-		{
-			g_dynamicHookIds.Push(hookid);
-		}
-	}
+	if (!hook)
+		return;
+	
+	int hookid = hook.HookEntity(mode, entity, callback, DHookRemovalCB_OnHookRemoved);
+	if (hookid != INVALID_HOOK_ID)
+		g_dynamicHookIds.Push(hookid);
 }
 
 static bool DHooks_ToggleDetourByName(const char[] name, bool enable)
@@ -210,40 +210,30 @@ static void DHooks_ToggleDetour(DetourData data, bool enable)
 	if (data.callbackPre != INVALID_FUNCTION)
 	{
 		if (enable)
-		{
 			data.detour.Enable(Hook_Pre, data.callbackPre);
-		}
 		else
-		{
 			data.detour.Disable(Hook_Pre, data.callbackPre);
-		}
 	}
 	
 	if (data.callbackPost != INVALID_FUNCTION)
 	{
 		if (enable)
-		{
 			data.detour.Enable(Hook_Post, data.callbackPost);
-		}
 		else
-		{
 			data.detour.Disable(Hook_Post, data.callbackPost);
-		}
 	}
 }
 
-public void DHookRemovalCB_OnHookRemoved(int hookid)
+static void DHookRemovalCB_OnHookRemoved(int hookid)
 {
 	int index = g_dynamicHookIds.FindValue(hookid);
 	if (index != -1)
-	{
 		g_dynamicHookIds.Erase(index);
-	}
 }
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	// Switch back to the original team to force proper skin for ragdolls and other on-death effects
@@ -254,7 +244,7 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookPara
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	Entity(player).ResetTeam();
@@ -264,7 +254,7 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookPar
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
@@ -279,7 +269,7 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookP
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
@@ -294,7 +284,7 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHook
 
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int other = params.Get(2);
@@ -306,7 +296,7 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHoo
 
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int other = params.Get(2);
@@ -318,7 +308,7 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHo
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	// Always make projectiles collide with teammates
@@ -329,7 +319,7 @@ static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int
 
 static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
@@ -345,7 +335,7 @@ static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int enti
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
@@ -372,7 +362,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
@@ -398,7 +388,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	char classname[64];
@@ -417,7 +407,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	// Allow Rescue Ranger healing bolts to work on friendly buildings
 	if (StrEqual(classname, "tf_projectile_arrow") &&
 		GetEntProp(entity, Prop_Send, "m_iProjectileType") == TF_PROJECTILE_BUILDING_REPAIR_BOLT &&
-		IsBaseObject(other) &&
+		IsEntityBaseObject(other) &&
 		IsObjectFriendly(other, GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")))
 	{
 		ret.Value = true;
@@ -434,7 +424,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	char classname[64];
@@ -544,7 +534,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	switch (g_thinkFunction)
@@ -623,7 +613,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medigun, DHookReturn ret, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	// Temporarily remove our CBaseEntity::InSameTeam detour to allow healing teammates
@@ -635,7 +625,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medig
 
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medigun, DHookReturn ret, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	if (sm_friendlyfire_medic_allow_healing.BoolValue)
@@ -646,7 +636,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medi
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weapon)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	// Switch the weapon
@@ -675,7 +665,7 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weap
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int weapon)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	Entity(weapon).ResetTeam();
@@ -699,9 +689,9 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int wea
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre(int entity, DHookParam params)
+static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
@@ -731,7 +721,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Pre(int enti
 
 static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");

@@ -50,8 +50,7 @@ methodmap Entity
 			g_entityProperties = new ArrayList(sizeof(EntityProperties));
 		}
 		
-		// Convert it twice to ensure we store it as an entity reference
-		int ref = EntIndexToEntRef(EntRefToEntIndex(entity));
+		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
 		
 		if (g_entityProperties.FindValue(ref, EntityProperties::ref) == -1)
 		{
