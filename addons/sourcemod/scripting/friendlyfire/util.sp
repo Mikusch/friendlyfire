@@ -20,9 +20,9 @@
 
 static RoundState g_roundState;
 
-bool IsFriendlyFireEnabled()
+bool IsTruceActive()
 {
-	return g_isEnabled && !GameRules_GetProp("m_bTruceActive");
+	return !GameRules_GetProp("m_bTruceActive");
 }
 
 TFTeam TF2_GetEntityTeam(int entity)

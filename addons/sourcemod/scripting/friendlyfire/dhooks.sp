@@ -242,7 +242,7 @@ public void DHookRemovalCB_OnHookRemoved(int hookid)
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	// Switch back to the original team to force proper skin for ragdolls and other on-death effects
@@ -253,7 +253,7 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookPara
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	Entity(player).ResetTeam();
@@ -263,7 +263,7 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookPar
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
@@ -278,7 +278,7 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookP
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
@@ -293,7 +293,7 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHook
 
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int other = params.Get(2);
@@ -305,7 +305,7 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHoo
 
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int other = params.Get(2);
@@ -317,7 +317,7 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHo
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	// Always make projectiles collide with teammates
@@ -328,7 +328,7 @@ static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int
 
 static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
@@ -344,7 +344,7 @@ static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int enti
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
@@ -371,7 +371,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
@@ -397,7 +397,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	char classname[64];
@@ -433,7 +433,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	char classname[64];
@@ -543,7 +543,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	switch (g_thinkFunction)
@@ -622,7 +622,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medigun, DHookReturn ret, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	// Temporarily remove our CBaseEntity::InSameTeam detour to allow healing teammates
@@ -634,7 +634,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medig
 
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medigun, DHookReturn ret, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	if (sm_friendlyfire_medic_allow_healing.BoolValue)
@@ -645,7 +645,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medi
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weapon)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	// Switch the weapon
@@ -674,7 +674,7 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weap
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int weapon)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	Entity(weapon).ResetTeam();
@@ -700,7 +700,7 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int wea
 
 static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
@@ -730,7 +730,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 
 static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post(int entity, DHookParam params)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return MRES_Ignored;
 	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");

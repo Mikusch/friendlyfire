@@ -174,7 +174,7 @@ static void SDKHooks_HookEntityInternal(int entity, SDKHookType type, SDKHookCB 
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThink(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	// Disable radius buffs like Buff Banner or King Rune
@@ -184,7 +184,7 @@ static void SDKHookCB_Client_PreThink(int client)
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThinkPost(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	Entity(client).ResetTeam();
@@ -193,7 +193,7 @@ static void SDKHookCB_Client_PreThinkPost(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThink(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	// CTFPlayer::DoTauntAttack
@@ -249,7 +249,7 @@ static void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThinkPost(int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	// Change everything back to how it was accordingly
@@ -277,7 +277,7 @@ static void SDKHookCB_Client_PostThinkPost(int client)
 
 static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return Plugin_Continue;
 	
 	// Attacker and victim are commonly modified by other plugins, store them off
@@ -299,7 +299,7 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 
 static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	g_hookParams_OnTakeDamage.GetValue("victim", victim);
@@ -317,7 +317,7 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 
 static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return Plugin_Continue;
 	
 	// Don't transmit invisible spies to living players
@@ -332,7 +332,7 @@ static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 
 static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return Plugin_Continue;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -345,7 +345,7 @@ static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 
 static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
@@ -356,7 +356,7 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	// Enable collisions for both teams
@@ -366,7 +366,7 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 
 static Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return Plugin_Continue;
 	
 	if (other == 0)
@@ -384,7 +384,7 @@ static Action SDKHookCB_Projectile_Touch(int entity, int other)
 
 static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	if (other == 0)
@@ -400,7 +400,7 @@ static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 
 static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return Plugin_Continue;
 	
 	if (attacker != -1)
@@ -418,7 +418,7 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 
 static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	if (attacker != -1)
@@ -432,7 +432,7 @@ static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int atta
 
 static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return Plugin_Continue;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -447,7 +447,7 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 
 static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return;
 	
 	int owner = FindParentOwnerEntity(entity);
@@ -459,7 +459,7 @@ static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 
 static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
-	if (!IsFriendlyFireEnabled())
+	if (!IsTruceActive())
 		return Plugin_Continue;
 	
 	if (FindParentOwnerEntity(entity) == other)
