@@ -198,7 +198,6 @@ methodmap Entity
 			return;
 		
 		g_entityProperties.Erase(this.ListIndex);
-		PrintToServer("%d", g_entityProperties.Length);
 	}
 	
 	public static bool IsEntityTracked(int entity)

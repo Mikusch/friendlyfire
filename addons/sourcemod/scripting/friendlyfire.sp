@@ -25,7 +25,7 @@
 #include <tf2_stocks>
 #include <tf2utils>
 
-#define PLUGIN_VERSION	"1.2.0"
+#define PLUGIN_VERSION	"1.2.1"
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
