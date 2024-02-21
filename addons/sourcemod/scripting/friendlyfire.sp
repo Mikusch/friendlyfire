@@ -163,14 +163,12 @@ public void OnEntityDestroyed(int entity)
 		Entity obj = Entity(entity);
 		
 		// If an entity is removed while it still has a team history, we need to reset its owner's team.
-		// This can happen if the entity is deleted in-between pre-hook and post-hook callbacks e.g. a projectile that collided with worldspawn.
+		// This can happen if the entity is deleted in-between pre-hook and post-hook callbacks e.g. from a projectile that collided with worldspawn.
 		for (int i = 0; i < obj.TeamCount; i++)
 		{
 			int owner = FindParentOwnerEntity(entity);
 			if (owner != -1)
-			{
 				obj.ResetTeam();
-			}
 		}
 		
 		obj.Destroy();
