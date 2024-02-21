@@ -45,11 +45,6 @@ methodmap Entity
 			return view_as<Entity>(INVALID_ENT_REFERENCE);
 		}
 		
-		if (!g_entityProperties)
-		{
-			g_entityProperties = new ArrayList(sizeof(EntityProperties));
-		}
-		
 		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
 		
 		if (!Entity.IsReferenceTracked(ref))
@@ -212,5 +207,10 @@ methodmap Entity
 	public static bool IsReferenceTracked(int ref)
 	{
 		return g_entityProperties.FindValue(ref, EntityProperties::ref) != -1;
+	}
+	
+	public static void Initialize()
+	{
+		g_entityProperties = new ArrayList(sizeof(EntityProperties));
 	}
 }
