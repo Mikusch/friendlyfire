@@ -28,9 +28,7 @@
 #define PLUGIN_VERSION	"1.2.0"
 
 #define TICK_NEVER_THINK	-1.0
-
 #define TF_CUSTOM_NONE		0
-
 #define TF_GAMETYPE_ARENA	4
 
 enum
@@ -158,23 +156,25 @@ public void OnEntityDestroyed(int entity)
 	if (!g_isEnabled)
 		return;
 	
-	if (!IsValidEntity(entity))
-		return;
-	
 	SDKHooks_UnhookEntity(entity);
 	
-	// If an entity was removed prematurely, reset its owner's team as far back as we need to.
-	// This can happen with projectiles when they collide with the world, not calling the post-hook.
-	for (int i = 0; i < Entity(entity).TeamCount; i++)
+	if (Entity.IsEntityTracked(entity))
 	{
-		int owner = FindParentOwnerEntity(entity);
-		if (owner != -1)
+		Entity obj = Entity(entity);
+		
+		// If an entity is removed while it still has a team history, we need to reset its owner's team.
+		// This can happen if the entity is deleted in-between pre-hook and post-hook callbacks e.g. a projectile that collided with worldspawn.
+		for (int i = 0; i < obj.TeamCount; i++)
 		{
-			Entity(owner).ResetTeam();
+			int owner = FindParentOwnerEntity(entity);
+			if (owner != -1)
+			{
+				obj.ResetTeam();
+			}
 		}
+		
+		obj.Destroy();
 	}
-	
-	Entity(entity).Destroy();
 }
 
 public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
@@ -192,18 +192,24 @@ void TogglePlugin(bool enable)
 	
 	ConVars_Toggle(enable);
 	DHooks_Toggle(enable);
-	SDKHooks_Toggle(enable);
 	
-	if (enable)
+	int entity = -1;
+	while ((entity = FindEntityByClassname(entity, "*")) != -1)
 	{
-		int entity = -1;
-		while ((entity = FindEntityByClassname(entity, "*")) != -1)
+		if (enable)
 		{
 			char classname[64];
 			if (!GetEntityClassname(entity, classname, sizeof(classname)))
 				continue;
 			
 			OnEntityCreated(entity, classname);
+		}
+		else
+		{
+			SDKHooks_UnhookEntity(entity);
+			
+			if (Entity.IsEntityTracked(entity))
+				Entity(entity).Destroy();
 		}
 	}
 }

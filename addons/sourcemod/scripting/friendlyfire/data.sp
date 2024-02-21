@@ -52,9 +52,8 @@ methodmap Entity
 		
 		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
 		
-		if (g_entityProperties.FindValue(ref, EntityProperties::ref) == -1)
+		if (!Entity.IsReferenceTracked(ref))
 		{
-			// Fill basic properties
 			EntityProperties properties;
 			properties.ref = ref;
 			
@@ -198,7 +197,18 @@ methodmap Entity
 		if (this.ListIndex == -1)
 			return;
 		
-		// Remove the entry from local storage
 		g_entityProperties.Erase(this.ListIndex);
+		PrintToServer("%d", g_entityProperties.Length);
+	}
+	
+	public static bool IsEntityTracked(int entity)
+	{
+		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
+		return Entity.IsReferenceTracked(ref);
+	}
+	
+	public static bool IsReferenceTracked(int ref)
+	{
+		return g_entityProperties.FindValue(ref, EntityProperties::ref) != -1;
 	}
 }
