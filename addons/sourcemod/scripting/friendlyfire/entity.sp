@@ -52,9 +52,8 @@ methodmap Entity
 		
 		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
 		
-		if (g_entityProperties.FindValue(ref, EntityProperties::ref) == -1)
+		if (!Entity.IsReferenceTracked(ref))
 		{
-			// Fill basic properties
 			EntityProperties properties;
 			properties.ref = ref;
 			
@@ -76,7 +75,7 @@ methodmap Entity
 	{
 		public get()
 		{
-			return g_entityProperties.FindValue(view_as<int>(this), EntityProperties::ref);
+			return g_entityProperties.FindValue(this.Ref, EntityProperties::ref);
 		}
 	}
 	
@@ -179,13 +178,15 @@ methodmap Entity
 	{
 		this.CheckArrayBounds(index);
 		
+		int listIndex = this.ListIndex;
+		
 		for (int i = 0; i < sizeof(g_entityProperties); i++)
 		{
 			EntityProperties properties;
-			if (g_entityProperties.GetArray(this.ListIndex, properties))
+			if (g_entityProperties.GetArray(listIndex, properties))
 			{
 				properties.teamHistory[index] = team;
-				g_entityProperties.SetArray(this.ListIndex, properties);
+				g_entityProperties.SetArray(listIndex, properties);
 				return;
 			}
 		}
@@ -195,10 +196,21 @@ methodmap Entity
 	
 	public void Destroy()
 	{
-		if (this.ListIndex == -1)
+		int listIndex = this.ListIndex;
+		if (listIndex == -1)
 			return;
 		
-		// Remove the entry from local storage
-		g_entityProperties.Erase(this.ListIndex);
+		g_entityProperties.Erase(listIndex);
+	}
+	
+	public static bool IsEntityTracked(int entity)
+	{
+		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
+		return Entity.IsReferenceTracked(ref);
+	}
+	
+	public static bool IsReferenceTracked(int ref)
+	{
+		return g_entityProperties.FindValue(ref, EntityProperties::ref) != -1;
 	}
 }

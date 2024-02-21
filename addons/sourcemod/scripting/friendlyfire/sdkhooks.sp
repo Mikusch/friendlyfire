@@ -58,22 +58,6 @@ void SDKHooks_Initialize()
 	g_hookParams_OnTakeDamage = new StringMap();
 }
 
-void SDKHooks_Toggle(bool enable)
-{
-	if (!enable)
-	{
-		for (int i = g_hookData.Length - 1; i >= 0; i--)
-		{
-			SDKHookData data;
-			if (g_hookData.GetArray(i, data))
-			{
-				SDKUnhook(data.ref, data.type, data.callback);
-				g_hookData.Erase(i);
-			}
-		}
-	}
-}
-
 void SDKHooks_HookEntity(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))
