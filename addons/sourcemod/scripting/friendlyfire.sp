@@ -81,8 +81,8 @@ bool g_isEnabled;
 bool g_isMapRunning;
 
 #include "friendlyfire/convars.sp"
-#include "friendlyfire/data.sp"
 #include "friendlyfire/dhooks.sp"
+#include "friendlyfire/entity.sp"
 #include "friendlyfire/sdkcalls.sp"
 #include "friendlyfire/sdkhooks.sp"
 #include "friendlyfire/util.sp"
