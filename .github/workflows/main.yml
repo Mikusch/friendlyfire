@@ -5,11 +5,15 @@ on:
     branches:
       master
 
+env:
+  PLUGIN_NAME: friendlyfire
+
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      matrix:
+        sm-version: [ '1.11.x' ]
     permissions:
       contents: write
 
@@ -22,18 +26,18 @@ jobs:
       - name: Download includes
         run: wget -P ${{ env.SCRIPTS_PATH }}/addons/sourcemod/scripting/include https://raw.githubusercontent.com/nosoop/SM-TFUtils/master/scripting/include/tf2utils.inc
 
-      - name: Setup SourcePawn Compiler ${{ matrix.SM_VERSION }}
+      - name: Setup SourcePawn Compiler ${{ matrix.sm-version }}
         id: setup_sp
         uses: rumblefrog/setup-sp@master
         with:
-          version: "1.11.x"
-          version-file: ./addons/sourcemod/scripting/friendlyfire.sp
-          define-name: "PLUGIN_VERSION"
+          version: ${{ matrix.sm-version }}
+          version-file: ./addons/sourcemod/scripting/${{ env.PLUGIN_NAME }}.sp
+          define-name: PLUGIN_VERSION
 
       - name: Compile plugins
         run: |
           mkdir ../plugins
-          spcomp -v2 -E -i "include" -o"../plugins/friendlyfire.smx" friendlyfire.sp
+          spcomp -v2 -E -i "include" -o"../plugins/${{ env.PLUGIN_NAME }}.smx" ${{ env.PLUGIN_NAME }}.sp
           echo "===OUT FILES==="
           ls ../plugins
           echo "===VERSION==="
@@ -63,8 +67,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.setup_sp.outputs.plugin-version }}
-          artifacts: "addons/sourcemod/${{ github.event.repository.name }}.zip"
-          draft: false
+          artifacts: addons/sourcemod/${{ github.event.repository.name }}.zip
+          draft: true
           allowUpdates: true
-          prerelease: false
-          replacesArtifacts: true
+          updateOnlyUnreleased: true
+          skipIfReleaseExists: true
