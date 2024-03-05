@@ -98,7 +98,7 @@ static void ConVars_AddConVar(const char[] name, const char[] value = "", ConVar
 
 static void ConVars_Enable(const char[] name)
 {
-	int index = g_conVars.FindString(name, ConVarData::name);
+	int index = g_conVars.FindString(name);
 	if (index == -1)
 		return;
 	
@@ -132,7 +132,7 @@ static void ConVars_Enable(const char[] name)
 
 static void ConVars_Disable(const char[] name)
 {
-	int index = g_conVars.FindString(name, ConVarData::name);
+	int index = g_conVars.FindString(name);
 	if (index == -1)
 		return;
 	
@@ -157,7 +157,7 @@ static void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	char name[COMMAND_MAX_LENGTH];
 	convar.GetName(name, sizeof(name));
 	
-	int index = g_conVars.FindString(name, ConVarData::name);
+	int index = g_conVars.FindString(name);
 	if (index == -1)
 		return;
 	
