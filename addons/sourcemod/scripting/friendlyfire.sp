@@ -25,7 +25,7 @@
 #include <tf2_stocks>
 #include <tf2utils>
 
-#define PLUGIN_VERSION	"1.2.2"
+#define PLUGIN_VERSION	"1.2.3"
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
@@ -76,6 +76,7 @@ enum
 
 ConVar mp_friendlyfire;
 ConVar sm_friendlyfire_medic_allow_healing;
+ConVar sm_friendlyfire_avoidteammates;
 
 bool g_isEnabled;
 bool g_isMapRunning;
