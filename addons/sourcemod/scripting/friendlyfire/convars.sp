@@ -47,15 +47,6 @@ void ConVars_Initialize()
 
 void ConVars_Toggle(bool enable)
 {
-	if (enable)
-	{
-		mp_friendlyfire.AddChangeHook(ConVarChanged_FriendlyFire);
-	}
-	else
-	{
-		mp_friendlyfire.RemoveChangeHook(ConVarChanged_FriendlyFire);
-	}
-	
 	for (int i = 0; i < g_conVars.Length; i++)
 	{
 		ConVarData data;
@@ -148,7 +139,12 @@ static void ConVars_Disable(const char[] name)
 		convar.SetString(data.initialValue);
 		
 		if (data.relatedConVar)
+		{
+			data.value[0] = EOS;
 			data.relatedConVar.RemoveChangeHook(OnRelatedConVarChanged);
+			
+			g_conVars.SetArray(index, data);
+		}
 	}
 }
 
