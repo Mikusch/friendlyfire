@@ -84,8 +84,7 @@ void DHooks_Toggle(bool enable)
 		for (int i = g_dynamicHookIds.Length - 1; i >= 0; i--)
 		{
 			int hookid = g_dynamicHookIds.Get(i);
-			if (!DynamicHook.RemoveHook(hookid))
-				LogError("Failed to remove dynamic hook (ID %d)", hookid);
+			DynamicHook.RemoveHook(hookid);
 		}
 	}
 }
