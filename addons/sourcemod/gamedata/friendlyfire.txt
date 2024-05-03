@@ -132,6 +132,12 @@
 				"linux"		"293"
 				"windows"	"287"
 			}
+			"CBaseEntity::Deflected"
+			{
+				"library"	"server"
+				"linux"		"160"
+				"windows"	"159"
+			}
 			"CBaseEntity::VPhysicsUpdate"
 			{
 				"library"	"server"
@@ -246,6 +252,24 @@
 				"hooktype"	"entity"
 				"return"	"void"
 				"this"		"entity"
+			}
+			"CBaseEntity::Deflected"
+			{
+				"offset"	"CBaseEntity::Deflected"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"pDeflectedBy"
+					{
+						"type"	"cbaseentity"
+					}
+					"vecDir"
+					{
+						"type"	"vectorptr"
+					}
+				}
 			}
 			"CBaseEntity::VPhysicsUpdate"
 			{
