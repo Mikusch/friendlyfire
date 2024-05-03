@@ -44,6 +44,7 @@ static DynamicHook g_dhook_CTFBaseRocket_Explode;
 static DynamicHook g_dhook_CBasePlayer_Event_Killed;
 static DynamicHook g_dhook_CTFWeaponBaseMelee_Smack;
 static DynamicHook g_dhook_CTFWeaponBase_SecondaryAttack;
+static DynamicHook g_dhook_CBaseEntity_Deflected;
 static DynamicHook g_dhook_CBaseEntity_VPhysicsUpdate;
 
 static ThinkFunction g_thinkFunction = ThinkFunction_None;
@@ -64,6 +65,7 @@ void DHooks_Initialize(GameData gamedata)
 	g_dhook_CBasePlayer_Event_Killed = DHooks_AddDynamicHook(gamedata, "CBasePlayer::Event_Killed");
 	g_dhook_CTFWeaponBaseMelee_Smack = DHooks_AddDynamicHook(gamedata, "CTFWeaponBaseMelee::Smack");
 	g_dhook_CTFWeaponBase_SecondaryAttack = DHooks_AddDynamicHook(gamedata, "CTFWeaponBase::SecondaryAttack");
+	g_dhook_CBaseEntity_Deflected = DHooks_AddDynamicHook(gamedata, "CBaseEntity::Deflected");
 	g_dhook_CBaseEntity_VPhysicsUpdate = DHooks_AddDynamicHook(gamedata, "CBaseEntity::VPhysicsUpdate");
 }
 
@@ -101,6 +103,10 @@ void DHooks_HookEntity(int entity, const char[] classname)
 	{
 		// Fixes projectiles sometimes not colliding with teammates
 		DHooks_HookEntityInternal(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
+		
+		// Fixes reflected projectiles being in spectator team
+		DHooks_HookEntityInternal(g_dhook_CBaseEntity_Deflected, Hook_Pre, entity, DHookCallback_CBaseEntity_Deflected_Pre);
+		DHooks_HookEntityInternal(g_dhook_CBaseEntity_Deflected, Hook_Post, entity, DHookCallback_CBaseEntity_Deflected_Post);
 		
 		if (IsEntityBaseGrenadeProjectile(entity))
 		{
@@ -286,9 +292,8 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHoo
 	if (IsTruceActive())
 		return MRES_Ignored;
 	
-	int other = params.Get(2);
-	
-	Entity(other).ChangeToSpectator();
+	if (!params.IsNull(2))
+		Entity(params.Get(2)).ChangeToSpectator();
 	
 	return MRES_Ignored;
 }
@@ -298,9 +303,8 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHo
 	if (IsTruceActive())
 		return MRES_Ignored;
 	
-	int other = params.Get(2);
-	
-	Entity(other).ResetTeam();
+	if (!params.IsNull(2))
+		Entity(params.Get(2)).ResetTeam();
 	
 	return MRES_Ignored;
 }
@@ -314,6 +318,29 @@ static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int
 	ret.Value = true;
 	
 	return MRES_Supercede;
+}
+
+static MRESReturn DHookCallback_CBaseEntity_Deflected_Pre(int entity, DHookParam params)
+{
+	if (IsTruceActive())
+		return MRES_Ignored;
+	
+	// Make projectiles have the original team of the deflector
+	if (!params.IsNull(1))
+		Entity(params.Get(1)).ChangeToOriginalTeam();
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CBaseEntity_Deflected_Post(int entity, DHookParam params)
+{
+	if (IsTruceActive())
+		return MRES_Ignored;
+	
+	if (!params.IsNull(1))
+		Entity(params.Get(1)).ResetTeam();
+	
+	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int entity, DHookReturn ret)
