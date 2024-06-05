@@ -156,7 +156,8 @@ methodmap Entity
 	{
 		this.CheckArrayBounds(index);
 		
-		for (int i = 0; i < sizeof(g_entityProperties); i++)
+		int length = g_entityProperties.Length;
+		for (int i = 0; i < length; i++)
 		{
 			EntityProperties properties;
 			if (g_entityProperties.GetArray(this.ListIndex, properties))
@@ -175,7 +176,8 @@ methodmap Entity
 		
 		int listIndex = this.ListIndex;
 		
-		for (int i = 0; i < sizeof(g_entityProperties); i++)
+		int length = g_entityProperties.Length;
+		for (int i = 0; i < length; i++)
 		{
 			EntityProperties properties;
 			if (g_entityProperties.GetArray(listIndex, properties))
