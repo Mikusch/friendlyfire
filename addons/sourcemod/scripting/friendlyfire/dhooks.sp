@@ -18,14 +18,6 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-enum struct DetourData
-{
-	char name[64];
-	DynamicDetour detour;
-	DHookCallback callbackPre;
-	DHookCallback callbackPost;
-}
-
 enum ThinkFunction
 {
 	ThinkFunction_None,
@@ -33,9 +25,6 @@ enum ThinkFunction
 	ThinkFunction_SentryThink,
 	ThinkFunction_SapperThink,
 }
-
-static ArrayList g_dynamicDetours;
-static ArrayList g_dynamicHookIds;
 
 static DynamicHook g_dhook_CBaseProjectile_CanCollideWithTeammates;
 static DynamicHook g_dhook_CTFSniperRifle_GetCustomDamageType;
@@ -48,47 +37,23 @@ static DynamicHook g_dhook_CBaseEntity_Deflected;
 static DynamicHook g_dhook_CBaseEntity_VPhysicsUpdate;
 
 static ThinkFunction g_thinkFunction = ThinkFunction_None;
+static bool g_disableInSameTeamDetour;
 
-void DHooks_Initialize(GameData gamedata)
+void DHooks_Init()
 {
-	g_dynamicDetours = new ArrayList(sizeof(DetourData));
-	g_dynamicHookIds = new ArrayList();
+	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
+	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
+	PSM_AddDynamicDetourFromConf("CWeaponMedigun::AllowedToHealTarget", DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre, DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post);
 	
-	DHooks_AddDynamicDetour(gamedata, "CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
-	DHooks_AddDynamicDetour(gamedata, "CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
-	DHooks_AddDynamicDetour(gamedata, "CWeaponMedigun::AllowedToHealTarget", DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre, DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post);
-	
-	g_dhook_CBaseProjectile_CanCollideWithTeammates = DHooks_AddDynamicHook(gamedata, "CBaseProjectile::CanCollideWithTeammates");
-	g_dhook_CTFSniperRifle_GetCustomDamageType = DHooks_AddDynamicHook(gamedata, "CTFSniperRifle::GetCustomDamageType");
-	g_dhook_CBaseGrenade_Explode = DHooks_AddDynamicHook(gamedata, "CBaseGrenade::Explode");
-	g_dhook_CTFBaseRocket_Explode = DHooks_AddDynamicHook(gamedata, "CTFBaseRocket::Explode");
-	g_dhook_CBasePlayer_Event_Killed = DHooks_AddDynamicHook(gamedata, "CBasePlayer::Event_Killed");
-	g_dhook_CTFWeaponBaseMelee_Smack = DHooks_AddDynamicHook(gamedata, "CTFWeaponBaseMelee::Smack");
-	g_dhook_CTFWeaponBase_SecondaryAttack = DHooks_AddDynamicHook(gamedata, "CTFWeaponBase::SecondaryAttack");
-	g_dhook_CBaseEntity_Deflected = DHooks_AddDynamicHook(gamedata, "CBaseEntity::Deflected");
-	g_dhook_CBaseEntity_VPhysicsUpdate = DHooks_AddDynamicHook(gamedata, "CBaseEntity::VPhysicsUpdate");
-}
-
-void DHooks_Toggle(bool enable)
-{
-	for (int i = 0; i < g_dynamicDetours.Length; i++)
-	{
-		DetourData data;
-		if (g_dynamicDetours.GetArray(i, data))
-		{
-			DHooks_ToggleDetour(data, enable);
-		}
-	}
-	
-	if (!enable)
-	{
-		// Remove virtual hooks
-		for (int i = g_dynamicHookIds.Length - 1; i >= 0; i--)
-		{
-			int hookid = g_dynamicHookIds.Get(i);
-			DynamicHook.RemoveHook(hookid);
-		}
-	}
+	g_dhook_CBaseProjectile_CanCollideWithTeammates = PSM_AddDynamicHookFromConf("CBaseProjectile::CanCollideWithTeammates");
+	g_dhook_CTFSniperRifle_GetCustomDamageType = PSM_AddDynamicHookFromConf("CTFSniperRifle::GetCustomDamageType");
+	g_dhook_CBaseGrenade_Explode = PSM_AddDynamicHookFromConf("CBaseGrenade::Explode");
+	g_dhook_CTFBaseRocket_Explode = PSM_AddDynamicHookFromConf("CTFBaseRocket::Explode");
+	g_dhook_CBasePlayer_Event_Killed = PSM_AddDynamicHookFromConf("CBasePlayer::Event_Killed");
+	g_dhook_CTFWeaponBaseMelee_Smack = PSM_AddDynamicHookFromConf("CTFWeaponBaseMelee::Smack");
+	g_dhook_CTFWeaponBase_SecondaryAttack = PSM_AddDynamicHookFromConf("CTFWeaponBase::SecondaryAttack");
+	g_dhook_CBaseEntity_Deflected = PSM_AddDynamicHookFromConf("CBaseEntity::Deflected");
+	g_dhook_CBaseEntity_VPhysicsUpdate = PSM_AddDynamicHookFromConf("CBaseEntity::VPhysicsUpdate");
 }
 
 void DHooks_HookEntity(int entity, const char[] classname)
@@ -96,36 +61,36 @@ void DHooks_HookEntity(int entity, const char[] classname)
 	if (IsEntityClient(entity))
 	{
 		// Fixes on-death effects (e.g. ragdolls) showing spectator visuals
-		DHooks_HookEntityInternal(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, entity, DHookCallback_CTFPlayer_Event_Killed_Pre);
-		DHooks_HookEntityInternal(g_dhook_CBasePlayer_Event_Killed, Hook_Post, entity, DHookCallback_CTFPlayer_Event_Killed_Post);
+		PSM_DynamicHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, entity, DHookCallback_CTFPlayer_Event_Killed_Pre);
+		PSM_DynamicHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Post, entity, DHookCallback_CTFPlayer_Event_Killed_Post);
 	}
 	else if (!strncmp(classname, "tf_projectile_", 14))
 	{
 		// Fixes projectiles sometimes not colliding with teammates
-		DHooks_HookEntityInternal(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
+		PSM_DynamicHookEntity(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
 		
 		// Fixes reflected projectiles being in spectator team
-		DHooks_HookEntityInternal(g_dhook_CBaseEntity_Deflected, Hook_Pre, entity, DHookCallback_CBaseEntity_Deflected_Pre);
-		DHooks_HookEntityInternal(g_dhook_CBaseEntity_Deflected, Hook_Post, entity, DHookCallback_CBaseEntity_Deflected_Post);
+		PSM_DynamicHookEntity(g_dhook_CBaseEntity_Deflected, Hook_Pre, entity, DHookCallback_CBaseEntity_Deflected_Pre);
+		PSM_DynamicHookEntity(g_dhook_CBaseEntity_Deflected, Hook_Post, entity, DHookCallback_CBaseEntity_Deflected_Post);
 		
 		if (IsEntityBaseGrenadeProjectile(entity))
 		{
 			// Fixes grenades rarely bouncing off friendly objects
-			DHooks_HookEntityInternal(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre);
-			DHooks_HookEntityInternal(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
+			PSM_DynamicHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre);
+			PSM_DynamicHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
 		}
 		
 		if (!strncmp(classname, "tf_projectile_jar", 17))
 		{
 			// Fixes jars not applying effects to teammates when hitting the world
-			DHooks_HookEntityInternal(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
-			DHooks_HookEntityInternal(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
+			PSM_DynamicHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
+			PSM_DynamicHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
 		}
 		else if (StrEqual(classname, "tf_projectile_flare"))
 		{
 			// Fixes Scorch Shot knockback on teammates
-			DHooks_HookEntityInternal(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
-			DHooks_HookEntityInternal(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
+			PSM_DynamicHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
+			PSM_DynamicHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
 		}
 	}
 	else if (TF2Util_IsEntityWeapon(entity))
@@ -133,8 +98,8 @@ void DHooks_HookEntity(int entity, const char[] classname)
 		if (IsEntityBaseMelee(entity))
 		{
 			// Fixes wrenches not being able to upgrade friendly objects, as well as a few other melee weapons
-			DHooks_HookEntityInternal(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
-			DHooks_HookEntityInternal(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
+			PSM_DynamicHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
+			PSM_DynamicHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
 		}
 		else
 		{
@@ -142,98 +107,16 @@ void DHooks_HookEntity(int entity, const char[] classname)
 			if (weaponID == TF_WEAPON_SNIPERRIFLE || weaponID == TF_WEAPON_SNIPERRIFLE_DECAP || weaponID == TF_WEAPON_SNIPERRIFLE_CLASSIC)
 			{
 				// Fixes Sniper Rifles dealing no damage to teammates
-				DHooks_HookEntityInternal(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
+				PSM_DynamicHookEntity(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
 			}
 			else if (weaponID == TF_WEAPON_PIPEBOMBLAUNCHER)
 			{
 				// Fixes pipebomb launchers not being able to knock around friendly pipebombs
-				DHooks_HookEntityInternal(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
-				DHooks_HookEntityInternal(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
+				PSM_DynamicHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
+				PSM_DynamicHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
 			}
 		}
 	}
-}
-
-static void DHooks_AddDynamicDetour(GameData gamedata, const char[] name, DHookCallback callbackPre = INVALID_FUNCTION, DHookCallback callbackPost = INVALID_FUNCTION)
-{
-	DynamicDetour detour = DynamicDetour.FromConf(gamedata, name);
-	if (detour)
-	{
-		DetourData data;
-		strcopy(data.name, sizeof(data.name), name);
-		data.detour = detour;
-		data.callbackPre = callbackPre;
-		data.callbackPost = callbackPost;
-		
-		g_dynamicDetours.PushArray(data);
-	}
-	else
-	{
-		LogError("Failed to create detour setup handle: %s", name);
-	}
-}
-
-static DynamicHook DHooks_AddDynamicHook(GameData gamedata, const char[] name)
-{
-	DynamicHook hook = DynamicHook.FromConf(gamedata, name);
-	if (!hook)
-		LogError("Failed to create hook setup handle: %s", name);
-	
-	return hook;
-}
-
-static void DHooks_HookEntityInternal(DynamicHook hook, HookMode mode, int entity, DHookCallback callback)
-{
-	if (!hook)
-		return;
-	
-	int hookid = hook.HookEntity(mode, entity, callback, DHookRemovalCB_OnHookRemoved);
-	if (hookid != INVALID_HOOK_ID)
-		g_dynamicHookIds.Push(hookid);
-}
-
-static bool DHooks_ToggleDetourByName(const char[] name, bool enable)
-{
-	int index = g_dynamicDetours.FindString(name);
-	if (index == -1)
-	{
-		LogError("Failed to find detour: %s", name);
-		return false;
-	}
-	
-	DetourData data;
-	if (g_dynamicDetours.GetArray(index, data))
-	{
-		DHooks_ToggleDetour(data, enable);
-	}
-	
-	return true;
-}
-
-static void DHooks_ToggleDetour(DetourData data, bool enable)
-{
-	if (data.callbackPre != INVALID_FUNCTION)
-	{
-		if (enable)
-			data.detour.Enable(Hook_Pre, data.callbackPre);
-		else
-			data.detour.Disable(Hook_Pre, data.callbackPre);
-	}
-	
-	if (data.callbackPost != INVALID_FUNCTION)
-	{
-		if (enable)
-			data.detour.Enable(Hook_Post, data.callbackPost);
-		else
-			data.detour.Disable(Hook_Post, data.callbackPost);
-	}
-}
-
-static void DHookRemovalCB_OnHookRemoved(int hookid)
-{
-	int index = g_dynamicHookIds.FindValue(hookid);
-	if (index != -1)
-		g_dynamicHookIds.Erase(index);
 }
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookParam params)
@@ -415,6 +298,9 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
 	if (IsTruceActive())
+		return MRES_Ignored;
+	
+	if (g_disableInSameTeamDetour)
 		return MRES_Ignored;
 	
 	char classname[64];
@@ -644,7 +530,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medig
 	
 	// Temporarily remove our CBaseEntity::InSameTeam detour to allow healing teammates
 	if (sm_friendlyfire_medic_allow_healing.BoolValue)
-		DHooks_ToggleDetourByName("CBaseEntity::InSameTeam", false);
+		g_disableInSameTeamDetour = true;
 	
 	return MRES_Ignored;
 }
@@ -655,7 +541,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medi
 		return MRES_Ignored;
 	
 	if (sm_friendlyfire_medic_allow_healing.BoolValue)
-		DHooks_ToggleDetourByName("CBaseEntity::InSameTeam", true);
+		g_disableInSameTeamDetour = false;
 	
 	return MRES_Ignored;
 }
