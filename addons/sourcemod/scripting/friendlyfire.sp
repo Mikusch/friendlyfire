@@ -105,14 +105,14 @@ public void OnPluginStart()
 	PSM_Init("mp_friendlyfire", gamedata);
 	PSM_AddPluginStateChangedHook(OnPluginStateChanged);
 	
-	Entity.Initialize();
-	
 	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	CreateConVar("sm_friendlyfire_avoidteammates", "0", "Controls how teammates interact when colliding.\n  0: Teammates block each other\n  1: Teammates pass through each other, but push each other away", _, true, 0.0, true, 1.0);
 	sm_friendlyfire_medic_allow_healing = CreateConVar("sm_friendlyfire_medic_allow_healing", "0", "Whether Medics are allowed to heal teammates during friendly fire.", _, true, 0.0, true, 1.0);
 	
 	PSM_AddSyncedConVar("tf_avoidteammates", "sm_friendlyfire_avoidteammates");
 	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0");
+	
+	Entity.Init();
 	
 	DHooks_Init();
 	SDKHooks_Init();

@@ -211,7 +211,7 @@ methodmap Entity
 		return g_entityProperties.FindValue(ref, EntityProperties::ref) != -1;
 	}
 	
-	public static void Initialize()
+	public static void Init()
 	{
 		g_entityProperties = new ArrayList(sizeof(EntityProperties));
 	}
