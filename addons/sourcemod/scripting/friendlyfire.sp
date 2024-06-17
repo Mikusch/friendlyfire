@@ -139,7 +139,7 @@ public void OnConfigsExecuted()
 
 public void OnPluginEnd()
 {
-	PSM_Disable();
+	PSM_SetPluginState(false);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
