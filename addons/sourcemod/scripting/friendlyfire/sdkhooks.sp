@@ -49,7 +49,7 @@ void SDKHooks_Init()
 	g_hookParams_OnTakeDamage = new StringMap();
 }
 
-void SDKHooks_HookEntity(int entity, const char[] classname)
+void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))
 	{

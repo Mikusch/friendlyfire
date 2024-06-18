@@ -56,7 +56,7 @@ void DHooks_Init()
 	g_dhook_CBaseEntity_VPhysicsUpdate = PSM_AddDynamicHookFromConf("CBaseEntity::VPhysicsUpdate");
 }
 
-void DHooks_HookEntity(int entity, const char[] classname)
+void DHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))
 	{
@@ -528,8 +528,8 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medig
 	if (IsTruceActive())
 		return MRES_Ignored;
 	
-	// Temporarily remove our CBaseEntity::InSameTeam detour to allow healing teammates
-	if (sm_friendlyfire_medic_allow_healing.BoolValue)
+	// Temporarily disable our CBaseEntity::InSameTeam detour to allow healing teammates
+	if (FindConVar("sm_friendlyfire_medic_allow_healing").BoolValue)
 		g_disableInSameTeamDetour = true;
 	
 	return MRES_Ignored;
@@ -540,7 +540,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medi
 	if (IsTruceActive())
 		return MRES_Ignored;
 	
-	if (sm_friendlyfire_medic_allow_healing.BoolValue)
+	if (FindConVar("sm_friendlyfire_medic_allow_healing").BoolValue)
 		g_disableInSameTeamDetour = false;
 	
 	return MRES_Ignored;
