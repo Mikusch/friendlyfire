@@ -216,6 +216,9 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 	if (IsTruceActive())
 		return Plugin_Continue;
 	
+	if (victim == attacker)
+		return Plugin_Continue;
+	
 	// Attacker and victim are commonly modified by other plugins, store them off
 	g_hookParams_OnTakeDamage.SetValue("victim", victim);
 	g_hookParams_OnTakeDamage.SetValue("attacker", attacker);
@@ -236,6 +239,9 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	if (IsTruceActive())
+		return;
+	
+	if (victim == attacker)
 		return;
 	
 	g_hookParams_OnTakeDamage.GetValue("victim", victim);

@@ -26,7 +26,7 @@
 #include <tf2utils>
 #include <pluginstatemanager>
 
-#define PLUGIN_VERSION	"1.2.8"
+#define PLUGIN_VERSION	"1.2.9"
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
