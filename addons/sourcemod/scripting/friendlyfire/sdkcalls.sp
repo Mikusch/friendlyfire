@@ -27,7 +27,7 @@ static Handle g_sdkCall_CTeam_AddObject;
 static Handle g_sdkCall_CTeam_RemoveObject;
 static Handle g_sdkCall_CBaseEntity_ChangeTeam;
 
-void SDKCalls_Initialize(GameData gamedata)
+void SDKCalls_Init(GameData gamedata)
 {
 	g_sdkCall_CBaseEntity_GetNextThink = PrepSDKCall_CBaseEntity_GetNextThink(gamedata);
 	g_sdkCall_CTFSniperRifle_GetPenetrateType = PrepSDKCall_CTFSniperRifle_GetPenetrateType(gamedata);

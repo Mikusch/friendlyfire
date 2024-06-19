@@ -24,6 +24,7 @@
 #include <dhooks>
 #include <tf2_stocks>
 #include <tf2utils>
+#include <pluginstatemanager>
 
 #define PLUGIN_VERSION	"1.2.8"
 
@@ -74,14 +75,8 @@ enum
 	TF_NUM_PROJECTILES
 };
 
-ConVar mp_friendlyfire;
-ConVar sm_friendlyfire_medic_allow_healing;
-ConVar sm_friendlyfire_avoidteammates;
-
-bool g_isEnabled;
 bool g_isMapRunning;
 
-#include "friendlyfire/convars.sp"
 #include "friendlyfire/dhooks.sp"
 #include "friendlyfire/entity.sp"
 #include "friendlyfire/sdkcalls.sp"
@@ -101,22 +96,22 @@ public void OnPluginStart()
 {
 	RegPluginLibrary("friendlyfire");
 	
-	Entity.Initialize();
-	
-	ConVars_Initialize();
-	SDKHooks_Initialize();
-	
 	GameData gamedata = new GameData("friendlyfire");
-	if (gamedata)
-	{
-		DHooks_Initialize(gamedata);
-		SDKCalls_Initialize(gamedata);
-		delete gamedata;
-	}
-	else
-	{
+	if (!gamedata)
 		SetFailState("Could not find friendlyfire gamedata");
-	}
+	
+	PSM_Init("mp_friendlyfire", gamedata);
+	PSM_AddPluginStateChangedHook(OnPluginStateChanged);
+	
+	Entity.Init();
+	
+	ConVars_Init();
+	DHooks_Init();
+	SDKHooks_Init();
+	
+	SDKCalls_Init(gamedata);
+	
+	delete gamedata;
 }
 
 public void OnMapStart()
@@ -131,35 +126,29 @@ public void OnMapEnd()
 
 public void OnConfigsExecuted()
 {
-	if (g_isEnabled != mp_friendlyfire.BoolValue)
-	{
-		TogglePlugin(mp_friendlyfire.BoolValue);
-	}
+	PSM_TogglePluginState();
 }
 
 public void OnPluginEnd()
 {
-	if (!g_isEnabled)
-		return;
-	
-	TogglePlugin(false);
+	PSM_SetPluginState(false);
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	if (!g_isEnabled || !g_isMapRunning)
+	if (!PSM_IsEnabled() || !g_isMapRunning)
 		return;
 	
-	DHooks_HookEntity(entity, classname);
-	SDKHooks_HookEntity(entity, classname);
+	DHooks_OnEntityCreated(entity, classname);
+	SDKHooks_OnEntityCreated(entity, classname);
 }
 
 public void OnEntityDestroyed(int entity)
 {
-	if (!g_isEnabled)
+	if (!PSM_IsEnabled())
 		return;
 	
-	SDKHooks_UnhookEntity(entity);
+	PSM_SDKUnhook(entity);
 	
 	if (Entity.IsEntityTracked(entity))
 	{
@@ -180,20 +169,25 @@ public void OnEntityDestroyed(int entity)
 
 public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 {
-	if (!g_isEnabled)
+	if (!PSM_IsEnabled())
 		return Plugin_Continue;
 	
 	result = IsObjectFriendly(teleporter, client);
 	return Plugin_Handled;
 }
 
-void TogglePlugin(bool enable)
+static void ConVars_Init()
 {
-	g_isEnabled = enable;
+	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+	CreateConVar("sm_friendlyfire_avoidteammates", "0", "Controls how teammates interact when colliding.\n  0: Teammates block each other\n  1: Teammates pass through each other, but push each other away", _, true, 0.0, true, 1.0);
+	CreateConVar("sm_friendlyfire_medic_allow_healing", "0", "Whether Medics are allowed to heal teammates during friendly fire.", _, true, 0.0, true, 1.0);
 	
-	ConVars_Toggle(enable);
-	DHooks_Toggle(enable);
-	
+	PSM_AddSyncedConVar("tf_avoidteammates", "sm_friendlyfire_avoidteammates");
+	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0");
+}
+
+static void OnPluginStateChanged(bool enable)
+{
 	int entity = -1;
 	while ((entity = FindEntityByClassname(entity, "*")) != -1)
 	{
@@ -207,8 +201,6 @@ void TogglePlugin(bool enable)
 		}
 		else
 		{
-			SDKHooks_UnhookEntity(entity);
-			
 			if (Entity.IsEntityTracked(entity))
 				Entity(entity).Destroy();
 		}

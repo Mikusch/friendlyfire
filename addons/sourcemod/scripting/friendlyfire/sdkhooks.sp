@@ -18,13 +18,6 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-enum struct SDKHookData
-{
-	int ref;
-	SDKHookType type;
-	SDKHookCB callback;
-}
-
 enum PostThinkType
 {
 	PostThinkType_None,
@@ -48,37 +41,35 @@ int g_enemyItemIDs[] =
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
 
-static ArrayList g_hookData;
 static StringMap g_hookParams_OnTakeDamage;
 static PostThinkType g_postThinkType;
 
-void SDKHooks_Initialize()
+void SDKHooks_Init()
 {
-	g_hookData = new ArrayList(sizeof(SDKHookData));
 	g_hookParams_OnTakeDamage = new StringMap();
 }
 
-void SDKHooks_HookEntity(int entity, const char[] classname)
+void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))
 	{
 		// Fixes various weapons and items in friendly fire
-		SDKHooks_HookEntityInternal(entity, SDKHook_PreThink, SDKHookCB_Client_PreThink);
-		SDKHooks_HookEntityInternal(entity, SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
-		SDKHooks_HookEntityInternal(entity, SDKHook_PostThink, SDKHookCB_Client_PostThink);
-		SDKHooks_HookEntityInternal(entity, SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
-		SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
-		SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
+		PSM_SDKHook(entity, SDKHook_PreThink, SDKHookCB_Client_PreThink);
+		PSM_SDKHook(entity, SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
+		PSM_SDKHook(entity, SDKHook_PostThink, SDKHookCB_Client_PostThink);
+		PSM_SDKHook(entity, SDKHook_PostThinkPost, SDKHookCB_Client_PostThinkPost);
+		PSM_SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
+		PSM_SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
 		
 		// Makes cloaked spies fully invisible
-		SDKHooks_HookEntityInternal(entity, SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
+		PSM_SDKHook(entity, SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
 	}
 	else
 	{
 		if (!strncmp(classname, "obj_", 4))
 		{
 			// Makes objects solid to teammates
-			SDKHooks_HookEntityInternal(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+			PSM_SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 		}
 		
 		if (!strncmp(classname, "tf_projectile_", 14))
@@ -86,61 +77,34 @@ void SDKHooks_HookEntity(int entity, const char[] classname)
 			if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
 			{
 				// Fixes the cleaver and pipes dealing no damage to certain entities
-				SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
-				SDKHooks_HookEntityInternal(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
+				PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
+				PSM_SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 			}
 			else if (StrEqual(classname, "tf_projectile_pipe_remote"))
 			{
 				// Allows detonating teammate's pipebombs
-				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
-				SDKHooks_HookEntityInternal(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
+				PSM_SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
+				PSM_SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 			}
 		}
 		else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 		{
 			// Prevents Dispensers from healing teammates
-			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
-			SDKHooks_HookEntityInternal(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
+			PSM_SDKHook(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
+			PSM_SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 		}
 		else if (StrEqual(classname, "tf_flame_manager"))
 		{
 			// Fixes Flame Throwers dealing no damage to teammates
-			SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
-			SDKHooks_HookEntityInternal(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
+			PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
+			PSM_SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
 		}
 		else if (StrEqual(classname, "tf_gas_manager"))
 		{
 			// Prevents Gas Passer clouds from coating the thrower
-			SDKHooks_HookEntityInternal(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
+			PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
 		}
 	}
-}
-
-void SDKHooks_UnhookEntity(int entity)
-{
-	int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
-	
-	for (int i = g_hookData.Length - 1; i >= 0; i--)
-	{
-		SDKHookData data;
-		if (g_hookData.GetArray(i, data) && ref == data.ref)
-		{
-			SDKUnhook(data.ref, data.type, data.callback);
-			g_hookData.Erase(i);
-		}
-	}
-}
-
-static void SDKHooks_HookEntityInternal(int entity, SDKHookType type, SDKHookCB callback)
-{
-	SDKHookData data;
-	data.ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
-	data.type = type;
-	data.callback = callback;
-	
-	g_hookData.PushArray(data);
-	
-	SDKHook(entity, type, callback);
 }
 
 // CTFPlayerShared::OnPreDataChanged
