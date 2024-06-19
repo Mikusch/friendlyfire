@@ -26,7 +26,7 @@ jobs:
       - name: Download includes
         run: |
           wget -P ${{ env.SCRIPTS_PATH }}/addons/sourcemod/scripting/include https://raw.githubusercontent.com/nosoop/SM-TFUtils/master/scripting/include/tf2utils.inc
-          wget -P ${{ env.SCRIPTS_PATH }}/addons/sourcemod/scripting/include https://github.com/Mikusch/PluginStateManager/blob/master/addons/sourcemod/scripting/include/pluginstatemanager.inc
+          wget -P ${{ env.SCRIPTS_PATH }}/addons/sourcemod/scripting/include https://raw.githubusercontent.com/Mikusch/PluginStateManager/master/addons/sourcemod/scripting/include/pluginstatemanager.inc
 
       - name: Setup SourcePawn Compiler ${{ matrix.sm-version }}
         id: setup_sp
