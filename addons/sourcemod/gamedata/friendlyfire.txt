@@ -31,7 +31,7 @@
 			{
 				"library"	"server"
 				"linux" 	"@_ZN11CBaseEntity20PhysicsDispatchThinkEMS_FvvE"
-				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53"
+				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53\x57"
 			}
 			"CWeaponMedigun::AllowedToHealTarget"
 			{
