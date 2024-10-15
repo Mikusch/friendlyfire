@@ -549,6 +549,9 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medi
 
 static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Pre(Address shared, DHookParam params)
 {
+	if (params.IsNull(4))
+		return MRES_Ignored;
+	
 	int attacker = params.Get(4);
 	if (IsEntityClient(attacker))
 		Entity(attacker).ChangeToOriginalTeam();
@@ -558,6 +561,9 @@ static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Pre(Address shared, D
 
 static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Post(Address shared, DHookParam params)
 {
+	if (params.IsNull(4))
+		return MRES_Ignored;
+	
 	int attacker = params.Get(4);
 	if (IsEntityClient(attacker))
 		Entity(attacker).ResetTeam();
