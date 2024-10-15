@@ -45,6 +45,7 @@ void DHooks_Init()
 	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
 	PSM_AddDynamicDetourFromConf("CWeaponMedigun::AllowedToHealTarget", DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre, DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post);
+	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayerShared::StunPlayer", DHookCallback_CTFPlayerShared_StunPlayer_Pre, DHookCallback_CTFPlayerShared_StunPlayer_Post);
 	
 	g_dhook_CBaseProjectile_CanCollideWithTeammates = PSM_AddDynamicHookFromConf("CBaseProjectile::CanCollideWithTeammates");
@@ -98,6 +99,7 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	}
 	else if (TF2Util_IsEntityWeapon(entity))
 	{
+		// Fixes weapons able to deflect entities during truce
 		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Pre, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre);
 		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Post, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Post);
 		
@@ -543,6 +545,55 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medi
 {
 	if (FindConVar("sm_friendlyfire_medic_allow_healing").BoolValue)
 		g_disableInSameTeamDetour = false;
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre(int player, DHookParam params)
+{
+	if (params.IsNull(2))
+		return MRES_Ignored;
+	
+	int attacker = params.Get(2);
+	
+	// ApplyGenericPushbackImpulse checks the enemy team
+	Entity(attacker).ChangeToOriginalTeam();
+	TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(attacker));
+	
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (!IsClientInGame(client))
+			continue;
+		
+		if (client == attacker)
+			continue;
+		
+		Entity(client).SetTeam(enemyTeam);
+	}
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post(int player, DHookParam params)
+{
+	if (params.IsNull(2))
+		return MRES_Ignored;
+	
+	int attacker = params.Get(2);
+	
+	// DeflectProjectiles checks the enemy team of each entity in the box
+	Entity(attacker).ResetTeam();
+	
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (!IsClientInGame(client))
+			continue;
+		
+		if (client == attacker)
+			continue;
+		
+		Entity(client).ResetTeam();
+	}
 	
 	return MRES_Ignored;
 }

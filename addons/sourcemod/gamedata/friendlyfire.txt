@@ -45,6 +45,12 @@
 				"linux"		"@_ZNK11CBaseEntity10InSameTeamEPKS_"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0\x75\x2A"
 			}
+			"CTFPlayer::ApplyGenericPushbackImpulse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE0\x1A\x00\x00"
+			}
 			"CTFPlayerShared::StunPlayer"
 			{
 				"library"	"server"
@@ -313,6 +319,24 @@
 				"arguments"
 				{
 					"pEntity"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+			"CTFPlayer::ApplyGenericPushbackImpulse"
+			{
+				"signature"	"CTFPlayer::ApplyGenericPushbackImpulse"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"vecImpulse"
+					{
+						"type"	"vectorptr"
+					}
+					"pAttacker"
 					{
 						"type"	"cbaseentity"
 					}
