@@ -153,13 +153,10 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 		
 		for (int client = 1; client <= MaxClients; client++)
 		{
-			if (!IsClientInGame(client))
-				continue;
-			
-			if (client == owner)
-				continue;
-			
-			Entity(client).SetTeam(enemyTeam);
+			if (IsClientInGame(client) && client != owner)
+			{
+				Entity(client).SetTeam(enemyTeam);
+			}
 		}
 	}
 	
@@ -175,13 +172,10 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Post(int weapon
 		
 		for (int client = 1; client <= MaxClients; client++)
 		{
-			if (!IsClientInGame(client))
-				continue;
-			
-			if (client == owner)
-				continue;
-			
-			Entity(client).ResetTeam();
+			if (IsClientInGame(client) && client != owner)
+			{
+				Entity(client).ResetTeam();
+			}
 		}
 	}
 	
@@ -562,13 +556,10 @@ static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre(int pl
 	
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (!IsClientInGame(client))
-			continue;
-		
-		if (client == attacker)
-			continue;
-		
-		Entity(client).SetTeam(enemyTeam);
+		if (IsClientInGame(client) && client != attacker)
+		{
+			Entity(client).SetTeam(enemyTeam);
+		}
 	}
 	
 	return MRES_Ignored;
@@ -586,13 +577,10 @@ static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post(int p
 	
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (!IsClientInGame(client))
-			continue;
-		
-		if (client == attacker)
-			continue;
-		
-		Entity(client).ResetTeam();
+		if (IsClientInGame(client) && client != attacker)
+		{
+			Entity(client).ResetTeam();
+		}
 	}
 	
 	return MRES_Ignored;
