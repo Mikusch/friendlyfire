@@ -572,7 +572,6 @@ static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post(int p
 	
 	int attacker = params.Get(2);
 	
-	// DeflectProjectiles checks the enemy team of each entity in the box
 	Entity(attacker).ResetTeam();
 	
 	for (int client = 1; client <= MaxClients; client++)
