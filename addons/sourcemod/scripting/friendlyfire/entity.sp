@@ -125,14 +125,7 @@ methodmap Entity
 	// Creates a history entry regardless of whether we already are in our original team or not
 	public void ChangeToOriginalTeam()
 	{
-		if (this.TeamCount > 0)
-		{
-			this.SetTeam(this.GetTeamInternal(0));
-		}
-		else
-		{
-			this.SetTeam(TF2_GetEntityTeam(this.Ref));
-		}
+		this.SetTeam(this.GetOriginalTeam());
 	}
 	
 	public void ResetTeam()
@@ -150,6 +143,11 @@ methodmap Entity
 			// Ensure that every `SetTeam` call is paired with a `ResetTeam` call.
 			SetFailState("Array index out-of-bounds (index %d, limit %d)", index, sizeof(EntityProperties::teamHistory));
 		}
+	}
+	
+	public TFTeam GetOriginalTeam()
+	{
+		return this.TeamCount > 0 ? this.GetTeamInternal(0) : TF2_GetEntityTeam(this.Ref);
 	}
 	
 	public TFTeam GetTeamInternal(int index)
