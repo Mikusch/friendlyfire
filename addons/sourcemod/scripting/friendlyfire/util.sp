@@ -20,11 +20,6 @@
 
 static RoundState g_roundState;
 
-bool IsTruceActive()
-{
-	return GameRules_GetProp("m_bTruceActive") != 0;
-}
-
 TFTeam TF2_GetEntityTeam(int entity)
 {
 	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));

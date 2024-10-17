@@ -45,6 +45,18 @@
 				"linux"		"@_ZNK11CBaseEntity10InSameTeamEPKS_"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0\x75\x2A"
 			}
+			"CTFPlayer::ApplyGenericPushbackImpulse"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE0\x1A\x00\x00"
+			}
+			"CTFPlayerShared::StunPlayer"
+			{
+				"library"	"server"
+				"linux"		"@_ZN15CTFPlayerShared10StunPlayerEffiP9CTFPlayer"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x24\x57\x8B\xF9\x8B\x87\xDC\x04\x00\x00"
+			}
 			"GetGlobalTeam"
 			{
 				"library"	"server"
@@ -71,6 +83,12 @@
 				"library"	"server"
 				"linux"		"230"
 				"windows"	"229"
+			}
+			"CTFWeaponBase::DeflectProjectiles"
+			{
+				"library"	"server"
+				"linux"		"426"
+				"windows"	"419"
 			}
 			"CTFSniperRifle::GetCustomDamageType"
 			{
@@ -218,6 +236,13 @@
 				"return"	"bool"
 				"this"		"entity"
 			}
+			"CTFWeaponBase::DeflectProjectiles"
+			{
+				"offset"	"CTFWeaponBase::DeflectProjectiles"
+				"hooktype"	"entity"
+				"return"	"bool"
+				"this"		"entity"
+			}
 			"CTFSniperRifle::GetCustomDamageType"
 			{
 				"offset"	"CTFSniperRifle::GetCustomDamageType"
@@ -294,6 +319,50 @@
 				"arguments"
 				{
 					"pEntity"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+			"CTFPlayer::ApplyGenericPushbackImpulse"
+			{
+				"signature"	"CTFPlayer::ApplyGenericPushbackImpulse"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"vecImpulse"
+					{
+						"type"	"vectorptr"
+					}
+					"pAttacker"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+			"CTFPlayerShared::StunPlayer"
+			{
+				"signature"	"CTFPlayerShared::StunPlayer"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"address"
+				"arguments"
+				{
+					"flTime"
+					{
+						"type"	"float"
+					}
+					"flReductionAmount"
+					{
+						"type"	"float"
+					}
+					"iStunFlags"
+					{
+						"type"	"int"
+					}
+					"pAttacker"
 					{
 						"type"	"cbaseentity"
 					}

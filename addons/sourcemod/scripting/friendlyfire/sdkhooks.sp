@@ -110,9 +110,6 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThink(int client)
 {
-	if (IsTruceActive())
-		return;
-	
 	// Disable radius buffs like Buff Banner or King Rune
 	Entity(client).ChangeToSpectator();
 }
@@ -120,24 +117,18 @@ static void SDKHookCB_Client_PreThink(int client)
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThinkPost(int client)
 {
-	if (IsTruceActive())
-		return;
-	
 	Entity(client).ResetTeam();
 }
 
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThink(int client)
 {
-	if (IsTruceActive())
-		return;
-	
 	// CTFPlayer::DoTauntAttack
 	if (TF2_IsPlayerInCondition(client, TFCond_Taunting))
 	{
 		g_postThinkType = PostThinkType_Spectator;
 		
-		// Allows taunt kill work on both teams
+		// Allows taunt kills to work on both teams
 		Entity(client).ChangeToSpectator();
 		return;
 	}
@@ -184,9 +175,6 @@ static void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThinkPost(int client)
 {
-	if (IsTruceActive())
-		return;
-	
 	// Change everything back to how it was accordingly
 	switch (g_postThinkType)
 	{
@@ -212,9 +200,6 @@ static void SDKHookCB_Client_PostThinkPost(int client)
 
 static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (IsTruceActive())
-		return Plugin_Continue;
-	
 	if (victim == attacker)
 		return Plugin_Continue;
 	
@@ -237,9 +222,6 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 
 static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (IsTruceActive())
-		return;
-	
 	if (victim == attacker)
 		return;
 	
@@ -258,9 +240,6 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 
 static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
-	if (IsTruceActive())
-		return Plugin_Continue;
-	
 	// Don't transmit invisible spies to living players
 	if (entity == client || !IsPlayerAlive(client))
 		return Plugin_Continue;
@@ -273,9 +252,6 @@ static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 
 static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
-	if (IsTruceActive())
-		return Plugin_Continue;
-	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
 	{
 		Entity(other).ChangeToSpectator();
@@ -286,9 +262,6 @@ static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 
 static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
-	if (IsTruceActive())
-		return;
-	
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
 	{
 		Entity(other).ResetTeam();
@@ -297,9 +270,6 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
-	if (IsTruceActive())
-		return;
-	
 	// Enable collisions for both teams
 	SetVariantInt(SOLID_TO_PLAYER_YES);
 	AcceptEntityInput(entity, "SetSolidToPlayer");
@@ -307,9 +277,6 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 
 static Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
-	if (IsTruceActive())
-		return Plugin_Continue;
-	
 	if (other == 0)
 		return Plugin_Continue;
 	
@@ -325,9 +292,6 @@ static Action SDKHookCB_Projectile_Touch(int entity, int other)
 
 static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 {
-	if (IsTruceActive())
-		return;
-	
 	if (other == 0)
 		return;
 	
@@ -341,9 +305,6 @@ static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 
 static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (IsTruceActive())
-		return Plugin_Continue;
-	
 	if (attacker != -1)
 	{
 		// We might already be in spectate from another hook, do not allow damaging our own pipebombs
@@ -359,9 +320,6 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 
 static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (IsTruceActive())
-		return;
-	
 	if (attacker != -1)
 	{
 		if (FindParentOwnerEntity(victim) == attacker)
@@ -373,9 +331,6 @@ static void SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost(int victim, int atta
 
 static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 {
-	if (IsTruceActive())
-		return Plugin_Continue;
-	
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
@@ -388,9 +343,6 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 
 static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 {
-	if (IsTruceActive())
-		return;
-	
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
@@ -400,9 +352,6 @@ static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
 
 static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
-	if (IsTruceActive())
-		return Plugin_Continue;
-	
 	if (FindParentOwnerEntity(entity) == other)
 	{
 		// Do not coat ourselves in our own gas

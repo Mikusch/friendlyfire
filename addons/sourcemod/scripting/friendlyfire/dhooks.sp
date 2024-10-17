@@ -31,6 +31,7 @@ static DynamicHook g_dhook_CTFSniperRifle_GetCustomDamageType;
 static DynamicHook g_dhook_CBaseGrenade_Explode;
 static DynamicHook g_dhook_CTFBaseRocket_Explode;
 static DynamicHook g_dhook_CBasePlayer_Event_Killed;
+static DynamicHook g_dhook_CTFWeaponBase_DeflectProjectiles;
 static DynamicHook g_dhook_CTFWeaponBaseMelee_Smack;
 static DynamicHook g_dhook_CTFWeaponBase_SecondaryAttack;
 static DynamicHook g_dhook_CBaseEntity_Deflected;
@@ -44,12 +45,15 @@ void DHooks_Init()
 	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
 	PSM_AddDynamicDetourFromConf("CWeaponMedigun::AllowedToHealTarget", DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre, DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post);
+	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post);
+	PSM_AddDynamicDetourFromConf("CTFPlayerShared::StunPlayer", DHookCallback_CTFPlayerShared_StunPlayer_Pre, DHookCallback_CTFPlayerShared_StunPlayer_Post);
 	
 	g_dhook_CBaseProjectile_CanCollideWithTeammates = PSM_AddDynamicHookFromConf("CBaseProjectile::CanCollideWithTeammates");
 	g_dhook_CTFSniperRifle_GetCustomDamageType = PSM_AddDynamicHookFromConf("CTFSniperRifle::GetCustomDamageType");
 	g_dhook_CBaseGrenade_Explode = PSM_AddDynamicHookFromConf("CBaseGrenade::Explode");
 	g_dhook_CTFBaseRocket_Explode = PSM_AddDynamicHookFromConf("CTFBaseRocket::Explode");
 	g_dhook_CBasePlayer_Event_Killed = PSM_AddDynamicHookFromConf("CBasePlayer::Event_Killed");
+	g_dhook_CTFWeaponBase_DeflectProjectiles = PSM_AddDynamicHookFromConf("CTFWeaponBase::DeflectProjectiles");
 	g_dhook_CTFWeaponBaseMelee_Smack = PSM_AddDynamicHookFromConf("CTFWeaponBaseMelee::Smack");
 	g_dhook_CTFWeaponBase_SecondaryAttack = PSM_AddDynamicHookFromConf("CTFWeaponBase::SecondaryAttack");
 	g_dhook_CBaseEntity_Deflected = PSM_AddDynamicHookFromConf("CBaseEntity::Deflected");
@@ -95,6 +99,10 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	}
 	else if (TF2Util_IsEntityWeapon(entity))
 	{
+		// Fixes weapons able to deflect entities during truce
+		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Pre, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre);
+		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Post, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Post);
+		
 		if (IsEntityBaseMelee(entity))
 		{
 			// Fixes wrenches not being able to upgrade friendly objects, as well as a few other melee weapons
@@ -121,9 +129,6 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	// Switch back to the original team to force proper skin for ragdolls and other on-death effects
 	Entity(player).ChangeToOriginalTeam();
 	
@@ -132,19 +137,53 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookPara
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	Entity(player).ResetTeam();
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon, DHookReturn ret)
+{
+	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwner");
+	if (IsEntityClient(owner))
+	{
+		// DeflectProjectiles checks the enemy team of each entity in the box
+		Entity(owner).ChangeToOriginalTeam();
+		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(owner));
+		
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client) && client != owner)
+			{
+				Entity(client).SetTeam(enemyTeam);
+			}
+		}
+	}
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Post(int weapon, DHookReturn ret)
+{
+	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwner");
+	if (IsEntityClient(owner))
+	{
+		Entity(owner).ResetTeam();
+		
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client) && client != owner)
+			{
+				Entity(client).ResetTeam();
+			}
+		}
+	}
 	
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	if (thrower != -1)
 	{
@@ -157,9 +196,6 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookP
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	if (thrower != -1)
 	{
@@ -172,9 +208,6 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHook
 
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	if (!params.IsNull(2))
 		Entity(params.Get(2)).ChangeToSpectator();
 	
@@ -183,9 +216,6 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHoo
 
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	if (!params.IsNull(2))
 		Entity(params.Get(2)).ResetTeam();
 	
@@ -194,9 +224,6 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHo
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	// Always make projectiles collide with teammates
 	ret.Value = true;
 	
@@ -205,9 +232,6 @@ static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int
 
 static MRESReturn DHookCallback_CBaseEntity_Deflected_Pre(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	// Make projectiles have the original team of the deflector
 	if (!params.IsNull(1))
 		Entity(params.Get(1)).ChangeToOriginalTeam();
@@ -217,9 +241,6 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Pre(int entity, DHookParam
 
 static MRESReturn DHookCallback_CBaseEntity_Deflected_Post(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	if (!params.IsNull(1))
 		Entity(params.Get(1)).ResetTeam();
 	
@@ -228,9 +249,6 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Post(int entity, DHookPara
 
 static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
 	int penetrateType = SDKCall_CTFSniperRifle_GetPenetrateType(entity);
 	if (penetrateType == TF_CUSTOM_NONE)
@@ -244,9 +262,6 @@ static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int enti
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
@@ -271,9 +286,6 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
@@ -297,9 +309,6 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	if (g_disableInSameTeamDetour)
 		return MRES_Ignored;
 	
@@ -336,9 +345,6 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	char classname[64];
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
@@ -446,9 +452,6 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	switch (g_thinkFunction)
 	{
 		case ThinkFunction_SentryThink:
@@ -525,9 +528,6 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medigun, DHookReturn ret, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	// Temporarily disable our CBaseEntity::InSameTeam detour to allow healing teammates
 	if (FindConVar("sm_friendlyfire_medic_allow_healing").BoolValue)
 		g_disableInSameTeamDetour = true;
@@ -537,20 +537,80 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medig
 
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medigun, DHookReturn ret, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	if (FindConVar("sm_friendlyfire_medic_allow_healing").BoolValue)
 		g_disableInSameTeamDetour = false;
 	
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weapon)
+static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre(int player, DHookParam params)
 {
-	if (IsTruceActive())
+	if (params.IsNull(2))
 		return MRES_Ignored;
 	
+	int attacker = params.Get(2);
+	
+	// ApplyGenericPushbackImpulse checks the enemy team
+	Entity(attacker).ChangeToOriginalTeam();
+	TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(attacker));
+	
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && client != attacker)
+		{
+			Entity(client).SetTeam(enemyTeam);
+		}
+	}
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post(int player, DHookParam params)
+{
+	if (params.IsNull(2))
+		return MRES_Ignored;
+	
+	int attacker = params.Get(2);
+	
+	Entity(attacker).ResetTeam();
+	
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && client != attacker)
+		{
+			Entity(client).ResetTeam();
+		}
+	}
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Pre(Address shared, DHookParam params)
+{
+	if (params.IsNull(4))
+		return MRES_Ignored;
+	
+	int attacker = params.Get(4);
+	if (IsEntityClient(attacker))
+		Entity(attacker).ChangeToOriginalTeam();
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Post(Address shared, DHookParam params)
+{
+	if (params.IsNull(4))
+		return MRES_Ignored;
+	
+	int attacker = params.Get(4);
+	if (IsEntityClient(attacker))
+		Entity(attacker).ResetTeam();
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weapon)
+{
 	// Switch the weapon
 	Entity(weapon).ChangeToSpectator();
 	
@@ -577,9 +637,6 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weap
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int weapon)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	Entity(weapon).ResetTeam();
 	
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
@@ -603,9 +660,6 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int wea
 
 static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	TFTeam enemyTeam = GetEnemyTeam(TF2_GetEntityTeam(entity));
 	
@@ -633,9 +687,6 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 
 static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post(int entity, DHookParam params)
 {
-	if (IsTruceActive())
-		return MRES_Ignored;
-	
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	
 	for (int client = 1; client <= MaxClients; client++)
