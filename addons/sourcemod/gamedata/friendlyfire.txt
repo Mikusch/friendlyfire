@@ -23,12 +23,14 @@
 		{
 			"CBaseEntity::GetNextThink"
 			{
+				//string "firing in: %.2f sec", first call.
 				"library"	"server"
 				"linux" 	"@_ZN11CBaseEntity12GetNextThinkEPKc"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x56\x8B\xF1\x85\xC0\x75\x2A\x8B\x86\xD0\x00\x00\x00\x89\x45\x08"
 			}
 			"CBaseEntity::PhysicsDispatchThink"
 			{
+				//string 	"CBaseEntity::PhysicsDispatchThink"
 				"library"	"server"
 				"linux" 	"@_ZN11CBaseEntity20PhysicsDispatchThinkEMS_FvvE"
 				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53\x57"
@@ -37,40 +39,48 @@
 			{
 				"library"	"server"
 				"linux" 	"@_ZN14CWeaponMedigun19AllowedToHealTargetEP11CBaseEntity"
-				"windows"	"\x55\x8B\xEC\x53\x8B\xD9\x56\x57\x8B\x93\x10\x02\x00\x00\x85\xD2\x0F\x84\x2A\x2A\x2A\x2A\xB9\xFF\x1F\x00\x00\x83\xFA\xFF\x74\x2A\x0F\xB7\xCA\xA1\x2A\x2A\x2A\x2A\xC1\xE1\x04\x8D\x78\x04\x03\xF9\x0F\x84\x2A\x2A\x2A\x2A\xC1\xEA\x10\x39\x57\x04\x0F\x85\x2A\x2A\x2A\x2A\x8B\x3F\x85\xFF\x0F\x84\x2A\x2A\x2A\x2A\x8B\x07\x8B\xCF\x8B\x80\x48\x01\x00\x00\xFF\xD0\x84\xC0\x0F\x84\x2A\x2A\x2A\x2A\x8B\x75\x08\x85\xF6\x74\x2A"
+				"windows"	"\x55\x8B\xEC\x53\x8B\xD9\x56\x57\x8B\x93\x10\x02\x00\x00\x85\xD2\x0F\x84\x2A\x2A\x2A\x2A\xB9\xFF\x1F\x00\x00\x83\xFA\xFF\x74\x2A\x0F\xB7\xCA\xA1\x2A\x2A\x2A\x2A\xC1\xE1\x04\x8D\x78\x04\x03\xF9\x0F\x84\x2A\x2A\x2A\x2A\xC1\xEA\x10\x39\x57\x04\x0F\x85\x2A\x2A\x2A\x2A\x8B\x3F\x85\xFF\x0F\x84\x2A\x2A\x2A\x2A\x8B\x07\x8B\xCF\x8B\x80\x4C\x01\x00\x00\xFF\xD0\x84\xC0\x0F\x84\x2A\x2A\x2A\x2A\x8B\x75\x08\x85\xF6\x74\x2A"
 			}
 			"CBaseEntity::InSameTeam"
 			{
+				//string "lowV_debrischunks", long single block, go down a few blocks, first call
 				"library"	"server"
 				"linux"		"@_ZNK11CBaseEntity10InSameTeamEPKS_"
-				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0\x75\x2A"
+				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0"
 			}
 			"CTFPlayer::ApplyGenericPushbackImpulse"
 			{
+				//string "airblast_vertical_vulnerability_multipl" with 4 calls, 
 				"library"	"server"
 				"linux"		"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE0\x1A\x00\x00"
 			}
 			"CTFPlayerShared::StunPlayer"
 			{
+				//string "player_stunned"
 				"library"	"server"
 				"linux"		"@_ZN15CTFPlayerShared10StunPlayerEffiP9CTFPlayer"
-				"windows"	"\x55\x8B\xEC\x83\xEC\x24\x57\x8B\xF9\x8B\x87\xDC\x04\x00\x00"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x24\x57\x8B\xF9\x8B\x87\xE0\x04\x00\x00"
 			}
 			"GetGlobalTeam"
 			{
+				//string "CSquadSpawner: %3.2f: <<<< Spawning Sq" with a dev message, 1 block down
 				"library"	"server"
 				"linux"		"@_Z13GetGlobalTeami"
 				"windows"	"\x55\x8B\xEC\x8B\x4D\x08\x85\xC9\x78\x2A\x3B\x0D\x2A\x2A\x2A\x2A\x7D\x2A\xA1\x2A\x2A\x2A\x2A\x8B\x04\x88\x5D\xC3"
 			}
 			"CTFTeam::AddObject"
 			{
+				//string "player_dropobject" with only 1 more call in the block,
+				//go up around 6 blocks, very small block, 1 call, it only is connected to 2 functions
 				"library"	"server"
 				"linux"		"@_ZN7CTFTeam9AddObjectEP11CBaseObject"
-				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x8B\x4D\x08\x85\xC9\x74\x2A\x8B\x01\xFF\x50\x08\x8B\x00\xEB\x2A\x83\xC8\xFF\x89\x45\x08\x8D\x8E\xE4\x03\x00\x00"
+				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x08\x57\x8B\xF9\x85\xF6\x74\x2A\x8B\x06\x8B\xCE\xFF\x50\x08\x8B\x00\xEB\x2A\x83\xC8\xFF\x8D\x4D\x08"
 			}
 			"CTFTeam::RemoveObject"
 			{
+				//string "Weapon_Sapper.Timer" with 2 more strongs, very bottom block
+				//That function, 2nd to last block, 2nd function (block has 2 functions)
 				"library"	"server"
 				"linux"		"@_ZN7CTFTeam12RemoveObjectEP11CBaseObject"
 				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x83\xBE\xF0\x03\x00\x00\x00"
@@ -81,56 +91,56 @@
 			"CBaseProjectile::CanCollideWithTeammates"
 			{
 				"library"	"server"
-				"linux"		"230"
-				"windows"	"229"
+				"linux"		"231"
+				"windows"	"230"
 			}
 			"CTFWeaponBase::DeflectProjectiles"
 			{
 				"library"	"server"
-				"linux"		"426"
-				"windows"	"419"
+				"linux"		"429"
+				"windows"	"422"
 			}
 			"CTFSniperRifle::GetCustomDamageType"
 			{
 				"library"	"server"
-				"linux"		"387"
-				"windows"	"381"
+				"linux"		"389"
+				"windows"	"383"
 			}
 			"CTFSniperRifle::GetPenetrateType"
 			{
 				"library"	"server"
-				"linux"		"407"
-				"windows"	"400"
+				"linux"		"410"
+				"windows"	"403"
 			}
 			"CBaseGrenade::Explode"
 			{
 				"library"	"server"
-				"linux"		"236"
-				"windows"	"235"
+				"linux"		"237"
+				"windows"	"236"
 			}
 			"CTFBaseRocket::Explode"
 			{
 				"library"	"server"
-				"linux"		"240"
-				"windows"	"239"
+				"linux"		"241"
+				"windows"	"240"
 			}
 			"CTeam::AddPlayer"
-			{
-				"library"	"server"
-				"linux"		"209"
-				"windows"	"208"
-			}
-			"CTeam::RemovePlayer"
 			{
 				"library"	"server"
 				"linux"		"210"
 				"windows"	"209"
 			}
+			"CTeam::RemovePlayer"
+			{
+				"library"	"server"
+				"linux"		"211"
+				"windows"	"210"
+			}
 			"CBaseEntity::ChangeTeam"
 			{
 				"library"	"server"
-				"linux"		"97"
-				"windows"	"96"
+				"linux"		"98"
+				"windows"	"97"
 			}
 			"CBasePlayer::Event_Killed"
 			{
@@ -141,26 +151,26 @@
 			"CTFWeaponBaseMelee::Smack"
 			{
 				"library"	"server"
-				"linux"		"477"
-				"windows"	"470"
+				"linux"		"480"
+				"windows"	"473"
 			}
 			"CTFWeaponBase::SecondaryAttack"
 			{
 				"library"	"server"
-				"linux"		"293"
-				"windows"	"287"
+				"linux"		"294"
+				"windows"	"288"
 			}
 			"CBaseEntity::Deflected"
 			{
 				"library"	"server"
-				"linux"		"160"
-				"windows"	"159"
+				"linux"		"161"
+				"windows"	"160"
 			}
 			"CBaseEntity::VPhysicsUpdate"
 			{
 				"library"	"server"
-				"linux"		"164"
-				"windows"	"163"
+				"linux"		"165"
+				"windows"	"164"
 			}
 		}
 		"Functions"
