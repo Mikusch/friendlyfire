@@ -23,14 +23,14 @@
 		{
 			"CBaseEntity::GetNextThink"
 			{
-				//string "firing in: %.2f sec", first call.
+				// string: "firing in: %.2f sec", first call
 				"library"	"server"
 				"linux" 	"@_ZN11CBaseEntity12GetNextThinkEPKc"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x56\x8B\xF1\x85\xC0\x75\x2A\x8B\x86\xD0\x00\x00\x00\x89\x45\x08"
 			}
 			"CBaseEntity::PhysicsDispatchThink"
 			{
-				//string 	"CBaseEntity::PhysicsDispatchThink"
+				// string: "CBaseEntity::PhysicsDispatchThink"
 				"library"	"server"
 				"linux" 	"@_ZN11CBaseEntity20PhysicsDispatchThinkEMS_FvvE"
 				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53\x57"
@@ -43,44 +43,44 @@
 			}
 			"CBaseEntity::InSameTeam"
 			{
-				//string "lowV_debrischunks", long single block, go down a few blocks, first call
+				// string: "lowV_debrischunks", long single block, go down a few blocks, first call
 				"library"	"server"
 				"linux"		"@_ZNK11CBaseEntity10InSameTeamEPKS_"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0"
 			}
 			"CTFPlayer::ApplyGenericPushbackImpulse"
 			{
-				//string "airblast_vertical_vulnerability_multipl" with 4 calls, 
+				// string: "airblast_vertical_vulnerability_multiplier" with 4 calls
 				"library"	"server"
 				"linux"		"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE0\x1A\x00\x00"
 			}
 			"CTFPlayerShared::StunPlayer"
 			{
-				//string "player_stunned"
+				// string: "player_stunned"
 				"library"	"server"
 				"linux"		"@_ZN15CTFPlayerShared10StunPlayerEffiP9CTFPlayer"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x24\x57\x8B\xF9\x8B\x87\xE0\x04\x00\x00"
 			}
 			"GetGlobalTeam"
 			{
-				//string "CSquadSpawner: %3.2f: <<<< Spawning Sq" with a dev message, 1 block down
+				// string: "CSquadSpawner: %3.2f: <<<< Spawning Squad >>>>" with a dev message, 1 block down
 				"library"	"server"
 				"linux"		"@_Z13GetGlobalTeami"
 				"windows"	"\x55\x8B\xEC\x8B\x4D\x08\x85\xC9\x78\x2A\x3B\x0D\x2A\x2A\x2A\x2A\x7D\x2A\xA1\x2A\x2A\x2A\x2A\x8B\x04\x88\x5D\xC3"
 			}
 			"CTFTeam::AddObject"
 			{
-				//string "player_dropobject" with only 1 more call in the block,
-				//go up around 6 blocks, very small block, 1 call, it only is connected to 2 functions
+				// string: "player_dropobject" with only 1 more call in the block,
+				// Go up around 6 blocks, very small block, 1 call, it only is connected to 2 functions
 				"library"	"server"
 				"linux"		"@_ZN7CTFTeam9AddObjectEP11CBaseObject"
 				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x08\x57\x8B\xF9\x85\xF6\x74\x2A\x8B\x06\x8B\xCE\xFF\x50\x08\x8B\x00\xEB\x2A\x83\xC8\xFF\x8D\x4D\x08"
 			}
 			"CTFTeam::RemoveObject"
 			{
-				//string "Weapon_Sapper.Timer" with 2 more strongs, very bottom block
-				//That function, 2nd to last block, 2nd function (block has 2 functions)
+				// string: "Weapon_Sapper.Timer" with 2 more strings under it, very bottom block
+				// Follow the xref, 2nd to last block, follow xref to 2nd function (block has 2 calls)
 				"library"	"server"
 				"linux"		"@_ZN7CTFTeam12RemoveObjectEP11CBaseObject"
 				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x83\xBE\xF0\x03\x00\x00\x00"
