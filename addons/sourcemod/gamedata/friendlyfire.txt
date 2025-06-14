@@ -50,10 +50,10 @@
 			}
 			"CTFPlayer::ApplyGenericPushbackImpulse"
 			{
-				// string: "airblast_vertical_vulnerability_multiplier" with 4 calls
+				// string: "airblast_vulnerability_multiplier" and "airblast_vertical_vulnerability_multiplier", no others
 				"library"	"server"
 				"linux"		"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
-				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE0\x1A\x00\x00"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE8\x1A\x00\x00"
 			}
 			"CTFPlayerShared::StunPlayer"
 			{
