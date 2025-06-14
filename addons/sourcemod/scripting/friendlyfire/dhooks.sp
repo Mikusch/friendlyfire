@@ -529,7 +529,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medigun, DHookReturn ret, DHookParam params)
 {
 	// Temporarily disable our CBaseEntity::InSameTeam detour to allow healing teammates
-	if (FindConVar("sm_friendlyfire_medic_allow_healing").BoolValue)
+	if (sm_friendlyfire_medic_allow_healing.BoolValue)
 		g_disableInSameTeamDetour = true;
 	
 	return MRES_Ignored;
@@ -537,7 +537,7 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre(int medig
 
 static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medigun, DHookReturn ret, DHookParam params)
 {
-	if (FindConVar("sm_friendlyfire_medic_allow_healing").BoolValue)
+	if (sm_friendlyfire_medic_allow_healing.BoolValue)
 		g_disableInSameTeamDetour = false;
 	
 	return MRES_Ignored;
