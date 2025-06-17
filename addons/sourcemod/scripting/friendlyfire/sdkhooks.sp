@@ -165,7 +165,6 @@ static void SDKHookCB_Client_PostThink(int client)
 			{
 				g_postThinkType = PostThinkType_Spectator;
 				
-				SetActiveRound();
 				Entity(client).ChangeToSpectator();
 			}
 		}
@@ -181,7 +180,6 @@ static void SDKHookCB_Client_PostThinkPost(int client)
 		case PostThinkType_Spectator:
 		{
 			Entity(client).ResetTeam();
-			ResetActiveRound();
 		}
 		case PostThinkType_EnemyTeam:
 		{

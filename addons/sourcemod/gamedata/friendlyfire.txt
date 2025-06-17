@@ -55,6 +55,13 @@
 				"linux"		"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE8\x1A\x00\x00"
 			}
+			"CTFPlayer::CanAttack"
+			{
+				// string: "no_attack"
+				"library"	"server"
+				"linux"		"@_ZN9CTFPlayer9CanAttackEi"
+				"windows"	"\x55\x8B\xEC\x53\x56\x8B\x35\x2A\x2A\x2A\x2A\x57\x8B\xF9\x80\xBF\xC0\x25\x00\x00\x00"
+			}
 			"CTFPlayerShared::StunPlayer"
 			{
 				// string: "player_stunned"
@@ -349,6 +356,20 @@
 					"pAttacker"
 					{
 						"type"	"cbaseentity"
+					}
+				}
+			}
+			"CTFPlayer::CanAttack"
+			{
+				"signature"	"CTFPlayer::CanAttack"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"entity"
+				"arguments"
+				{
+					"iCanAttackFlags"
+					{
+						"type"	"int"
 					}
 				}
 			}
