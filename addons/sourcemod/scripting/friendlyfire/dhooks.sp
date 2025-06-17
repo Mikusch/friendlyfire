@@ -46,6 +46,7 @@ void DHooks_Init()
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
 	PSM_AddDynamicDetourFromConf("CWeaponMedigun::AllowedToHealTarget", DHookCallback_CWeaponMedigun_AllowedToHealTarget_Pre, DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post);
+	PSM_AddDynamicDetourFromConf("CTFPlayer::CanAttack", DHookCallback_CTFPlayer_CanAttack_Pre, DHookCallback_CTFPlayer_CanAttack_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayerShared::StunPlayer", DHookCallback_CTFPlayerShared_StunPlayer_Pre, DHookCallback_CTFPlayerShared_StunPlayer_Post);
 	
 	g_dhook_CBaseProjectile_CanCollideWithTeammates = PSM_AddDynamicHookFromConf("CBaseProjectile::CanCollideWithTeammates");
@@ -585,6 +586,21 @@ static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post(int p
 	return MRES_Ignored;
 }
 
+static MRESReturn DHookCallback_CTFPlayer_CanAttack_Pre(int player, DHookReturn ret, DHookParam params)
+{
+	// Fixes the winning team not being able to use certain weapon
+	Entity(player).ChangeToOriginalTeam();
+	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFPlayer_CanAttack_Post(int player, DHookReturn ret, DHookParam params)
+{
+	Entity(player).ResetTeam();
+	
+	return MRES_Ignored;
+}
+
 static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Pre(Address shared, DHookParam params)
 {
 	if (params.IsNull(4))
@@ -618,7 +634,6 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weap
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
-		SetActiveRound();
 		Entity(owner).ChangeToSpectator();
 	}
 	
@@ -642,7 +657,6 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int wea
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
-		ResetActiveRound();
 		Entity(owner).ResetTeam();
 	}
 	
