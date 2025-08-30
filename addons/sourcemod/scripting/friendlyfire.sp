@@ -26,7 +26,7 @@
 #include <tf2utils>
 #include <pluginstatemanager>
 
-#define PLUGIN_VERSION	"1.3.2"
+#define PLUGIN_VERSION	"1.4.0"
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
@@ -77,6 +77,8 @@ enum
 
 bool g_isMapRunning;
 
+ConVar mp_friendlyfire;
+
 ConVar sm_friendlyfire_medic_allow_healing;
 
 #include "friendlyfire/dhooks.sp"
@@ -102,8 +104,9 @@ public void OnPluginStart()
 	if (!gamedata)
 		SetFailState("Could not find friendlyfire gamedata");
 	
-	PSM_Init("mp_friendlyfire", gamedata);
+	PSM_Init("sm_friendlyfire", gamedata);
 	PSM_AddPluginStateChangedHook(OnPluginStateChanged);
+	PSM_AddShouldEnableCallback(ShouldEnable);
 	
 	Entity.Init();
 	
@@ -180,12 +183,16 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 
 static void ConVars_Init()
 {
+	CreateConVar("sm_friendlyfire", "1", "Enable the plugin?");
 	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	CreateConVar("sm_friendlyfire_avoidteammates", "0", "Controls how teammates interact when colliding.\n  0: Teammates block each other\n  1: Teammates pass through each other, but push each other away", _, true, 0.0, true, 1.0);
 	sm_friendlyfire_medic_allow_healing = CreateConVar("sm_friendlyfire_medic_allow_healing", "0", "Whether Medics are allowed to heal teammates during friendly fire.", _, true, 0.0, true, 1.0);
 	
 	PSM_AddSyncedConVar("tf_avoidteammates", "sm_friendlyfire_avoidteammates");
 	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0");
+
+	mp_friendlyfire = FindConVar("mp_friendlyfire");
+	mp_friendlyfire.AddChangeHook(OnFriendlyFireChanged);
 }
 
 static void OnPluginStateChanged(bool enable)
@@ -207,4 +214,14 @@ static void OnPluginStateChanged(bool enable)
 				Entity(entity).Destroy();
 		}
 	}
+}
+
+static bool ShouldEnable()
+{
+	return mp_friendlyfire.BoolValue;
+}
+
+static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	PSM_TogglePluginState();
 }
