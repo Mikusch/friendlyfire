@@ -45,7 +45,7 @@ methodmap Entity
 			return view_as<Entity>(INVALID_ENT_REFERENCE);
 		}
 		
-		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
+		int ref = IsEntNetworkable(entity) ? EntIndexToEntRef(entity) : entity;
 		
 		if (!Entity.IsReferenceTracked(ref))
 		{
@@ -200,7 +200,7 @@ methodmap Entity
 	
 	public static bool IsEntityTracked(int entity)
 	{
-		int ref = IsValidEdict(entity) ? EntIndexToEntRef(entity) : entity;
+		int ref = IsEntNetworkable(entity) ? EntIndexToEntRef(entity) : entity;
 		return Entity.IsReferenceTracked(ref);
 	}
 	
