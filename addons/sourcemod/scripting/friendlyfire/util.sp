@@ -125,3 +125,12 @@ bool IsEntityBaseGrenadeProjectile(int entity)
 {
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
 }
+
+int GameConfGetOffsetOrElseThrow(GameData gamedata, const char[] key)
+{
+	int offset = gamedata.GetOffset(key);
+	if (offset == -1)
+		SetFailState("Failed to get offset: %s", key);
+
+	return offset;
+}

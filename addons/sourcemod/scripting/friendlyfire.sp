@@ -81,6 +81,8 @@ ConVar mp_friendlyfire;
 
 ConVar sm_friendlyfire_medic_allow_healing;
 
+int g_offset_CTakeDamageInfo_m_hAttacker;
+
 #include "friendlyfire/dhooks.sp"
 #include "friendlyfire/entity.sp"
 #include "friendlyfire/sdkcalls.sp"
@@ -103,7 +105,9 @@ public void OnPluginStart()
 	GameData gamedata = new GameData("friendlyfire");
 	if (!gamedata)
 		SetFailState("Could not find friendlyfire gamedata");
-	
+
+	g_offset_CTakeDamageInfo_m_hAttacker = GameConfGetOffsetOrElseThrow(gamedata, "CTakeDamageInfo::m_hAttacker");
+
 	PSM_Init("sm_friendlyfire", gamedata);
 	PSM_AddPluginStateChangedHook(OnPluginStateChanged);
 	PSM_AddShouldEnableCallback(ShouldEnable);

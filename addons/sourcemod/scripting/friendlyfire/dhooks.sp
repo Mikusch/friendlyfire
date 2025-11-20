@@ -132,14 +132,26 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookPara
 {
 	// Switch back to the original team to force proper skin for ragdolls and other on-death effects
 	Entity(player).ChangeToOriginalTeam();
-	
+
+	int attacker = params.GetObjectVar(1, g_offset_CTakeDamageInfo_m_hAttacker, ObjectValueType_Ehandle);
+	if (IsEntityClient(attacker) && attacker != player)
+	{
+		Entity(attacker).ChangeToOriginalTeam();
+	}
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookParam params)
 {
 	Entity(player).ResetTeam();
-	
+
+	int attacker = params.GetObjectVar(1, g_offset_CTakeDamageInfo_m_hAttacker, ObjectValueType_Ehandle);
+	if (IsEntityClient(attacker) && attacker != player)
+	{
+		Entity(attacker).ResetTeam();
+	}
+
 	return MRES_Ignored;
 }
 
