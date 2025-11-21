@@ -157,6 +157,9 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookPar
 
 static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon, DHookReturn ret)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return MRES_Ignored;
+
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwner");
 	if (IsEntityClient(owner))
 	{
@@ -237,9 +240,12 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHo
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return MRES_Ignored;
+
 	// Always make projectiles collide with teammates
 	ret.Value = true;
-	
+
 	return MRES_Supercede;
 }
 
@@ -288,7 +294,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 			{
 				if (!IsObjectFriendly(obj, owner))
 					continue;
-				
+
 				Entity(obj).ChangeToSpectator();
 			}
 		}
@@ -311,7 +317,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 			{
 				if (!IsObjectFriendly(obj, owner))
 					continue;
-				
+
 				Entity(obj).ResetTeam();
 			}
 		}
@@ -323,6 +329,9 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
 	if (g_disableInSameTeamDetour)
+		return MRES_Ignored;
+
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
 		return MRES_Ignored;
 	
 	char classname[64];
@@ -367,7 +376,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		// CObjectSentrygun::SentryThink
 		if (SDKCall_CBaseEntity_GetNextThink(entity, "SentryThink") != TICK_NEVER_THINK)
 			return MRES_Ignored;
-		
+
 		g_thinkFunction = ThinkFunction_SentryThink;
 		
 		TFTeam myTeam = TF2_GetEntityTeam(entity);
@@ -430,7 +439,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		// CObjectDispenser::DispenseThink
 		if (SDKCall_CBaseEntity_GetNextThink(entity, "DispenseThink") != TICK_NEVER_THINK)
 			return MRES_Ignored;
-		
+
 		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
 		{
 			g_thinkFunction = ThinkFunction_DispenseThink;
@@ -558,9 +567,12 @@ static MRESReturn DHookCallback_CWeaponMedigun_AllowedToHealTarget_Post(int medi
 
 static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre(int player, DHookParam params)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return MRES_Ignored;
+
 	if (params.IsNull(2))
 		return MRES_Ignored;
-	
+
 	int attacker = params.Get(2);
 	
 	// ApplyGenericPushbackImpulse checks the enemy team
@@ -639,6 +651,9 @@ static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Post(Address shared, 
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weapon)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return MRES_Ignored;
+
 	// Switch the weapon
 	Entity(weapon).ChangeToSpectator();
 	

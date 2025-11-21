@@ -88,6 +88,9 @@ bool IsObjectFriendly(int obj, int entity)
 	{
 		if (IsEntityClient(entity))
 		{
+			if (!sm_friendlyfire_teammates_are_enemies.BoolValue && TF2_GetEntityTeam(obj) == TF2_GetClientTeam(entity))
+				return true;
+
 			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == GetEntPropEnt(entity, Prop_Send, "m_hDisguiseTarget"))
 				return true;
 			else if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == entity)	// obj_dispenser
@@ -97,11 +100,14 @@ bool IsObjectFriendly(int obj, int entity)
 		}
 		else if (HasEntProp(entity, Prop_Send, "m_hBuilder"))
 		{
+			if (!sm_friendlyfire_teammates_are_enemies.BoolValue && TF2_GetEntityTeam(obj) == TF2_GetEntityTeam(entity))
+				return true;
+
 			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == GetEntPropEnt(entity, Prop_Send, "m_hBuilder"))
 				return true;
 		}
 	}
-	
+
 	return false;
 }
 

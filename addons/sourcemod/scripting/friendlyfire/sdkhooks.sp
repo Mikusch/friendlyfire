@@ -25,17 +25,21 @@ enum PostThinkType
 	PostThinkType_EnemyTeam,
 }
 
-int g_spectatorItemIDs[] =
+static int g_spectatorItemIDs[] =
+{
+	TF_WEAPON_SNIPERRIFLE,		// CTFPlayer::FireBullet
+	TF_WEAPON_KNIFE,			// CTFKnife::BackstabVMThink
+};
+
+static int g_teammateSpectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,		// CTFPlayerShared::PulseRageBuff
 	TF_WEAPON_FLAMETHROWER,		// CTFFlameThrower::SecondaryAttack
 	TF_WEAPON_FLAME_BALL,		// CWeaponFlameBall::SecondaryAttack
-	TF_WEAPON_SNIPERRIFLE,		// CTFPlayer::FireBullet
-	TF_WEAPON_KNIFE,			// CTFKnife::BackstabVMThink
 	TF_WEAPON_RAYGUN_REVENGE,	// CTFFlareGun_Revenge::ExtinguishPlayerInternal
 };
 
-int g_enemyItemIDs[] =
+static int g_enemyItemIDs[] =
 {
 	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,	// CTFPistol_ScoutPrimary::Push
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
@@ -110,6 +114,20 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 // CTFPlayerShared::OnPreDataChanged
 static void SDKHookCB_Client_PreThink(int client)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+	{
+		int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+		if (activeWeapon != -1)
+		{
+			int weaponID = TF2Util_GetWeaponID(activeWeapon);
+			for (int i = 0; i < sizeof(g_teammateSpectatorItemIDs); i++)
+			{
+				if (weaponID == g_teammateSpectatorItemIDs[i])
+					return;
+			}
+		}
+	}
+
 	// Disable radius buffs like Buff Banner or King Rune
 	Entity(client).ChangeToSpectator();
 }
@@ -138,34 +156,52 @@ static void SDKHookCB_Client_PostThink(int client)
 		return;
 	
 	// For functions that use GetEnemyTeam(), move everyone else to the enemy team
-	for (int i = 0; i < sizeof(g_enemyItemIDs); i++)
+	if (sm_friendlyfire_teammates_are_enemies.BoolValue)
 	{
-		if (TF2Util_GetWeaponID(activeWeapon) == g_enemyItemIDs[i])
+		for (int i = 0; i < sizeof(g_enemyItemIDs); i++)
 		{
-			g_postThinkType = PostThinkType_EnemyTeam;
-			
-			TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
-			
-			for (int other = 1; other <= MaxClients; other++)
+			if (TF2Util_GetWeaponID(activeWeapon) == g_enemyItemIDs[i])
 			{
-				if (IsClientInGame(other) && other != client)
+				g_postThinkType = PostThinkType_EnemyTeam;
+
+				TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
+
+				for (int other = 1; other <= MaxClients; other++)
 				{
-					Entity(other).SetTeam(enemyTeam);
+					if (IsClientInGame(other) && other != client)
+					{
+						Entity(other).SetTeam(enemyTeam);
+					}
 				}
 			}
 		}
 	}
-	
+
 	// For functions that do simple GetTeamNumber() checks, move ourselves to spectator team
 	if (GameRules_GetRoundState() != RoundState_TeamWin || GetClientTeam(client) == GameRules_GetProp("m_iWinningTeam"))
 	{
+		int weaponID = TF2Util_GetWeaponID(activeWeapon);
+
 		for (int i = 0; i < sizeof(g_spectatorItemIDs); i++)
 		{
-			if (TF2Util_GetWeaponID(activeWeapon) == g_spectatorItemIDs[i])
+			if (weaponID == g_spectatorItemIDs[i])
 			{
 				g_postThinkType = PostThinkType_Spectator;
-				
 				Entity(client).ChangeToSpectator();
+				return;
+			}
+		}
+
+		if (sm_friendlyfire_teammates_are_enemies.BoolValue)
+		{
+			for (int i = 0; i < sizeof(g_teammateSpectatorItemIDs); i++)
+			{
+				if (weaponID == g_teammateSpectatorItemIDs[i])
+				{
+					g_postThinkType = PostThinkType_Spectator;
+					Entity(client).ChangeToSpectator();
+					return;
+				}
 			}
 		}
 	}
@@ -238,13 +274,16 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 
 static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return Plugin_Continue;
+
 	// Don't transmit invisible spies to living players
 	if (entity == client || !IsPlayerAlive(client))
 		return Plugin_Continue;
-	
+
 	if (GetPercentInvisible(entity) >= 1.0)
 		return Plugin_Handled;
-	
+
 	return Plugin_Continue;
 }
 
@@ -268,6 +307,9 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return;
+
 	// Enable collisions for both teams
 	SetVariantInt(SOLID_TO_PLAYER_YES);
 	AcceptEntityInput(entity, "SetSolidToPlayer");
@@ -303,16 +345,19 @@ static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 
 static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return Plugin_Continue;
+
 	if (attacker != -1)
 	{
 		// We might already be in spectate from another hook, do not allow damaging our own pipebombs
 		if (FindParentOwnerEntity(victim) == attacker)
 			return Plugin_Handled;
-		
+
 		// Allows destroying projectiles (e.g. pipebombs)
 		Entity(attacker).ChangeToSpectator();
 	}
-	
+
 	return Plugin_Continue;
 }
 

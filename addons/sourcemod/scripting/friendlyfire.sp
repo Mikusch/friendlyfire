@@ -80,6 +80,7 @@ bool g_isMapRunning;
 ConVar mp_friendlyfire;
 
 ConVar sm_friendlyfire_medic_allow_healing;
+ConVar sm_friendlyfire_teammates_are_enemies;
 
 int g_offset_CTakeDamageInfo_m_hAttacker;
 
@@ -180,7 +181,7 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 {
 	if (!PSM_IsEnabled())
 		return Plugin_Continue;
-	
+
 	result = IsObjectFriendly(teleporter, client);
 	return Plugin_Handled;
 }
@@ -191,6 +192,7 @@ static void ConVars_Init()
 	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	CreateConVar("sm_friendlyfire_avoidteammates", "0", "Controls how teammates interact when colliding.\n  0: Teammates block each other\n  1: Teammates pass through each other, but push each other away", _, true, 0.0, true, 1.0);
 	sm_friendlyfire_medic_allow_healing = CreateConVar("sm_friendlyfire_medic_allow_healing", "0", "Whether Medics are allowed to heal teammates during friendly fire.", _, true, 0.0, true, 1.0);
+	sm_friendlyfire_teammates_are_enemies = CreateConVar("sm_friendlyfire_teammates_are_enemies", "1", "When set, your teammates act as enemies and all players are valid targets.", _, true, 0.0, true, 1.0);
 	
 	PSM_AddSyncedConVar("tf_avoidteammates", "sm_friendlyfire_avoidteammates");
 	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0");
