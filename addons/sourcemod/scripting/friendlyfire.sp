@@ -169,7 +169,7 @@ public void OnEntityDestroyed(int entity)
 		{
 			int owner = FindParentOwnerEntity(entity);
 			if (owner != -1)
-				obj.ResetTeam();
+				Entity(owner).ResetTeam();
 		}
 		
 		obj.Destroy();
