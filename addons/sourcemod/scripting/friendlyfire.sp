@@ -26,7 +26,7 @@
 #include <tf2utils>
 #include <pluginstatemanager>
 
-#define PLUGIN_VERSION	"1.4.1"
+#define PLUGIN_VERSION	"1.5.0"
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
@@ -79,7 +79,7 @@ bool g_isMapRunning;
 
 ConVar mp_friendlyfire;
 
-ConVar sm_friendlyfire_medic_allow_healing;
+ConVar sm_friendlyfire_teammates_are_enemies;
 
 int g_offset_CTakeDamageInfo_m_hAttacker;
 
@@ -113,10 +113,10 @@ public void OnPluginStart()
 	PSM_AddShouldEnableCallback(ShouldEnable);
 	
 	Entity.Init();
+	Spoof_Init();
 	
 	ConVars_Init();
 	DHooks_Init();
-	SDKHooks_Init();
 	
 	SDKCalls_Init(gamedata);
 	
@@ -165,11 +165,17 @@ public void OnEntityDestroyed(int entity)
 		
 		// If an entity is removed while it still has a team history, we need to reset its owner's team.
 		// This can happen if the entity is deleted in-between pre-hook and post-hook callbacks e.g. from a projectile that collided with worldspawn.
-		for (int i = 0; i < obj.TeamCount; i++)
+		// Our own team history goes away with us, so only the owner has to be put back.
+		int owner = FindParentOwnerEntity(entity);
+		if (owner != -1 && owner != entity)
 		{
-			int owner = FindParentOwnerEntity(entity);
-			if (owner != -1)
-				Entity(owner).ResetTeam();
+			Entity ownerEntity = Entity(owner);
+			
+			// Never reset more often than the owner was actually changed, that would throw off the hooks still running
+			for (int i = 0; i < obj.TeamCount && ownerEntity.TeamCount > 0; i++)
+			{
+				ownerEntity.ResetTeam();
+			}
 		}
 		
 		obj.Destroy();
@@ -181,6 +187,10 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 	if (!PSM_IsEnabled())
 		return Plugin_Continue;
 	
+	// Teleporters work for the entire team unless teammates are enemies
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+		return Plugin_Continue;
+	
 	result = IsObjectFriendly(teleporter, client);
 	return Plugin_Handled;
 }
@@ -189,11 +199,10 @@ static void ConVars_Init()
 {
 	CreateConVar("sm_friendlyfire", "1", "Enable the plugin?");
 	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-	CreateConVar("sm_friendlyfire_avoidteammates", "0", "Controls how teammates interact when colliding.\n  0: Teammates block each other\n  1: Teammates pass through each other, but push each other away", _, true, 0.0, true, 1.0);
-	sm_friendlyfire_medic_allow_healing = CreateConVar("sm_friendlyfire_medic_allow_healing", "0", "Whether Medics are allowed to heal teammates during friendly fire.", _, true, 0.0, true, 1.0);
-	
-	PSM_AddSyncedConVar("tf_avoidteammates", "sm_friendlyfire_avoidteammates");
-	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0");
+	sm_friendlyfire_teammates_are_enemies = CreateConVar("sm_friendlyfire_teammates_are_enemies", "1", "Controls how teammates are treated.\n  0: Teammates can be hurt, but stay allies for everything else\n  1: Teammates are treated as enemies in every way (free-for-all)", _, true, 0.0, true, 1.0);
+
+	PSM_AddEnforcedConVar("tf_avoidteammates", "0", AreTeammatesEnemies);
+	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0", AreTeammatesEnemies);
 
 	mp_friendlyfire = FindConVar("mp_friendlyfire");
 	mp_friendlyfire.AddChangeHook(OnFriendlyFireChanged);
@@ -201,15 +210,18 @@ static void ConVars_Init()
 
 static void OnPluginStateChanged(bool enable)
 {
+	if (!enable)
+		Spoof_Clear();
+	
 	int entity = -1;
 	while ((entity = FindEntityByClassname(entity, "*")) != -1)
 	{
+		char classname[64];
+		if (!GetEntityClassname(entity, classname, sizeof(classname)))
+			continue;
+		
 		if (enable)
 		{
-			char classname[64];
-			if (!GetEntityClassname(entity, classname, sizeof(classname)))
-				continue;
-			
 			OnEntityCreated(entity, classname);
 		}
 		else
@@ -217,12 +229,23 @@ static void OnPluginStateChanged(bool enable)
 			if (Entity.IsEntityTracked(entity))
 				Entity(entity).Destroy();
 		}
+		
+		// Objects only have their collisions set while they spawn, so the existing ones have to be updated here
+		if (!strncmp(classname, "obj_", 4))
+		{
+			SDKHooks_SetObjectSolidToPlayers(entity, enable && sm_friendlyfire_teammates_are_enemies.BoolValue);
+		}
 	}
 }
 
 static bool ShouldEnable()
 {
 	return mp_friendlyfire.BoolValue;
+}
+
+static bool AreTeammatesEnemies()
+{
+	return sm_friendlyfire_teammates_are_enemies.BoolValue;
 }
 
 static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const char[] newValue)

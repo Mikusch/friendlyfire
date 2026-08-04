@@ -86,6 +86,11 @@ bool IsObjectFriendly(int obj, int entity)
 {
 	if (IsValidEntity(entity))
 	{
+		// Objects are friendly towards their entire team unless teammates are enemies.
+		// The original team has to be used here, because callers of this function commonly spoof team numbers.
+		if (!sm_friendlyfire_teammates_are_enemies.BoolValue && IsValidEntity(obj) && Entity(obj).GetOriginalTeam() == Entity(entity).GetOriginalTeam())
+			return true;
+		
 		if (IsEntityClient(entity))
 		{
 			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == GetEntPropEnt(entity, Prop_Send, "m_hDisguiseTarget"))
@@ -124,6 +129,17 @@ bool IsEntityBaseMelee(int entity)
 bool IsEntityBaseGrenadeProjectile(int entity)
 {
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
+}
+
+bool IsWeaponIDInList(int weaponID, const int[] list, int size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		if (weaponID == list[i])
+			return true;
+	}
+	
+	return false;
 }
 
 int GameConfGetOffsetOrElseThrow(GameData gamedata, const char[] key)

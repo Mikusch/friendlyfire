@@ -112,8 +112,21 @@ methodmap Entity
 	
 	public void SetTeam(TFTeam team)
 	{
-		int index = this.TeamCount++;
-		this.SetTeamInternal(TF2_GetEntityTeam(this.Ref), index);
+		int listIndex = this.ListIndex;
+		if (listIndex == -1)
+		{
+			LogError("Failed to set team number for untracked entity %d", this);
+			return;
+		}
+		
+		EntityProperties properties;
+		g_entityProperties.GetArray(listIndex, properties);
+		
+		this.CheckArrayBounds(properties.teamCount);
+		
+		properties.teamHistory[properties.teamCount++] = TF2_GetEntityTeam(this.Ref);
+		g_entityProperties.SetArray(listIndex, properties);
+		
 		TF2_SetEntityTeam(this.Ref, team);
 	}
 	
@@ -130,8 +143,21 @@ methodmap Entity
 	
 	public void ResetTeam()
 	{
-		int index = --this.TeamCount;
-		TFTeam team = this.GetTeamInternal(index);
+		int listIndex = this.ListIndex;
+		if (listIndex == -1)
+		{
+			LogError("Failed to get team number for untracked entity %d", this);
+			return;
+		}
+		
+		EntityProperties properties;
+		g_entityProperties.GetArray(listIndex, properties);
+		
+		this.CheckArrayBounds(properties.teamCount - 1);
+		
+		TFTeam team = properties.teamHistory[--properties.teamCount];
+		g_entityProperties.SetArray(listIndex, properties);
+		
 		TF2_SetEntityTeam(this.Ref, team);
 	}
 	
@@ -154,39 +180,17 @@ methodmap Entity
 	{
 		this.CheckArrayBounds(index);
 		
-		int length = g_entityProperties.Length;
-		for (int i = 0; i < length; i++)
-		{
-			EntityProperties properties;
-			if (g_entityProperties.GetArray(this.ListIndex, properties))
-			{
-				return properties.teamHistory[index];
-			}
-		}
-		
-		LogError("Failed to get team number for entity %d (index %d)", this, index);
-		return TFTeam_Unassigned;
-	}
-	
-	public void SetTeamInternal(TFTeam team, int index)
-	{
-		this.CheckArrayBounds(index);
-		
 		int listIndex = this.ListIndex;
-		
-		int length = g_entityProperties.Length;
-		for (int i = 0; i < length; i++)
+		if (listIndex == -1)
 		{
-			EntityProperties properties;
-			if (g_entityProperties.GetArray(listIndex, properties))
-			{
-				properties.teamHistory[index] = team;
-				g_entityProperties.SetArray(listIndex, properties);
-				return;
-			}
+			LogError("Failed to get team number for entity %d (index %d)", this, index);
+			return TFTeam_Unassigned;
 		}
 		
-		LogError("Failed to set team number for entity %d (index %d)", this, index);
+		EntityProperties properties;
+		g_entityProperties.GetArray(listIndex, properties);
+		
+		return properties.teamHistory[index];
 	}
 	
 	public void Destroy()
@@ -213,4 +217,65 @@ methodmap Entity
 	{
 		g_entityProperties = new ArrayList(sizeof(EntityProperties));
 	}
+}
+
+static ArrayList g_spoofedEntities;
+static ArrayList g_spoofFrames;
+
+void Spoof_Init()
+{
+	g_spoofedEntities = new ArrayList();
+	g_spoofFrames = new ArrayList();
+}
+
+// Every pre-hook using this has to call it before any other return path, so its post-hook always has a frame to close
+void Spoof_BeginFrame()
+{
+	g_spoofFrames.Push(g_spoofedEntities.Length);
+}
+
+void Spoof_EndFrame()
+{
+	int frames = g_spoofFrames.Length;
+	if (!frames)
+		return;
+	
+	int start = g_spoofFrames.Get(frames - 1);
+	g_spoofFrames.Erase(frames - 1);
+	
+	for (int i = g_spoofedEntities.Length - 1; i >= start; i--)
+	{
+		int ref = g_spoofedEntities.Get(i);
+		g_spoofedEntities.Erase(i);
+		
+		// The entity may have been removed in-between the two callbacks, taking its team history with it
+		if (Entity.IsReferenceTracked(ref))
+		{
+			view_as<Entity>(ref).ResetTeam();
+		}
+	}
+}
+
+void Spoof_SetTeam(int entity, TFTeam team)
+{
+	Entity target = Entity(entity);
+	
+	target.SetTeam(team);
+	g_spoofedEntities.Push(target.Ref);
+}
+
+void Spoof_ChangeToSpectator(int entity)
+{
+	Spoof_SetTeam(entity, TFTeam_Spectator);
+}
+
+void Spoof_ChangeToOriginalTeam(int entity)
+{
+	Spoof_SetTeam(entity, Entity(entity).GetOriginalTeam());
+}
+
+void Spoof_Clear()
+{
+	g_spoofedEntities.Clear();
+	g_spoofFrames.Clear();
 }
