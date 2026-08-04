@@ -270,6 +270,18 @@ void SDKHooks_SetObjectSolidToPlayers(int entity, bool solid)
 	AcceptEntityInput(entity, "SetSolidToPlayer");
 }
 
+void SDKHooks_SetAllObjectsSolidToPlayers(bool solid)
+{
+	if (!g_isMapRunning)
+		return;
+
+	int entity = -1;
+	while ((entity = FindEntityByClassname(entity, "obj_*")) != -1)
+	{
+		SDKHooks_SetObjectSolidToPlayers(entity, solid);
+	}
+}
+
 static Action SDKHookCB_Projectile_Touch(int entity, int other)
 {
 	if (other == 0)
@@ -304,12 +316,12 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 	
 	if (attacker == -1)
 		return Plugin_Continue;
-		
-		// We might already be in spectate from another hook, do not allow damaging our own pipebombs
-		if (FindParentOwnerEntity(victim) == attacker)
-			return Plugin_Handled;
-		
-		// Allows destroying projectiles (e.g. pipebombs)
+
+	// We might already be in spectate from another hook, do not allow damaging our own pipebombs
+	if (FindParentOwnerEntity(victim) == attacker)
+		return Plugin_Handled;
+
+	// Allows destroying projectiles (e.g. pipebombs)
 	Spoof_ChangeToSpectator(attacker);
 	
 	return Plugin_Continue;

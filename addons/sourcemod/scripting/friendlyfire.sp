@@ -201,8 +201,9 @@ static void ConVars_Init()
 	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	sm_friendlyfire_teammates_are_enemies = CreateConVar("sm_friendlyfire_teammates_are_enemies", "1", "Controls how teammates are treated.\n  0: Teammates can be hurt, but stay allies for everything else\n  1: Teammates are treated as enemies in every way (free-for-all)", _, true, 0.0, true, 1.0);
 
-	PSM_AddEnforcedConVar("tf_avoidteammates", "0", AreTeammatesEnemies);
-	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0", AreTeammatesEnemies);
+	PSM_AddEnforcedConVar("tf_avoidteammates", "0", AreTeammatesEnemies, sm_friendlyfire_teammates_are_enemies);
+	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0", AreTeammatesEnemies, sm_friendlyfire_teammates_are_enemies);
+	PSM_AddConVarChangeHook(sm_friendlyfire_teammates_are_enemies, OnTeammatesAreEnemiesChanged);
 
 	mp_friendlyfire = FindConVar("mp_friendlyfire");
 	mp_friendlyfire.AddChangeHook(OnFriendlyFireChanged);
@@ -216,12 +217,12 @@ static void OnPluginStateChanged(bool enable)
 	int entity = -1;
 	while ((entity = FindEntityByClassname(entity, "*")) != -1)
 	{
-		char classname[64];
-		if (!GetEntityClassname(entity, classname, sizeof(classname)))
-			continue;
-		
 		if (enable)
 		{
+			char classname[64];
+			if (!GetEntityClassname(entity, classname, sizeof(classname)))
+				continue;
+
 			OnEntityCreated(entity, classname);
 		}
 		else
@@ -229,13 +230,9 @@ static void OnPluginStateChanged(bool enable)
 			if (Entity.IsEntityTracked(entity))
 				Entity(entity).Destroy();
 		}
-		
-		// Objects only have their collisions set while they spawn, so the existing ones have to be updated here
-		if (!strncmp(classname, "obj_", 4))
-		{
-			SDKHooks_SetObjectSolidToPlayers(entity, enable && sm_friendlyfire_teammates_are_enemies.BoolValue);
-		}
 	}
+
+	SDKHooks_SetAllObjectsSolidToPlayers(enable && sm_friendlyfire_teammates_are_enemies.BoolValue);
 }
 
 static bool ShouldEnable()
@@ -243,7 +240,7 @@ static bool ShouldEnable()
 	return mp_friendlyfire.BoolValue;
 }
 
-static bool AreTeammatesEnemies()
+bool AreTeammatesEnemies()
 {
 	return sm_friendlyfire_teammates_are_enemies.BoolValue;
 }
@@ -251,4 +248,9 @@ static bool AreTeammatesEnemies()
 static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	PSM_TogglePluginState();
+}
+
+static void OnTeammatesAreEnemiesChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	SDKHooks_SetAllObjectsSolidToPlayers(convar.BoolValue);
 }
