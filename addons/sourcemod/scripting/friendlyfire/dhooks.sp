@@ -43,7 +43,7 @@ static ThinkFunction g_thinkFunction = ThinkFunction_None;
 
 void DHooks_Init()
 {
-	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre, _, AreTeammatesEnemies, sm_ff_teammates_are_enemies);
+	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post, AreTeammatesEnemies, sm_ff_teammates_are_enemies);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::CanAttack", DHookCallback_CTFPlayer_CanAttack_Pre, DHookCallback_CTFPlayer_CanAttack_Post);
@@ -159,80 +159,82 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookPar
 
 static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon, DHookReturn ret)
 {
+	Spoof_BeginFrame();
+
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwner");
 	if (IsEntityClient(owner))
 	{
 		// DeflectProjectiles checks the enemy team of each entity in the box
-		Entity(owner).ChangeToOriginalTeam();
-		
+		Spoof_ChangeToOriginalTeam(owner);
+
 		// Airblasting a teammate extinguishes them instead of pushing them around
 		if (!sm_ff_teammates_are_enemies.BoolValue)
 			return MRES_Ignored;
-		
+
 		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(owner));
-		
+
 		for (int client = 1; client <= MaxClients; client++)
 		{
 			if (IsClientInGame(client) && client != owner)
 			{
-				Entity(client).SetTeam(enemyTeam);
+				Spoof_SetTeam(client, enemyTeam);
+			}
+		}
+
+		// CTFFlameThrower::DeflectEntity compares raw team numbers.
+		// A teammate's projectile is not a valid airblast target until it looks like it belongs to the enemy team.
+		int projectile = -1;
+		while ((projectile = FindEntityByClassname(projectile, "tf_projectile_*")) != -1)
+		{
+			if (TF2_GetEntityTeam(projectile) != enemyTeam)
+			{
+				Spoof_SetTeam(projectile, enemyTeam);
 			}
 		}
 	}
-	
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Post(int weapon, DHookReturn ret)
 {
-	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwner");
-	if (IsEntityClient(owner))
-	{
-		Entity(owner).ResetTeam();
-		
-		if (!sm_ff_teammates_are_enemies.BoolValue)
-			return MRES_Ignored;
-		
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (IsClientInGame(client) && client != owner)
-			{
-				Entity(client).ResetTeam();
-			}
-		}
-	}
-	
+	Spoof_EndFrame();
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookParam params)
 {
-	// A jar that lands on a teammate extinguishes them instead of coating them
+	Spoof_BeginFrame();
+
 	if (!sm_ff_teammates_are_enemies.BoolValue)
+	{
+		// A jar that lands on a teammate extinguishes them instead of coating them, which needs real teams.
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client))
+			{
+				Spoof_ChangeToOriginalTeam(client);
+			}
+		}
+
 		return MRES_Ignored;
-	
+	}
+
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	if (thrower != -1)
 	{
-		Entity(thrower).ChangeToSpectator();
-		Entity(entity).ChangeToSpectator();
+		Spoof_ChangeToSpectator(thrower);
+		Spoof_ChangeToSpectator(entity);
 	}
-	
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHookParam params)
 {
-	if (!sm_ff_teammates_are_enemies.BoolValue)
-		return MRES_Ignored;
-	
-	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	if (thrower != -1)
-	{
-		Entity(thrower).ResetTeam();
-		Entity(entity).ResetTeam();
-	}
-	
+	Spoof_EndFrame();
+
 	return MRES_Ignored;
 }
 
@@ -272,12 +274,28 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Post(int ent
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
-	if (!sm_ff_teammates_are_enemies.BoolValue)
-		return MRES_Ignored;
-	
+	if (!sm_ff_teammates_are_enemies.BoolValue && HasEntProp(entity, Prop_Send, "m_hLauncher"))
+	{
+		int launcher = GetEntPropEnt(entity, Prop_Send, "m_hLauncher");
+		if (launcher != -1 && IsEntityBaseCombatWeapon(launcher))
+		{
+			switch (SDKCall_CTFWeaponBase_GetWeaponID(launcher))
+			{
+				// Grappling onto a teammate is not friendly fire
+				case TF_WEAPON_GRAPPLINGHOOK:
+					return MRES_Ignored;
+
+				// Jars keep their grace period, so they still fly past a teammate that is not burning instead of stopping on them.
+				// See CTFProjectile_Jar::PipebombTouch.
+				case TF_WEAPON_JAR, TF_WEAPON_JAR_MILK, TF_WEAPON_JAR_GAS:
+					return MRES_Ignored;
+			}
+		}
+	}
+
 	// Always make projectiles collide with teammates
 	ret.Value = true;
-	
+
 	return MRES_Supercede;
 }
 
@@ -361,12 +379,21 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 	return MRES_Ignored;
 }
 
+static bool IsFriendlyRelation(int entity, const char[] classname, int other)
+{
+	// Nothing damages friendly buildings
+	if (IsEntityBaseObject(entity) || IsEntityBaseObject(other))
+		return true;
+
+	// Crusader's Crossbow bolts keep healing teammates instead of damaging them
+	if (StrEqual(classname, "tf_projectile_healing_bolt"))
+		return true;
+
+	return false;
+}
+
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
-	// Every team relation stays intact unless teammates are enemies
-	if (!sm_ff_teammates_are_enemies.BoolValue)
-		return MRES_Ignored;
-	
 	char classname[64];
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
@@ -389,7 +416,10 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 		ret.Value = true;
 		return MRES_Supercede;
 	}
-	
+
+	if (!sm_ff_teammates_are_enemies.BoolValue && IsFriendlyRelation(entity, classname, other))
+		return MRES_Ignored;
+
 	// Unless we are the owner, assume every other entity is an enemy
 	entity = FindParentOwnerEntity(entity);
 	other = FindParentOwnerEntity(other);
