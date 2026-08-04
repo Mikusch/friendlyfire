@@ -78,7 +78,7 @@ bool g_isMapRunning;
 
 ConVar mp_friendlyfire;
 
-ConVar sm_friendlyfire_teammates_are_enemies;
+ConVar sm_ff_teammates_are_enemies;
 
 int g_offset_CTakeDamageInfo_m_hAttacker;
 
@@ -107,7 +107,7 @@ public void OnPluginStart()
 
 	g_offset_CTakeDamageInfo_m_hAttacker = GameConfGetOffsetOrElseThrow(gamedata, "CTakeDamageInfo::m_hAttacker");
 
-	PSM_Init("sm_friendlyfire", gamedata);
+	PSM_Init("sm_ff_enabled", gamedata);
 	PSM_AddPluginStateChangedHook(OnPluginStateChanged);
 	PSM_AddShouldEnableCallback(ShouldEnable);
 	
@@ -187,7 +187,7 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 		return Plugin_Continue;
 	
 	// Teleporters work for the entire team unless teammates are enemies
-	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
+	if (!sm_ff_teammates_are_enemies.BoolValue)
 		return Plugin_Continue;
 	
 	result = IsObjectFriendly(teleporter, client);
@@ -196,13 +196,12 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 
 static void ConVars_Init()
 {
-	CreateConVar("sm_friendlyfire", "1", "Enable the plugin?");
-	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-	sm_friendlyfire_teammates_are_enemies = CreateConVar("sm_friendlyfire_teammates_are_enemies", "1", "Controls how teammates are treated.\n  0: Teammates can be hurt, but stay allies for everything else\n  1: Teammates are treated as enemies in every way (free-for-all)", _, true, 0.0, true, 1.0);
+	CreateConVar("sm_ff_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+	sm_ff_teammates_are_enemies = CreateConVar("sm_ff_teammates_are_enemies", "1", "When set, your teammates act as enemies and all players are valid targets.", _, true, 0.0, true, 1.0);
 
-	PSM_AddEnforcedConVar("tf_avoidteammates", "0", AreTeammatesEnemies, sm_friendlyfire_teammates_are_enemies);
-	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0", AreTeammatesEnemies, sm_friendlyfire_teammates_are_enemies);
-	PSM_AddConVarChangeHook(sm_friendlyfire_teammates_are_enemies, OnTeammatesAreEnemiesChanged);
+	PSM_AddEnforcedConVar("tf_avoidteammates", "0", AreTeammatesEnemies, sm_ff_teammates_are_enemies);
+	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0", AreTeammatesEnemies, sm_ff_teammates_are_enemies);
+	PSM_AddConVarChangeHook(sm_ff_teammates_are_enemies, OnTeammatesAreEnemiesChanged);
 
 	mp_friendlyfire = FindConVar("mp_friendlyfire");
 	mp_friendlyfire.AddChangeHook(OnFriendlyFireChanged);
@@ -231,7 +230,7 @@ static void OnPluginStateChanged(bool enable)
 		}
 	}
 
-	SDKHooks_SetAllObjectsSolidToPlayers(enable && sm_friendlyfire_teammates_are_enemies.BoolValue);
+	SDKHooks_SetAllObjectsSolidToPlayers(enable && sm_ff_teammates_are_enemies.BoolValue);
 }
 
 static bool ShouldEnable()
@@ -241,7 +240,7 @@ static bool ShouldEnable()
 
 bool AreTeammatesEnemies()
 {
-	return sm_friendlyfire_teammates_are_enemies.BoolValue;
+	return sm_ff_teammates_are_enemies.BoolValue;
 }
 
 static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const char[] newValue)

@@ -88,7 +88,7 @@ bool IsObjectFriendly(int obj, int entity)
 	{
 		// Objects are friendly towards their entire team unless teammates are enemies.
 		// The original team has to be used here, because callers of this function commonly spoof team numbers.
-		if (!sm_friendlyfire_teammates_are_enemies.BoolValue && IsValidEntity(obj) && Entity(obj).GetOriginalTeam() == Entity(entity).GetOriginalTeam())
+		if (!sm_ff_teammates_are_enemies.BoolValue && IsValidEntity(obj) && Entity(obj).GetOriginalTeam() == Entity(entity).GetOriginalTeam())
 			return true;
 		
 		if (IsEntityClient(entity))
