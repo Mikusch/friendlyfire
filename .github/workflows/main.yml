@@ -8,7 +8,6 @@ on:
 env:
   PLUGIN_NAME: friendlyfire
   SCRIPTS_PATH: addons/sourcemod/scripting
-  SM_VERSION: '1.12.x'
 
 jobs:
   build:
@@ -16,24 +15,24 @@ jobs:
     permissions:
       contents: write
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sm-version: '1.12.x'
+            release: true
+          - sm-version: '1.13.x'
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Cache include files
-        id: cache-includes
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.SCRIPTS_PATH }}/include
-          key: includes-${{ hashFiles('.github/workflows/main.yml') }}
+        uses: actions/checkout@v7
 
       - name: Download include files
-        if: steps.cache-includes.outputs.cache-hit != 'true'
         run: |
-          set -e
+          set -euo pipefail
           includes=(
-            "https://raw.githubusercontent.com/Mikusch/PluginStateManager/master/addons/sourcemod/scripting/include/pluginstatemanager.inc"
             "https://raw.githubusercontent.com/nosoop/SM-TFUtils/refs/heads/master/scripting/include/tf2utils.inc"
+            "https://raw.githubusercontent.com/Mikusch/PluginStateManager/refs/heads/master/addons/sourcemod/scripting/include/pluginstatemanager.inc"
           )
 
           mkdir -p "${{ env.SCRIPTS_PATH }}/include"
@@ -47,34 +46,37 @@ jobs:
         id: setup_sp
         uses: rumblefrog/setup-sp@master
         with:
-          version: ${{ env.SM_VERSION }}
+          version: ${{ matrix.sm-version }}
           version-file: ${{ env.SCRIPTS_PATH }}/${{ env.PLUGIN_NAME }}.sp
           define-name: PLUGIN_VERSION
 
       - name: Compile plugin
         run: |
-          mkdir -p ../plugins
-          spcomp -v2 -E -i "include" -o "../plugins/${{ env.PLUGIN_NAME }}.smx" "${{ env.PLUGIN_NAME }}.sp"
-          echo "=== OUT FILES ==="
-          ls ../plugins
-          echo "=== VERSION ==="
-          echo ${{ steps.setup_sp.outputs.plugin-version }}
-        working-directory: ${{ env.SCRIPTS_PATH }}
+          set -euo pipefail
+          mkdir -p addons/sourcemod/plugins
+          spcomp -v2 -E -i "${{ env.SCRIPTS_PATH }}/include" -o "addons/sourcemod/plugins/${{ env.PLUGIN_NAME }}.smx" "${{ env.SCRIPTS_PATH }}/${{ env.PLUGIN_NAME }}.sp"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PLUGIN_NAME }}-${{ matrix.sm-version }}
+          path: addons/sourcemod/plugins/${{ env.PLUGIN_NAME }}.smx
+          if-no-files-found: error
 
       - name: Zip output
-        run: zip -qq -r ${{ github.event.repository.name }}.zip addons/sourcemod
+        if: matrix.release
+        run: zip -qq -r ${{ github.event.repository.name }}.zip addons
 
-      - name: List build outputs
-        run: |
-          echo "::group::Directory contents"
-          ls -R
-          echo "::endgroup::"
-          echo "::group::Zip contents"
-          unzip -l ${{ github.event.repository.name }}.zip
-          echo "::endgroup::"
+      - name: Upload package artifact
+        if: matrix.release
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.event.repository.name }}
+          path: addons
+          if-no-files-found: error
 
       - name: Create GitHub release
-        if: github.ref_name == 'master'
+        if: github.ref_name == 'master' && matrix.release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
