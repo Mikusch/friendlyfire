@@ -189,7 +189,7 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 		return Plugin_Continue;
 	
 	// Teleporters work for the entire team unless teammates are enemies
-	if (!sm_ff_teammates_are_enemies.BoolValue)
+	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
 	
 	result = IsObjectFriendly(teleporter, client);
@@ -232,7 +232,7 @@ static void OnPluginStateChanged(bool enable)
 		}
 	}
 
-	SDKHooks_SetAllObjectsSolidToPlayers(enable && sm_ff_teammates_are_enemies.BoolValue);
+	SDKHooks_SetAllObjectsSolidToPlayers(enable && AreTeammatesEnemies());
 }
 
 static bool ShouldEnable()
@@ -243,11 +243,6 @@ static bool ShouldEnable()
 bool AreTeammatesEnemies()
 {
 	return sm_ff_teammates_are_enemies.BoolValue;
-}
-
-bool AreTeammatesAllies()
-{
-	return !sm_ff_teammates_are_enemies.BoolValue;
 }
 
 static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const char[] newValue)

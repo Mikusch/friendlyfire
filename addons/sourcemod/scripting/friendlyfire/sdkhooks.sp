@@ -117,7 +117,7 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 static void SDKHookCB_Client_PreThink(int client)
 {
 	// Disable radius buffs like Buff Banner or King Rune
-	if (!sm_ff_teammates_are_enemies.BoolValue)
+	if (!AreTeammatesEnemies())
 		return;
 	
 	Entity(client).ChangeToSpectator();
@@ -126,7 +126,7 @@ static void SDKHookCB_Client_PreThink(int client)
 // CTFPlayer::PreThink -> CTFPlayerShared::ConditionThink
 static void SDKHookCB_Client_PreThinkPost(int client)
 {
-	if (!sm_ff_teammates_are_enemies.BoolValue)
+	if (!AreTeammatesEnemies())
 		return;
 	
 	Entity(client).ResetTeam();
@@ -150,7 +150,7 @@ static void SDKHookCB_Client_PostThink(int client)
 		return;
 	
 	int weaponID = SDKCall_CTFWeaponBase_GetWeaponID(activeWeapon);
-	bool teammatesAreEnemies = sm_ff_teammates_are_enemies.BoolValue;
+	bool teammatesAreEnemies = AreTeammatesEnemies();
 	
 	// For functions that use GetEnemyTeam(), move everyone else to the enemy team
 	if (IsWeaponIDInList(weaponID, g_enemyItemIDs, sizeof(g_enemyItemIDs)) || (teammatesAreEnemies && IsWeaponIDInList(weaponID, g_teammateEnemyItemIDs, sizeof(g_teammateEnemyItemIDs))))
@@ -229,7 +229,7 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
 	// Teammates can always see each other's cloaked Spies unless teammates are enemies
-	if (!sm_ff_teammates_are_enemies.BoolValue)
+	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
 	
 	// Don't transmit invisible spies to living players
@@ -263,7 +263,7 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
 	// Enable collisions for both teams, unless teammates are supposed to walk through their own buildings
-	SDKHooks_SetObjectSolidToPlayers(entity, sm_ff_teammates_are_enemies.BoolValue);
+	SDKHooks_SetObjectSolidToPlayers(entity, AreTeammatesEnemies());
 }
 
 void SDKHooks_SetObjectSolidToPlayers(int entity, bool solid)

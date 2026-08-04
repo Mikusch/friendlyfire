@@ -45,8 +45,8 @@ static bool g_suspendInSameTeam;
 void DHooks_Init()
 {
 	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
-	PSM_AddDynamicDetourFromConf("CTFGameRules::TFVoiceManager", DHookCallback_CTFGameRules_TFVoiceManager_Pre, DHookCallback_CTFGameRules_TFVoiceManager_Post, AreTeammatesAllies, sm_ff_teammates_are_enemies);
-	PSM_AddDynamicDetourFromConf("CObjectTeleporter::RecieveTeleportingPlayer", DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Pre, DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Post, AreTeammatesAllies, sm_ff_teammates_are_enemies);
+	PSM_AddDynamicDetourFromConf("CTFGameRules::TFVoiceManager", DHookCallback_CTFGameRules_TFVoiceManager_Pre, DHookCallback_CTFGameRules_TFVoiceManager_Post);
+	PSM_AddDynamicDetourFromConf("CObjectTeleporter::RecieveTeleportingPlayer", DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Pre, DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Post);
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post, AreTeammatesEnemies, sm_ff_teammates_are_enemies);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::CanAttack", DHookCallback_CTFPlayer_CanAttack_Pre, DHookCallback_CTFPlayer_CanAttack_Post);
@@ -66,7 +66,7 @@ void DHooks_Init()
 
 static MRESReturn DHookCallback_CTFGameRules_TFVoiceManager_Pre(DHookReturn ret, DHookParam params)
 {
-	g_suspendInSameTeam = true;
+	g_suspendInSameTeam = !AreTeammatesEnemies();
 
 	return MRES_Ignored;
 }
@@ -80,7 +80,7 @@ static MRESReturn DHookCallback_CTFGameRules_TFVoiceManager_Post(DHookReturn ret
 
 static MRESReturn DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Pre(int entity, DHookParam params)
 {
-	g_suspendInSameTeam = true;
+	g_suspendInSameTeam = !AreTeammatesEnemies();
 
 	return MRES_Ignored;
 }
@@ -199,7 +199,7 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 		Spoof_ChangeToOriginalTeam(owner);
 
 		// Airblasting a teammate extinguishes them instead of pushing them around
-		if (!sm_ff_teammates_are_enemies.BoolValue)
+		if (!AreTeammatesEnemies())
 			return MRES_Ignored;
 
 		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(owner));
@@ -238,7 +238,7 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookP
 {
 	Spoof_BeginFrame();
 
-	if (!sm_ff_teammates_are_enemies.BoolValue)
+	if (!AreTeammatesEnemies())
 	{
 		// A jar that lands on a teammate extinguishes them instead of coating them, which needs real teams.
 		for (int client = 1; client <= MaxClients; client++)
@@ -305,7 +305,7 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Post(int ent
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
-	if (!sm_ff_teammates_are_enemies.BoolValue)
+	if (!AreTeammatesEnemies())
 	{
 		switch (SDKCall_CBaseProjectile_GetProjectileType(entity))
 		{
@@ -437,7 +437,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 		return MRES_Ignored;
 
 	// Crusader's Crossbow bolts keep healing teammates when they are only damageable
-	if (!sm_ff_teammates_are_enemies.BoolValue && StrEqual(classname, "tf_projectile_healing_bolt"))
+	if (!AreTeammatesEnemies() && StrEqual(classname, "tf_projectile_healing_bolt"))
 		return MRES_Ignored;
 
 	// Unless we are the owner, assume every other entity is an enemy
@@ -451,7 +451,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 {
 	// Sentry Gun targeting, Dispenser eligibility and Sappers are all team-based
-	if (!sm_ff_teammates_are_enemies.BoolValue)
+	if (!AreTeammatesEnemies())
 		return MRES_Ignored;
 	
 	char classname[64];
@@ -808,7 +808,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 	}
 	
 	// Fix projectiles rarely bouncing off buildings
-	if (sm_ff_teammates_are_enemies.BoolValue)
+	if (AreTeammatesEnemies())
 	{
 		int obj = -1;
 		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
@@ -835,7 +835,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post(int ent
 		Entity(client).ResetTeam();
 	}
 	
-	if (sm_ff_teammates_are_enemies.BoolValue)
+	if (AreTeammatesEnemies())
 	{
 		int obj = -1;
 		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
