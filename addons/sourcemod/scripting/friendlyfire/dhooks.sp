@@ -25,6 +25,7 @@ enum ThinkFunction
 	ThinkFunction_SentryThink,
 	ThinkFunction_SapperThink,
 	ThinkFunction_MedigunHealTargetThink,
+	ThinkFunction_TossJarThink,
 }
 
 static DynamicHook g_dhook_CBaseProjectile_CanCollideWithTeammates;
@@ -95,6 +96,12 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 			// Fixes Scorch Shot knockback on teammates
 			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
 			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
+		}
+		else if (StrEqual(classname, "tf_projectile_spellfireball"))
+		{
+			// Fixes the Fireball spell not burning or knocking back teammates
+			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_SpellFireball_Explode_Pre);
+			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_SpellFireball_Explode_Post);
 		}
 	}
 	else if (IsEntityBaseCombatWeapon(entity))
@@ -243,6 +250,23 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHo
 {
 	Spoof_EndFrame();
 	
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Pre(int entity, DHookParam params)
+{
+	Spoof_BeginFrame();
+
+	// ExplodeEffectOnTarget skips every target that shares our team number
+	Spoof_ChangeToSpectator(entity);
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Post(int entity, DHookParam params)
+{
+	Spoof_EndFrame();
+
 	return MRES_Ignored;
 }
 
@@ -494,6 +518,22 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		// Always set team to spectator so we can place sappers on buildings of both teams
 		SDKCall_CBaseEntity_ChangeTeam(entity, TFTeam_Spectator);
 	}
+	else if (StrEqual(classname, "tf_weapon_spellbook"))
+	{
+		// CTFSpellBook::TossJarThink
+		if (SDKCall_CBaseEntity_GetNextThink(entity, "TOSS_JAR_THINK") != TICK_NEVER_THINK)
+			return MRES_Ignored;
+
+		g_thinkFunction = ThinkFunction_TossJarThink;
+		Spoof_BeginFrame();
+
+		// Self-cast spells like Overheal buff everyone on the caster's team in a radius
+		int owner = FindParentOwnerEntity(entity);
+		if (owner != entity)
+		{
+			Spoof_ChangeToSpectator(owner);
+		}
+	}
 	else if (StrEqual(classname, "tf_weapon_medigun"))
 	{
 		// CWeaponMedigun::HealTargetThink
@@ -587,6 +627,10 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 			}
 		}
 		case ThinkFunction_MedigunHealTargetThink:
+		{
+			Spoof_EndFrame();
+		}
+		case ThinkFunction_TossJarThink:
 		{
 			Spoof_EndFrame();
 		}
