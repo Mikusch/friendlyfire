@@ -37,6 +37,8 @@ int g_teammateSpectatorItemIDs[] =
 	TF_WEAPON_BUFF_ITEM,		// CTFPlayerShared::PulseRageBuff
 	TF_WEAPON_FLAMETHROWER,		// CTFFlameThrower::SecondaryAttack
 	TF_WEAPON_FLAME_BALL,		// CWeaponFlameBall::SecondaryAttack
+	TF_WEAPON_LASER_POINTER,	// CTFLaserPointer::UpdateLaserDot
+	TF_WEAPON_MEDIGUN,			// CWeaponMedigun::AllowedToHealTarget
 	TF_WEAPON_RAYGUN_REVENGE,	// CTFFlareGun_Revenge::ExtinguishPlayerInternal
 };
 

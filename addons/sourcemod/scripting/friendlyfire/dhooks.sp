@@ -24,6 +24,7 @@ enum ThinkFunction
 	ThinkFunction_DispenseThink,
 	ThinkFunction_SentryThink,
 	ThinkFunction_SapperThink,
+	ThinkFunction_MedigunHealTargetThink,
 }
 
 static DynamicHook g_dhook_CBaseProjectile_CanCollideWithTeammates;
@@ -390,7 +391,8 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			return MRES_Ignored;
 		
 		g_thinkFunction = ThinkFunction_SentryThink;
-		
+		Spoof_BeginFrame();
+
 		TFTeam myTeam = TF2_GetEntityTeam(entity);
 		TFTeam enemyTeam = GetEnemyTeam(myTeam);
 		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
@@ -445,6 +447,18 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 				}
 			}
 		}
+
+		// The Wrangler's auto-aim target is confirmed with a trace that ignores everyone on the builder's team,
+		// so move them out of the way to allow snapping onto teammates.
+		int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+		if (builder != -1)
+		{
+			int weapon = GetEntPropEnt(builder, Prop_Send, "m_hActiveWeapon");
+			if (weapon != -1 && SDKCall_CTFWeaponBase_GetWeaponID(weapon) == TF_WEAPON_LASER_POINTER)
+			{
+				Spoof_ChangeToSpectator(builder);
+			}
+		}
 	}
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
@@ -480,7 +494,24 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		// Always set team to spectator so we can place sappers on buildings of both teams
 		SDKCall_CBaseEntity_ChangeTeam(entity, TFTeam_Spectator);
 	}
-	
+	else if (StrEqual(classname, "tf_weapon_medigun"))
+	{
+		// CWeaponMedigun::HealTargetThink
+		if (SDKCall_CBaseEntity_GetNextThink(entity, "MedigunHealTargetThink") != TICK_NEVER_THINK)
+			return MRES_Ignored;
+
+		g_thinkFunction = ThinkFunction_MedigunHealTargetThink;
+		Spoof_BeginFrame();
+
+		// An established healing beam is only re-validated here.
+		// CWeaponMedigun::AllowedToHealTarget keeps letting us heal enemies that are disguised as our own team.
+		int owner = FindParentOwnerEntity(entity);
+		if (owner != entity)
+		{
+			Spoof_ChangeToSpectator(owner);
+		}
+	}
+
 	return MRES_Ignored;
 }
 
@@ -539,6 +570,8 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 					Entity(obj).PreHookTeam = TFTeam_Unassigned;
 				}
 			}
+
+			Spoof_EndFrame();
 		}
 		case ThinkFunction_DispenseThink:
 		{
@@ -553,8 +586,12 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 				}
 			}
 		}
+		case ThinkFunction_MedigunHealTargetThink:
+		{
+			Spoof_EndFrame();
+		}
 	}
-	
+
 	g_thinkFunction = ThinkFunction_None;
 	
 	return MRES_Ignored;
