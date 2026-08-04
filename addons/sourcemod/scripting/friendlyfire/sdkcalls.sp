@@ -20,6 +20,7 @@
 
 static Handle g_sdkCall_CBaseEntity_GetNextThink;
 static Handle g_sdkCall_CTFWeaponBase_GetWeaponID;
+static Handle g_sdkCall_CBaseProjectile_GetProjectileType;
 static Handle g_sdkCall_CTFSniperRifle_GetPenetrateType;
 static Handle g_sdkCall_GetGlobalTeam;
 static Handle g_sdkCall_CTeam_AddPlayer;
@@ -32,6 +33,7 @@ void SDKCalls_Init(GameData gamedata)
 {
 	g_sdkCall_CBaseEntity_GetNextThink = PrepSDKCall_CBaseEntity_GetNextThink(gamedata);
 	g_sdkCall_CTFWeaponBase_GetWeaponID = PrepSDKCall_CTFWeaponBase_GetWeaponID(gamedata);
+	g_sdkCall_CBaseProjectile_GetProjectileType = PrepSDKCall_CBaseProjectile_GetProjectileType(gamedata);
 	g_sdkCall_CTFSniperRifle_GetPenetrateType = PrepSDKCall_CTFSniperRifle_GetPenetrateType(gamedata);
 	g_sdkCall_GetGlobalTeam = PrepSDKCall_GetGlobalTeam(gamedata);
 	g_sdkCall_CTeam_AddPlayer = PrepSDKCall_CTeam_AddPlayer(gamedata);
@@ -65,6 +67,19 @@ static Handle PrepSDKCall_CTFWeaponBase_GetWeaponID(GameData gamedata)
 	if (!call)
 		ThrowError("Failed to create SDKCall: CTFWeaponBase::GetWeaponID");
 	
+	return call;
+}
+
+static Handle PrepSDKCall_CBaseProjectile_GetProjectileType(GameData gamedata)
+{
+	StartPrepSDKCall(SDKCall_Entity);
+	PrepSDKCall_SetFromConf(gamedata, SDKConf_Virtual, "CBaseProjectile::GetProjectileType");
+	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
+
+	Handle call = EndPrepSDKCall();
+	if (!call)
+		ThrowError("Failed to create SDKCall: CBaseProjectile::GetProjectileType");
+
 	return call;
 }
 
@@ -174,6 +189,14 @@ int SDKCall_CTFWeaponBase_GetWeaponID(int weapon)
 		return SDKCall(g_sdkCall_CTFWeaponBase_GetWeaponID, weapon);
 	
 	return TF_WEAPON_NONE;
+}
+
+int SDKCall_CBaseProjectile_GetProjectileType(int entity)
+{
+	if (g_sdkCall_CBaseProjectile_GetProjectileType)
+		return SDKCall(g_sdkCall_CBaseProjectile_GetProjectileType, entity);
+
+	return TF_PROJECTILE_NONE;
 }
 
 int SDKCall_CTFSniperRifle_GetPenetrateType(int weapon)

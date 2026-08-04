@@ -97,6 +97,14 @@
 				"windows"	"40"
 				"windows64"	"40"
 			}
+			"CBaseProjectile::GetProjectileType"
+			{
+				"library"	"server"
+				"linux"		"229"
+				"linux64"	"229"
+				"windows"	"228"
+				"windows64"	"228"
+			}
 			"CBaseProjectile::CanCollideWithTeammates"
 			{
 				"library"	"server"

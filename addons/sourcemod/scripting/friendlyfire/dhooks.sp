@@ -274,22 +274,18 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Post(int ent
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
-	if (!sm_ff_teammates_are_enemies.BoolValue && HasEntProp(entity, Prop_Send, "m_hLauncher"))
+	if (!sm_ff_teammates_are_enemies.BoolValue)
 	{
-		int launcher = GetEntPropEnt(entity, Prop_Send, "m_hLauncher");
-		if (launcher != -1 && IsEntityBaseCombatWeapon(launcher))
+		switch (SDKCall_CBaseProjectile_GetProjectileType(entity))
 		{
-			switch (SDKCall_CTFWeaponBase_GetWeaponID(launcher))
-			{
-				// Grappling onto a teammate is not friendly fire
-				case TF_WEAPON_GRAPPLINGHOOK:
-					return MRES_Ignored;
+			// Grappling onto a teammate is not friendly fire
+			case TF_PROJECTILE_GRAPPLINGHOOK:
+				return MRES_Ignored;
 
-				// Jars keep their grace period, so they still fly past a teammate that is not burning instead of stopping on them.
-				// See CTFProjectile_Jar::PipebombTouch.
-				case TF_WEAPON_JAR, TF_WEAPON_JAR_MILK, TF_WEAPON_JAR_GAS:
-					return MRES_Ignored;
-			}
+			// Jars keep their grace period, so they still fly past a teammate that is not burning instead of stopping on them.
+			// See CTFProjectile_Jar::PipebombTouch.
+			case TF_PROJECTILE_JAR, TF_PROJECTILE_JAR_MILK, TF_PROJECTILE_JAR_GAS, TF_PROJECTILE_FESTIVE_JAR, TF_PROJECTILE_BREADMONSTER_JARATE, TF_PROJECTILE_BREADMONSTER_MADMILK:
+				return MRES_Ignored;
 		}
 	}
 
