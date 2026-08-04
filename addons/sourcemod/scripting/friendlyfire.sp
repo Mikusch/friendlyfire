@@ -245,6 +245,11 @@ bool AreTeammatesEnemies()
 	return sm_ff_teammates_are_enemies.BoolValue;
 }
 
+bool AreTeammatesAllies()
+{
+	return !sm_ff_teammates_are_enemies.BoolValue;
+}
+
 static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	PSM_TogglePluginState();

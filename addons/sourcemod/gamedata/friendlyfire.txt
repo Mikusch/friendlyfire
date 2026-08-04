@@ -22,6 +22,20 @@
 				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53\x57"
 				"windows64"	"\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x60\x48\x8B\x05\x2A\x2A\x2A\x2A\x48\x8D\x35"
 			}
+			"CTFGameRules::TFVoiceManager"
+			{
+				"library"	"server"
+				"linux"		""
+				"linux64"	""
+				"windows"	""
+			}
+			"CObjectTeleporter::RecieveTeleportingPlayer"
+			{
+				"library"	"server"
+				"linux"		""
+				"linux64"	""
+				"windows"	""
+			}
 			"CBaseEntity::InSameTeam"
 			{
 				// string: "lowV_debrischunks", long single block, go down a few blocks, first call
@@ -239,6 +253,38 @@
 					"thinkFunc"
 					{
 						"type"	"int"
+					}
+				}
+			}
+			"CTFGameRules::TFVoiceManager"
+			{
+				"signature"	"CTFGameRules::TFVoiceManager"
+				"callconv"	"thiscall"
+				"return"	"bool"
+				"this"		"address"
+				"arguments"
+				{
+					"pListener"
+					{
+						"type"	"cbaseentity"
+					}
+					"pTalker"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+			"CObjectTeleporter::RecieveTeleportingPlayer"
+			{
+				"signature"	"CObjectTeleporter::RecieveTeleportingPlayer"
+				"callconv"	"thiscall"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"pTeleportingPlayer"
+					{
+						"type"	"cbaseentity"
 					}
 				}
 			}

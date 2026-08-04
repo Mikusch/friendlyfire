@@ -40,10 +40,13 @@ static DynamicHook g_dhook_CBaseEntity_Deflected;
 static DynamicHook g_dhook_CBaseEntity_VPhysicsUpdate;
 
 static ThinkFunction g_thinkFunction = ThinkFunction_None;
+static bool g_suspendInSameTeam;
 
 void DHooks_Init()
 {
 	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre);
+	PSM_AddDynamicDetourFromConf("CTFGameRules::TFVoiceManager", DHookCallback_CTFGameRules_TFVoiceManager_Pre, DHookCallback_CTFGameRules_TFVoiceManager_Post, AreTeammatesAllies, sm_ff_teammates_are_enemies);
+	PSM_AddDynamicDetourFromConf("CObjectTeleporter::RecieveTeleportingPlayer", DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Pre, DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Post, AreTeammatesAllies, sm_ff_teammates_are_enemies);
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post, AreTeammatesEnemies, sm_ff_teammates_are_enemies);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::CanAttack", DHookCallback_CTFPlayer_CanAttack_Pre, DHookCallback_CTFPlayer_CanAttack_Post);
@@ -59,6 +62,34 @@ void DHooks_Init()
 	g_dhook_CTFWeaponBase_SecondaryAttack = PSM_AddDynamicHookFromConf("CTFWeaponBase::SecondaryAttack");
 	g_dhook_CBaseEntity_Deflected = PSM_AddDynamicHookFromConf("CBaseEntity::Deflected");
 	g_dhook_CBaseEntity_VPhysicsUpdate = PSM_AddDynamicHookFromConf("CBaseEntity::VPhysicsUpdate");
+}
+
+static MRESReturn DHookCallback_CTFGameRules_TFVoiceManager_Pre(DHookReturn ret, DHookParam params)
+{
+	g_suspendInSameTeam = true;
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFGameRules_TFVoiceManager_Post(DHookReturn ret, DHookParam params)
+{
+	g_suspendInSameTeam = false;
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Pre(int entity, DHookParam params)
+{
+	g_suspendInSameTeam = true;
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CObjectTeleporter_RecieveTeleportingPlayer_Post(int entity, DHookParam params)
+{
+	g_suspendInSameTeam = false;
+
+	return MRES_Ignored;
 }
 
 void DHooks_OnEntityCreated(int entity, const char[] classname)
@@ -334,8 +365,8 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 		Entity(owner).ChangeToSpectator();
 
 		// The owner being in spectator makes friendly buildings valid melee targets, so move them along.
-		// Wrenches need this to repair them, every other melee weapon needs it to keep from damaging them.
-		if (SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH || !sm_ff_teammates_are_enemies.BoolValue)
+		// Only Wrenches do this, every other melee weapon is supposed to damage them.
+		if (SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH)
 		{
 			// Move all our buildings to spectator to allow them to be repaired by us
 			int obj = -1;
@@ -358,8 +389,8 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 	if (owner != -1)
 	{
 		Entity(owner).ResetTeam();
-		
-		if (SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH || !sm_ff_teammates_are_enemies.BoolValue)
+
+		if (SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH)
 		{
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
@@ -375,18 +406,6 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 	return MRES_Ignored;
 }
 
-static bool IsFriendlyRelation(int entity, const char[] classname, int other)
-{
-	// Nothing damages friendly buildings
-	if (IsEntityBaseObject(entity) || IsEntityBaseObject(other))
-		return true;
-
-	// Crusader's Crossbow bolts keep healing teammates instead of damaging them
-	if (StrEqual(classname, "tf_projectile_healing_bolt"))
-		return true;
-
-	return false;
-}
 
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
@@ -413,7 +432,12 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 		return MRES_Supercede;
 	}
 
-	if (!sm_ff_teammates_are_enemies.BoolValue && IsFriendlyRelation(entity, classname, other))
+	// Suspended while the game asks about relations that are not about damage
+	if (g_suspendInSameTeam)
+		return MRES_Ignored;
+
+	// Crusader's Crossbow bolts keep healing teammates when they are only damageable
+	if (!sm_ff_teammates_are_enemies.BoolValue && StrEqual(classname, "tf_projectile_healing_bolt"))
 		return MRES_Ignored;
 
 	// Unless we are the owner, assume every other entity is an enemy
