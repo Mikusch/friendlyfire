@@ -247,9 +247,7 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHo
 
 static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int entity, DHookReturn ret)
 {
-	// Grappling Hooks are the one projectile that never collides with teammates by design.
-	// Latching onto a teammate is not friendly fire, so leave them alone unless teammates are enemies.
-	if (!sm_friendlyfire_teammates_are_enemies.BoolValue && HasEntProp(entity, Prop_Send, "m_iProjectileType") && GetEntProp(entity, Prop_Send, "m_iProjectileType") == TF_PROJECTILE_GRAPPLINGHOOK)
+	if (!sm_friendlyfire_teammates_are_enemies.BoolValue)
 		return MRES_Ignored;
 	
 	// Always make projectiles collide with teammates
