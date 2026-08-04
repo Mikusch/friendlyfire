@@ -7,7 +7,6 @@ This plugin attempts to fix the incredibly broken friendly fire in Team Fortress
 ## Requirements
 
 * SourceMod 1.12+
-* [nosoop/SM-TFUtils](https://github.com/nosoop/SM-TFUtils)
 * [Mikusch/PluginStateManager](https://github.com/Mikusch/PluginStateManager) (compile only)
 
 ## What does this fix?

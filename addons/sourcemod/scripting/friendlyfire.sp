@@ -23,7 +23,6 @@
 #include <sdkhooks>
 #include <dhooks>
 #include <tf2_stocks>
-#include <tf2utils>
 #include <pluginstatemanager>
 
 #define PLUGIN_VERSION	"1.5.0"

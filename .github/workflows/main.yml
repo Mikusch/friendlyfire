@@ -31,7 +31,6 @@ jobs:
         run: |
           set -euo pipefail
           includes=(
-            "https://raw.githubusercontent.com/nosoop/SM-TFUtils/refs/heads/master/scripting/include/tf2utils.inc"
             "https://raw.githubusercontent.com/Mikusch/PluginStateManager/refs/heads/master/addons/sourcemod/scripting/include/pluginstatemanager.inc"
           )
 

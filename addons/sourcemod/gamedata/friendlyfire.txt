@@ -89,6 +89,14 @@
 				"linux"		"429"
 				"windows"	"422"
 			}
+			"CTFWeaponBase::GetWeaponID"
+			{
+				"library"	"server"
+				"linux"		"388"
+				"linux64"	"388"
+				"windows"	"382"
+				"windows64"	"382"
+			}
 			"CTFSniperRifle::GetCustomDamageType"
 			{
 				"library"	"server"

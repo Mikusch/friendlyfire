@@ -147,7 +147,7 @@ static void SDKHookCB_Client_PostThink(int client)
 	if (activeWeapon == -1)
 		return;
 	
-	int weaponID = TF2Util_GetWeaponID(activeWeapon);
+	int weaponID = SDKCall_CTFWeaponBase_GetWeaponID(activeWeapon);
 	bool teammatesAreEnemies = sm_friendlyfire_teammates_are_enemies.BoolValue;
 	
 	// For functions that use GetEnemyTeam(), move everyone else to the enemy team

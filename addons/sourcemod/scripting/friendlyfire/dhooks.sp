@@ -96,7 +96,7 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
 		}
 	}
-	else if (TF2Util_IsEntityWeapon(entity))
+	else if (IsEntityBaseCombatWeapon(entity))
 	{
 		// Fixes weapons able to deflect entities during truce
 		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Pre, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre);
@@ -110,7 +110,7 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 		}
 		else
 		{
-			int weaponID = TF2Util_GetWeaponID(entity);
+			int weaponID = SDKCall_CTFWeaponBase_GetWeaponID(entity);
 			if (weaponID == TF_WEAPON_SNIPERRIFLE || weaponID == TF_WEAPON_SNIPERRIFLE_DECAP || weaponID == TF_WEAPON_SNIPERRIFLE_CLASSIC)
 			{
 				// Fixes Sniper Rifles dealing no damage to teammates
@@ -298,7 +298,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 
 		// The owner being in spectator makes friendly buildings valid melee targets, so move them along.
 		// Wrenches need this to repair them, every other melee weapon needs it to keep from damaging them.
-		if (TF2Util_GetWeaponID(entity) == TF_WEAPON_WRENCH || !sm_friendlyfire_teammates_are_enemies.BoolValue)
+		if (SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH || !sm_friendlyfire_teammates_are_enemies.BoolValue)
 		{
 			// Move all our buildings to spectator to allow them to be repaired by us
 			int obj = -1;
@@ -322,7 +322,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 	{
 		Entity(owner).ResetTeam();
 		
-		if (TF2Util_GetWeaponID(entity) == TF_WEAPON_WRENCH || !sm_friendlyfire_teammates_are_enemies.BoolValue)
+		if (SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH || !sm_friendlyfire_teammates_are_enemies.BoolValue)
 		{
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
