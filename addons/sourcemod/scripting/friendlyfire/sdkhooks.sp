@@ -31,10 +31,8 @@ int g_teammateSpectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,		// CTFPlayerShared::PulseRageBuff
 	TF_WEAPON_FLAMETHROWER,		// CTFFlameThrower::SecondaryAttack
-	TF_WEAPON_FLAME_BALL,		// CTFWeaponFlameBall::SecondaryAttack
 	TF_WEAPON_LASER_POINTER,	// CTFLaserPointer::UpdateLaserDot
 	TF_WEAPON_MEDIGUN,			// CWeaponMedigun::AllowedToHealTarget
-	TF_WEAPON_RAYGUN_REVENGE,	// CTFFlareGun_Revenge::ExtinguishPlayerInternal
 };
 
 int g_enemyItemIDs[] =
@@ -43,10 +41,12 @@ int g_enemyItemIDs[] =
 	TF_WEAPON_ROCKETPACK,				// CTFRocketPack::Launch
 };
 
-// Grappling onto a teammate is not friendly fire, so it is left alone unless teammates are enemies
+// Moving everyone else instead of ourselves, for the same reasons as above
 int g_teammateEnemyItemIDs[] =
 {
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
+	TF_WEAPON_FLAME_BALL,				// CTFWeaponFlameBall::SecondaryAttack
+	TF_WEAPON_RAYGUN_REVENGE,			// CTFFlareGun_Revenge::ExtinguishPlayerInternal
 };
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
