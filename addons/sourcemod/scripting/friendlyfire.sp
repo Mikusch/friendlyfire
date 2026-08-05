@@ -191,7 +191,11 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 	// Teleporters work for the entire team unless teammates are enemies
 	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
-	
+
+	// Spies can always use any teleporter, see CObjectTeleporter::PlayerCanBeTeleported
+	if (TF2_GetPlayerClass(client) == TFClass_Spy)
+		return Plugin_Continue;
+
 	result = IsObjectFriendly(teleporter, client);
 	return Plugin_Handled;
 }

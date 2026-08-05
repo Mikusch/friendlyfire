@@ -136,6 +136,31 @@ bool IsEntityBaseGrenadeProjectile(int entity)
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
 }
 
+bool IsJarProjectile(int entity)
+{
+	switch (SDKCall_CBaseProjectile_GetProjectileType(entity))
+	{
+		case TF_PROJECTILE_JAR, TF_PROJECTILE_JAR_MILK, TF_PROJECTILE_JAR_GAS, TF_PROJECTILE_FESTIVE_JAR, TF_PROJECTILE_BREADMONSTER_JARATE, TF_PROJECTILE_BREADMONSTER_MADMILK:
+			return true;
+	}
+
+	return false;
+}
+
+bool ShouldProjectileKeepTeams(int entity, int other, int owner)
+{
+	if (!IsEntityBaseObject(other))
+		return false;
+
+	// Our own buildings are not a valid target in any mode
+	if (GetEntPropEnt(other, Prop_Send, "m_hBuilder") == owner)
+		return true;
+
+	// Rescue Ranger bolts repair friendly buildings instead of damaging them
+	return SDKCall_CBaseProjectile_GetProjectileType(entity) == TF_PROJECTILE_BUILDING_REPAIR_BOLT
+		&& IsObjectFriendly(other, owner);
+}
+
 bool IsWeaponIDInList(int weaponID, const int[] list, int size)
 {
 	for (int i = 0; i < size; i++)

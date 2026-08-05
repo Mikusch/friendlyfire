@@ -51,6 +51,7 @@ int g_enemyItemIDs[] =
 int g_teammateEnemyItemIDs[] =
 {
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
+	TF_WEAPON_ROCKETPACK,				// CTFRocketPack::Launch
 };
 
 static PostThinkType g_postThinkType;
@@ -76,13 +77,20 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 		{
 			// Makes objects solid to teammates
 			PSM_SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
+			
+			// Lets teammates damage them while they are only damageable.
+			// CBaseObject::TraceAttack drops the damage before OnTakeDamage ever runs, so both are needed.
+			PSM_SDKHook(entity, SDKHook_TraceAttack, SDKHookCB_Object_TraceAttack);
+			PSM_SDKHook(entity, SDKHook_TraceAttackPost, SDKHookCB_Object_TraceAttackPost);
+			PSM_SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Object_OnTakeDamage);
+			PSM_SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Object_OnTakeDamagePost);
 		}
 		
 		if (!strncmp(classname, "tf_projectile_", 14))
 		{
-			if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe"))
+			if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe") || StrEqual(classname, "tf_projectile_arrow") || StrEqual(classname, "tf_projectile_energy_ring") || StrEqual(classname, "tf_projectile_balloffire"))
 			{
-				// Fixes the cleaver and pipes dealing no damage to certain entities
+				// Fixes these dealing no damage to teammates, they all skip anyone sharing their team
 				PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
 				PSM_SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 			}
@@ -213,7 +221,36 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 	
 	if (victim == attacker)
 		return Plugin_Continue;
-	
+
+	// Falling reads the lander's own team for both the stomp and the Thermal Thruster shockwave,
+	// so they keep it and everyone else moves instead
+	if (damagetype & DMG_FALL)
+	{
+		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(victim));
+		
+		if (AreTeammatesEnemies())
+		{
+			for (int other = 1; other <= MaxClients; other++)
+			{
+				if (IsClientInGame(other) && other != victim)
+				{
+					Spoof_SetTeam(other, enemyTeam);
+				}
+			}
+		}
+		else
+		{
+			// Stomping is damage, but the shockwave around it is not, so only the one being landed on moves
+			int ground = GetEntPropEnt(victim, Prop_Data, "m_hGroundEntity");
+			if (IsEntityClient(ground))
+			{
+				Spoof_SetTeam(ground, enemyTeam);
+			}
+		}
+		
+		return Plugin_Continue;
+	}
+
 	// Without an attacking player there is nobody to move out of the way, so move the victim instead.
 	// Mostly for boots_falling_stomp.
 	Spoof_ChangeToSpectator(IsEntityClient(attacker) ? attacker : victim);
@@ -266,6 +303,51 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 	SDKHooks_SetObjectSolidToPlayers(entity, AreTeammatesEnemies());
 }
 
+// Moves an attacking teammate out of the way so a building will accept their damage
+static void SpoofObjectAttacker(int victim, int attacker)
+{
+	if (AreTeammatesEnemies() || !IsEntityClient(attacker))
+		return;
+	
+	// Buildings only take teammate damage, never damage from the one who built them
+	if (GetEntPropEnt(victim, Prop_Send, "m_hBuilder") == attacker)
+		return;
+	
+	// Another hook already moved this building along, moving the attacker too would pair them up again
+	if (TF2_GetEntityTeam(victim) != Entity(victim).GetOriginalTeam())
+		return;
+	
+	Spoof_ChangeToSpectator(attacker);
+}
+
+static Action SDKHookCB_Object_TraceAttack(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &ammotype, int hitbox, int hitgroup)
+{
+	Spoof_BeginFrame();
+	
+	SpoofObjectAttacker(victim, attacker);
+	
+	return Plugin_Continue;
+}
+
+static void SDKHookCB_Object_TraceAttackPost(int victim, int attacker, int inflictor, float damage, int damagetype, int ammotype, int hitbox, int hitgroup)
+{
+	Spoof_EndFrame();
+}
+
+static Action SDKHookCB_Object_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	Spoof_BeginFrame();
+	
+	SpoofObjectAttacker(victim, attacker);
+	
+	return Plugin_Continue;
+}
+
+static void SDKHookCB_Object_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
+{
+	Spoof_EndFrame();
+}
+
 void SDKHooks_SetObjectSolidToPlayers(int entity, bool solid)
 {
 	SetVariantInt(solid ? SOLID_TO_PLAYER_YES : SOLID_TO_PLAYER_USE_DEFAULT);
@@ -290,7 +372,7 @@ static Action SDKHookCB_Projectile_Touch(int entity, int other)
 		return Plugin_Continue;
 	
 	int owner = FindParentOwnerEntity(entity);
-	if (IsValidEntity(owner) && owner != other)
+	if (IsValidEntity(owner) && owner != other && !ShouldProjectileKeepTeams(entity, other, owner))
 	{
 		Entity(owner).ChangeToSpectator();
 		Entity(entity).ChangeToSpectator();
@@ -305,7 +387,7 @@ static void SDKHookCB_Projectile_TouchPost(int entity, int other)
 		return;
 	
 	int owner = FindParentOwnerEntity(entity);
-	if (IsValidEntity(owner) && owner != other)
+	if (IsValidEntity(owner) && owner != other && !ShouldProjectileKeepTeams(entity, other, owner))
 	{
 		Entity(owner).ResetTeam();
 		Entity(entity).ResetTeam();

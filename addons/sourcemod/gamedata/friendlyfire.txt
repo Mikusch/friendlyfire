@@ -22,20 +22,6 @@
 				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53\x57"
 				"windows64"	"\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x60\x48\x8B\x05\x2A\x2A\x2A\x2A\x48\x8D\x35"
 			}
-			"CTFGameRules::TFVoiceManager"
-			{
-				"library"	"server"
-				"linux"		""
-				"linux64"	""
-				"windows"	""
-			}
-			"CObjectTeleporter::RecieveTeleportingPlayer"
-			{
-				"library"	"server"
-				"linux"		""
-				"linux64"	""
-				"windows"	""
-			}
 			"CBaseEntity::InSameTeam"
 			{
 				// string: "lowV_debrischunks", long single block, go down a few blocks, first call
@@ -175,6 +161,14 @@
 				"windows"	"240"
 				"windows64"	"240"
 			}
+			"CTFProjectile_SpellFireball::Explode"
+			{
+				"library"	"server"
+				"linux"		"251"
+				"linux64"	"251"
+				"windows"	"248"
+				"windows64"	"248"
+			}
 			"CTeam::AddPlayer"
 			{
 				"library"	"server"
@@ -256,38 +250,6 @@
 					}
 				}
 			}
-			"CTFGameRules::TFVoiceManager"
-			{
-				"signature"	"CTFGameRules::TFVoiceManager"
-				"callconv"	"thiscall"
-				"return"	"bool"
-				"this"		"address"
-				"arguments"
-				{
-					"pListener"
-					{
-						"type"	"cbaseentity"
-					}
-					"pTalker"
-					{
-						"type"	"cbaseentity"
-					}
-				}
-			}
-			"CObjectTeleporter::RecieveTeleportingPlayer"
-			{
-				"signature"	"CObjectTeleporter::RecieveTeleportingPlayer"
-				"callconv"	"thiscall"
-				"return"	"void"
-				"this"		"entity"
-				"arguments"
-				{
-					"pTeleportingPlayer"
-					{
-						"type"	"cbaseentity"
-					}
-				}
-			}
 			"CBaseGrenade::Explode"
 			{
 				"offset"	"CBaseGrenade::Explode"
@@ -301,6 +263,20 @@
 						"type"	"int"
 					}
 					"bitsDamageType"
+					{
+						"type"	"int"
+					}
+				}
+			}
+			"CTFProjectile_SpellFireball::Explode"
+			{
+				"offset"	"CTFProjectile_SpellFireball::Explode"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"pTrace"
 					{
 						"type"	"int"
 					}
