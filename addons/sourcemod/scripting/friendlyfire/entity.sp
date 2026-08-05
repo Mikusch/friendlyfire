@@ -37,17 +37,24 @@ enum struct EntityProperties
 	bool preHookFriendly;
 }
 
+int GetEntityRefSafe(int entity)
+{
+	if (!IsValidEntity(entity))
+		return INVALID_ENT_REFERENCE;
+
+	return IsEntNetworkable(entity) ? EntIndexToEntRef(entity) : entity;
+}
+
 methodmap Entity
 {
 	public Entity(int entity)
 	{
-		if (!IsValidEntity(entity))
+		int ref = GetEntityRefSafe(entity);
+		if (ref == INVALID_ENT_REFERENCE)
 		{
-			return view_as<Entity>(INVALID_ENT_REFERENCE);
+			return view_as<Entity>(ref);
 		}
-		
-		int ref = IsEntNetworkable(entity) ? EntIndexToEntRef(entity) : entity;
-		
+
 		if (!Entity.IsReferenceTracked(ref))
 		{
 			EntityProperties properties;
@@ -216,8 +223,7 @@ methodmap Entity
 	
 	public static bool IsEntityTracked(int entity)
 	{
-		int ref = IsEntNetworkable(entity) ? EntIndexToEntRef(entity) : entity;
-		return Entity.IsReferenceTracked(ref);
+		return Entity.IsReferenceTracked(GetEntityRefSafe(entity));
 	}
 	
 	public static bool IsReferenceTracked(int ref)
@@ -239,14 +245,6 @@ enum struct SpoofFrame
 
 static ArrayList g_spoofedEntities;
 static ArrayList g_spoofFrames;
-
-int GetEntityRefSafe(int entity)
-{
-	if (!IsValidEntity(entity))
-		return INVALID_ENT_REFERENCE;
-
-	return IsEntNetworkable(entity) ? EntIndexToEntRef(entity) : entity;
-}
 
 void Spoof_Init()
 {
