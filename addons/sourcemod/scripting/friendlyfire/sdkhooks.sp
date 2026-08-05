@@ -328,6 +328,7 @@ static void SpoofObjectAttacker(int victim, int attacker)
 	if (GetEntPropEnt(victim, Prop_Send, "m_hBuilder") == attacker)
 		return;
 
+	if (GetEntProp(victim, Prop_Send, "m_bHasSapper"))
 		return;
 
 	if (GameRules_GetProp("m_bTruceActive"))

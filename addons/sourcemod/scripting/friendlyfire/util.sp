@@ -107,8 +107,6 @@ bool IsObjectFriendly(int obj, int entity)
 
 	if (IsEntityClient(entity))
 	{
-		// Objects are friendly towards their entire team unless teammates are enemies.
-		// The original team has to be used here, because callers of this function commonly spoof team numbers.
 		if (builder != -1 && builder == GetEntPropEnt(entity, Prop_Send, "m_hDisguiseTarget"))
 			return true;
 		else if (builder == entity)	// obj_dispenser
