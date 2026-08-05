@@ -18,13 +18,6 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-enum PostThinkType
-{
-	PostThinkType_None,
-	PostThinkType_Spectator,
-	PostThinkType_EnemyTeam,
-}
-
 int g_spectatorItemIDs[] =
 {
 	TF_WEAPON_SNIPERRIFLE,			// CTFPlayer::FireBullet
@@ -38,7 +31,7 @@ int g_teammateSpectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,		// CTFPlayerShared::PulseRageBuff
 	TF_WEAPON_FLAMETHROWER,		// CTFFlameThrower::SecondaryAttack
-	TF_WEAPON_FLAME_BALL,		// CWeaponFlameBall::SecondaryAttack
+	TF_WEAPON_FLAME_BALL,		// CTFWeaponFlameBall::SecondaryAttack
 	TF_WEAPON_LASER_POINTER,	// CTFLaserPointer::UpdateLaserDot
 	TF_WEAPON_MEDIGUN,			// CWeaponMedigun::AllowedToHealTarget
 	TF_WEAPON_RAYGUN_REVENGE,	// CTFFlareGun_Revenge::ExtinguishPlayerInternal
@@ -55,9 +48,6 @@ int g_teammateEnemyItemIDs[] =
 {
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 };
-
-static PostThinkType g_postThinkType;
-static bool g_isPreThinkSpoofed[MAXPLAYERS + 1];
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
@@ -127,7 +117,7 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 // CTFPlayer::PreThink -> CTFPlayerShared::ConditionThink
 static void SDKHookCB_Client_PreThink(int client)
 {
-	g_isPreThinkSpoofed[client] = false;
+	Spoof_BeginFrame(client);
 
 	// Disable radius buffs like the Buff Banner
 	if (!AreTeammatesEnemies())
@@ -136,68 +126,57 @@ static void SDKHookCB_Client_PreThink(int client)
 	if (!GetEntProp(client, Prop_Send, "m_bRageDraining"))
 		return;
 
-	g_isPreThinkSpoofed[client] = true;
-
-	Entity(client).ChangeToSpectator();
+	Spoof_ChangeToSpectator(client);
 }
 
 // CTFPlayer::PreThink -> CTFPlayerShared::ConditionThink
 static void SDKHookCB_Client_PreThinkPost(int client)
 {
-	if (!g_isPreThinkSpoofed[client])
-		return;
-
-	g_isPreThinkSpoofed[client] = false;
-
-	Entity(client).ResetTeam();
+	Spoof_EndFrame();
 }
 
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThink(int client)
 {
+	Spoof_BeginFrame(client);
+
 	// CTFPlayer::DoTauntAttack
 	if (TF2_IsPlayerInCondition(client, TFCond_Taunting))
 	{
-		g_postThinkType = PostThinkType_Spectator;
-		
 		// Allows taunt kills to work on both teams
-		Entity(client).ChangeToSpectator();
+		Spoof_ChangeToSpectator(client);
 		return;
 	}
-	
+
 	int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 	if (activeWeapon == -1)
 		return;
-	
+
 	int weaponID = SDKCall_CTFWeaponBase_GetWeaponID(activeWeapon);
 	bool teammatesAreEnemies = AreTeammatesEnemies();
-	
+
 	// For functions that use GetEnemyTeam(), move everyone else to the enemy team
 	if (IsWeaponIDInList(weaponID, g_enemyItemIDs, sizeof(g_enemyItemIDs)) || (teammatesAreEnemies && IsWeaponIDInList(weaponID, g_teammateEnemyItemIDs, sizeof(g_teammateEnemyItemIDs))))
 	{
-		g_postThinkType = PostThinkType_EnemyTeam;
-
 		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
 
 		for (int other = 1; other <= MaxClients; other++)
 		{
 			if (IsClientInGame(other) && other != client)
 			{
-				Entity(other).SetTeam(enemyTeam);
+				Spoof_SetTeam(other, enemyTeam);
 			}
 		}
 
 		return;
 	}
-	
+
 	// For functions that do simple GetTeamNumber() checks, move ourselves to spectator team
 	if (GameRules_GetRoundState() != RoundState_TeamWin || GetClientTeam(client) == GameRules_GetProp("m_iWinningTeam"))
 	{
 		if (IsWeaponIDInList(weaponID, g_spectatorItemIDs, sizeof(g_spectatorItemIDs)) || (teammatesAreEnemies && IsWeaponIDInList(weaponID, g_teammateSpectatorItemIDs, sizeof(g_teammateSpectatorItemIDs))))
 		{
-			g_postThinkType = PostThinkType_Spectator;
-
-			Entity(client).ChangeToSpectator();
+			Spoof_ChangeToSpectator(client);
 		}
 	}
 }
@@ -205,26 +184,7 @@ static void SDKHookCB_Client_PostThink(int client)
 // CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThinkPost(int client)
 {
-	// Change everything back to how it was accordingly
-	switch (g_postThinkType)
-	{
-		case PostThinkType_Spectator:
-		{
-			Entity(client).ResetTeam();
-		}
-		case PostThinkType_EnemyTeam:
-		{
-			for (int other = 1; other <= MaxClients; other++)
-			{
-				if (IsClientInGame(other) && other != client)
-				{
-					Entity(other).ResetTeam();
-				}
-			}
-		}
-	}
-	
-	g_postThinkType = PostThinkType_None;
+	Spoof_EndFrame();
 }
 
 static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
@@ -296,20 +256,19 @@ static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 
 static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 {
+	Spoof_BeginFrame(entity);
+
 	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
 	{
-		Entity(other).ChangeToSpectator();
+		Spoof_ChangeToSpectator(other);
 	}
-	
+
 	return Plugin_Continue;
 }
 
 static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 {
-	if (IsEntityClient(other) && !IsObjectFriendly(entity, other))
-	{
-		Entity(other).ResetTeam();
-	}
+	Spoof_EndFrame();
 }
 
 static void SDKHookCB_Object_SpawnPost(int entity)

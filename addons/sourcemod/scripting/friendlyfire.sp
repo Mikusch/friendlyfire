@@ -29,7 +29,6 @@
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
-#define TF_GAMETYPE_ARENA	4
 
 enum
 {
@@ -164,24 +163,7 @@ public void OnEntityDestroyed(int entity)
 
 	if (Entity.IsEntityTracked(entity))
 	{
-		Entity obj = Entity(entity);
-		
-		// If an entity is removed while it still has a team history, we need to reset its owner's team.
-		// This can happen if the entity is deleted in-between pre-hook and post-hook callbacks e.g. from a projectile that collided with worldspawn.
-		// Our own team history goes away with us, so only the owner has to be put back.
-		int owner = !Spoof_IsEntitySpoofed(entity) ? FindParentOwnerEntity(entity) : -1;
-		if (owner != -1 && owner != entity)
-		{
-			Entity ownerEntity = Entity(owner);
-			
-			// Never reset more often than the owner was actually changed, that would throw off the hooks still running
-			for (int i = 0; i < obj.TeamCount && ownerEntity.TeamCount > 0; i++)
-			{
-				ownerEntity.ResetTeam();
-			}
-		}
-		
-		obj.Destroy();
+		Entity(entity).Destroy();
 	}
 }
 

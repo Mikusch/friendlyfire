@@ -349,58 +349,40 @@ static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int enti
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 {
+	Spoof_BeginFrame();
+
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1)
+	if (owner == -1)
+		return MRES_Ignored;
+
+	// Wrenches need the owner in spectator to repair friendly buildings
+	bool isWrench = SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH;
+	if (!AreTeammatesEnemies() && !isWrench)
+		return MRES_Ignored;
+
+	Spoof_ChangeToSpectator(owner);
+
+	// The owner being in spectator makes friendly buildings valid melee targets, so move them along
+	if (isWrench)
 	{
-		// Wrenches need the owner in spectator to repair friendly buildings
-		bool isWrench = SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH;
-		if (!AreTeammatesEnemies() && !isWrench)
-			return MRES_Ignored;
-
-		Entity(owner).ChangeToSpectator();
-
-		// The owner being in spectator makes friendly buildings valid melee targets, so move them along
-		if (isWrench)
+		// Move all our buildings to spectator to allow them to be repaired by us
+		int obj = -1;
+		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 		{
-			// Move all our buildings to spectator to allow them to be repaired by us
-			int obj = -1;
-			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
-			{
-				if (!IsObjectFriendly(obj, owner))
-					continue;
-				
-				Entity(obj).ChangeToSpectator();
-			}
+			if (!IsObjectFriendly(obj, owner))
+				continue;
+
+			Spoof_ChangeToSpectator(obj);
 		}
 	}
-	
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 {
-	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1)
-	{
-		bool isWrench = SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH;
-		if (!AreTeammatesEnemies() && !isWrench)
-			return MRES_Ignored;
+	Spoof_EndFrame();
 
-		Entity(owner).ResetTeam();
-
-		if (isWrench)
-		{
-			int obj = -1;
-			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
-			{
-				if (!IsObjectFriendly(obj, owner))
-					continue;
-				
-				Entity(obj).ResetTeam();
-			}
-		}
-	}
-	
 	return MRES_Ignored;
 }
 
@@ -448,7 +430,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		return MRES_Ignored;
 
 	// These orbs deal their damage from a think and skip anyone on the owner's team,
-	// so the owner has to be moved out of the way for teammates to be hurt at all
+	// so the owner has to be moved out of the way for teammates to be hurt at all.
 	if (StrEqual(classname, "tf_projectile_mechanicalarmorb"))
 	{
 		// CTFProjectile_MechanicalArmOrb::OrbThink, and the terminal burst from ExplodeAndRemove
@@ -577,7 +559,8 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
 		{
 			g_thinkFunction = ThinkFunction_DispenseThink;
-			
+			Spoof_BeginFrame();
+
 			// Disallow players able to be healed from dispenser
 			for (int client = 1; client <= MaxClients; client++)
 			{
@@ -585,7 +568,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 				{
 					if (!IsObjectFriendly(entity, client))
 					{
-						Entity(client).ChangeToSpectator();
+						Spoof_ChangeToSpectator(client);
 					}
 				}
 			}
@@ -710,16 +693,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 		}
 		case ThinkFunction_DispenseThink:
 		{
-			for (int client = 1; client <= MaxClients; client++)
-			{
-				if (IsClientInGame(client))
-				{
-					if (!IsObjectFriendly(entity, client))
-					{
-						Entity(client).ResetTeam();
-					}
-				}
-			}
+			Spoof_EndFrame();
 		}
 		case ThinkFunction_MedigunHealTargetThink:
 		{
@@ -765,16 +739,18 @@ static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post(int p
 
 static MRESReturn DHookCallback_CTFPlayer_CanAttack_Pre(int player, DHookReturn ret, DHookParam params)
 {
+	Spoof_BeginFrame();
+
 	// Fixes the winning team not being able to use certain weapon
-	Entity(player).ChangeToOriginalTeam();
-	
+	Spoof_ChangeToOriginalTeam(player);
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFPlayer_CanAttack_Post(int player, DHookReturn ret, DHookParam params)
 {
-	Entity(player).ResetTeam();
-	
+	Spoof_EndFrame();
+
 	return MRES_Ignored;
 }
 

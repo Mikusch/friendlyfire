@@ -296,15 +296,6 @@ void Spoof_EndFramesForEntity(int entity)
 	}
 }
 
-bool Spoof_IsEntitySpoofed(int entity)
-{
-	int ref = GetEntityRefSafe(entity);
-	if (ref == INVALID_ENT_REFERENCE)
-		return false;
-
-	return g_spoofedEntities.FindValue(ref) != -1;
-}
-
 void Spoof_SetTeam(int entity, TFTeam team)
 {
 	Entity target = Entity(entity);
