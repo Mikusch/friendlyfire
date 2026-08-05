@@ -360,8 +360,6 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 	if (!AreTeammatesEnemies() && !isWrench)
 		return MRES_Ignored;
 
-	Spoof_ChangeToSpectator(owner);
-
 	// The owner being in spectator makes friendly buildings valid melee targets, so move them along
 	if (isWrench)
 	{
@@ -376,6 +374,8 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 		}
 	}
 
+	Spoof_ChangeToSpectator(owner);
+
 	return MRES_Ignored;
 }
 
@@ -385,7 +385,6 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
 
 	return MRES_Ignored;
 }
-
 
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {

@@ -219,16 +219,7 @@ static void OnPluginStateChanged(bool enable)
 		else
 		{
 			if (Entity.IsEntityTracked(entity))
-			{
-				Entity obj = Entity(entity);
-
-				while (obj.TeamCount > 0)
-				{
-					obj.ResetTeam();
-				}
-
-				obj.Destroy();
-			}
+				Entity(entity).Destroy();
 		}
 	}
 
