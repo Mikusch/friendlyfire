@@ -18,6 +18,10 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+#define SENTRYGUN_THINK_CONTEXT		"SentrygunContext"		// SENTRYGUN_CONTEXT
+#define DISPENSER_THINK_CONTEXT		"DispenseContext"		// DISPENSE_CONTEXT
+#define BASE_OBJECT_THINK_CONTEXT	"BaseObjectThink"		// OBJ_BASE_THINK_CONTEXT
+
 enum ThinkFunction
 {
 	ThinkFunction_None,
@@ -465,16 +469,16 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	if (StrEqual(classname, "obj_sentrygun"))
 	{
 		// CObjectSentrygun::SentryThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, "SentryThink") != TICK_NEVER_THINK)
+		if (SDKCall_CBaseEntity_GetNextThink(entity, SENTRYGUN_THINK_CONTEXT) != TICK_NEVER_THINK)
 			return MRES_Ignored;
-		
+
 		g_thinkFunction = ThinkFunction_SentryThink;
 		Spoof_BeginFrame();
 
 		TFTeam myTeam = TF2_GetEntityTeam(entity);
 		TFTeam enemyTeam = GetEnemyTeam(myTeam);
 		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
-		
+
 		// CObjectSentrygun::FindTarget uses CTFTeamManager to collect valid players.
 		// Add all enemy players to the desired team.
 		for (int client = 1; client <= MaxClients; client++)
@@ -541,7 +545,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
 		// CObjectDispenser::DispenseThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, "DispenseThink") != TICK_NEVER_THINK)
+		if (SDKCall_CBaseEntity_GetNextThink(entity, DISPENSER_THINK_CONTEXT) != TICK_NEVER_THINK)
 			return MRES_Ignored;
 		
 		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
@@ -564,7 +568,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "obj_attachment_sapper"))
 	{
 		// CBaseObject::BaseObjectThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, "BaseObjectThink") != TICK_NEVER_THINK)
+		if (SDKCall_CBaseEntity_GetNextThink(entity, BASE_OBJECT_THINK_CONTEXT) != TICK_NEVER_THINK)
 			return MRES_Ignored;
 		
 		g_thinkFunction = ThinkFunction_SapperThink;
