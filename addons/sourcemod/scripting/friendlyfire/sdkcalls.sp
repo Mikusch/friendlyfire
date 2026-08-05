@@ -101,8 +101,12 @@ static Handle PrepSDKCall_GetGlobalTeam(GameData gamedata)
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "GetGlobalTeam");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+#if SOURCEMOD_V_MAJOR > 1 || (SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 13)
+	PrepSDKCall_SetReturnInfo(SDKType_Address, SDKPass_Plain);
+#else
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
-	
+#endif
+
 	Handle call = EndPrepSDKCall();
 	if (!call)
 		ThrowError("Failed to create SDKCall: GetGlobalTeam");
@@ -209,10 +213,17 @@ int SDKCall_CTFSniperRifle_GetPenetrateType(int weapon)
 
 Address SDKCall_GetGlobalTeam(TFTeam team)
 {
-	if (g_sdkCall_GetGlobalTeam)
-		return SDKCall(g_sdkCall_GetGlobalTeam, team);
-	
-	return Address_Null;
+	if (!g_sdkCall_GetGlobalTeam)
+		return Address_Null;
+
+#if SOURCEMOD_V_MAJOR > 1 || (SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 13)
+	Address result = Address_Null;
+	SDKCall(g_sdkCall_GetGlobalTeam, result, team);
+
+	return result;
+#else
+	return SDKCall(g_sdkCall_GetGlobalTeam, team);
+#endif
 }
 
 void SDKCall_CTeam_AddPlayer(Address team, int client)
