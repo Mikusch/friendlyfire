@@ -176,10 +176,6 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
 
-	// Spies can always use any teleporter, see CObjectTeleporter::PlayerCanBeTeleported
-	if (TF2_GetPlayerClass(client) == TFClass_Spy)
-		return Plugin_Continue;
-
 	if (IsObjectFriendly(teleporter, client))
 		return Plugin_Continue;
 

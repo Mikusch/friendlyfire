@@ -107,9 +107,15 @@ bool IsObjectFriendly(int obj, int entity)
 
 	if (IsEntityClient(entity))
 	{
-		if (builder != -1 && builder == GetEntPropEnt(entity, Prop_Send, "m_hDisguiseTarget"))
+		// Spies can use any Teleporter, see CObjectTeleporter::PlayerCanBeTeleported.
+		if (TF2_GetObjectType(obj) == TFObject_Teleporter && TF2_GetPlayerClass(entity) == TFClass_Spy)
 			return true;
-		else if (builder == entity)	// obj_dispenser
+
+		// Buildings treat a Spy disguised as their own team as one of their own.
+		if (TF2_IsPlayerInCondition(entity, TFCond_Disguised) && view_as<TFTeam>(GetEntProp(entity, Prop_Send, "m_nDisguiseTeam")) == Entity(obj).GetOriginalTeam())
+			return true;
+
+		if (builder == entity)	// obj_dispenser
 			return true;
 		else if (GetEntPropEnt(obj, Prop_Data, "m_hParent") == entity)	// pd_dispenser
 			return true;
