@@ -324,14 +324,18 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Post(int entity, DHookPara
 
 static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
-	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration
+	// Allow Sydney Sleeper shots to pass through healthy teammates and extinguish burning ones.
+	if (!AreTeammatesEnemies() && ret.Value == TF_CUSTOM_PENETRATE_HEADSHOT)
+		return MRES_Ignored;
+
+	// Allows Sniper Rifles to hit teammates, without breaking Machina penetration.
 	int penetrateType = SDKCall_CTFSniperRifle_GetPenetrateType(entity);
 	if (penetrateType == TF_CUSTOM_NONE)
 	{
 		ret.Value = TF_CUSTOM_NONE;
 		return MRES_Supercede;
 	}
-	
+
 	return MRES_Ignored;
 }
 
