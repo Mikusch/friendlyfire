@@ -117,6 +117,7 @@ methodmap Entity
 			g_entityProperties.Set(this.ListIndex, team, EntityProperties::preHookDisguiseTeam);
 		}
 	}
+	
 	property bool PreHookFriendly
 	{
 		public get()
