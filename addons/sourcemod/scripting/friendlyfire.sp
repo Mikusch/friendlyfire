@@ -158,8 +158,10 @@ public void OnEntityDestroyed(int entity)
 	if (!PSM_IsEnabled())
 		return;
 	
+	Spoof_EndFramesForEntity(entity);
+
 	PSM_SDKUnhook(entity);
-	
+
 	if (Entity.IsEntityTracked(entity))
 	{
 		Entity obj = Entity(entity);
@@ -167,7 +169,7 @@ public void OnEntityDestroyed(int entity)
 		// If an entity is removed while it still has a team history, we need to reset its owner's team.
 		// This can happen if the entity is deleted in-between pre-hook and post-hook callbacks e.g. from a projectile that collided with worldspawn.
 		// Our own team history goes away with us, so only the owner has to be put back.
-		int owner = FindParentOwnerEntity(entity);
+		int owner = !Spoof_IsEntitySpoofed(entity) ? FindParentOwnerEntity(entity) : -1;
 		if (owner != -1 && owner != entity)
 		{
 			Entity ownerEntity = Entity(owner);
@@ -196,7 +198,10 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 	if (TF2_GetPlayerClass(client) == TFClass_Spy)
 		return Plugin_Continue;
 
-	result = IsObjectFriendly(teleporter, client);
+	if (IsObjectFriendly(teleporter, client))
+		return Plugin_Continue;
+
+	result = false;
 	return Plugin_Handled;
 }
 
@@ -232,7 +237,16 @@ static void OnPluginStateChanged(bool enable)
 		else
 		{
 			if (Entity.IsEntityTracked(entity))
-				Entity(entity).Destroy();
+			{
+				Entity obj = Entity(entity);
+
+				while (obj.TeamCount > 0)
+				{
+					obj.ResetTeam();
+				}
+
+				obj.Destroy();
+			}
 		}
 	}
 

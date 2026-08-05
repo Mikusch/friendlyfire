@@ -274,6 +274,14 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Pre(int enti
 	// ExplodeEffectOnTarget skips every target that shares our team number
 	Spoof_ChangeToSpectator(entity);
 
+	// Move the caster along with the fireball so they still compare equal to it and stay excluded.
+	// Otherwise nobody matches the spectator team and the caster burns themselves down.
+	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
+	if (thrower != -1)
+	{
+		Spoof_ChangeToSpectator(thrower);
+	}
+
 	return MRES_Ignored;
 }
 
@@ -449,7 +457,12 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 		g_thinkFunction = ThinkFunction_OrbThink;
 		Spoof_BeginFrame();
-		Spoof_ChangeToSpectator(FindParentOwnerEntity(entity));
+
+		int owner = FindParentOwnerEntity(entity);
+		if (owner != entity)
+		{
+			Spoof_ChangeToSpectator(owner);
+		}
 
 		return MRES_Ignored;
 	}
@@ -461,7 +474,12 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 		g_thinkFunction = ThinkFunction_ZapThink;
 		Spoof_BeginFrame();
-		Spoof_ChangeToSpectator(FindParentOwnerEntity(entity));
+
+		int owner = FindParentOwnerEntity(entity);
+		if (owner != entity)
+		{
+			Spoof_ChangeToSpectator(owner);
+		}
 
 		return MRES_Ignored;
 	}
@@ -480,7 +498,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		Spoof_BeginFrame();
 
 		TFTeam myTeam = TF2_GetEntityTeam(entity);
-		TFTeam enemyTeam = GetEnemyTeam(myTeam);
+		TFTeam enemyTeam = GetSentryEnemyTeam(myTeam);
 		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
 
 		// CObjectSentrygun::FindTarget uses CTFTeamManager to collect valid players.
@@ -490,9 +508,11 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			if (IsClientInGame(client))
 			{
 				TFTeam team = TF2_GetClientTeam(client);
-				Entity(client).PreHookTeam = team;
 				bool friendly = IsObjectFriendly(entity, client);
-				
+
+				Entity(client).PreHookTeam = team;
+				Entity(client).PreHookFriendly = friendly;
+
 				if (friendly && team == enemyTeam)
 				{
 					SDKCall_CTeam_RemovePlayer(pEnemyTeam, client);
@@ -506,11 +526,11 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 				if (!friendly)
 				{
 					Entity(client).PreHookDisguiseTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
-					SetEntProp(client, Prop_Send, "m_nDisguiseTeam", TFTeam_Spectator);
+					SetEntProp(client, Prop_Send, "m_nDisguiseTeam", TFTeam_Unassigned);
 				}
 			}
 		}
-		
+
 		// Buildings work in a similar way.
 		// NOTE: Previously, we would use CBaseObject::ChangeTeam, but we switched to AddObject/RemoveObject calls,
 		// due to ChangeTeam recreating the build points, causing issues with sapper placement.
@@ -520,9 +540,11 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 			{
 				TFTeam team = TF2_GetEntityTeam(obj);
-				Entity(obj).PreHookTeam = team;
 				bool friendly = IsObjectFriendly(entity, obj);
-				
+
+				Entity(obj).PreHookTeam = team;
+				Entity(obj).PreHookFriendly = friendly;
+
 				if (friendly && team == enemyTeam)
 				{
 					SDKCall_CTeam_RemoveObject(pEnemyTeam, obj);
@@ -591,9 +613,17 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 		// Self-cast spells like Overheal buff everyone on the caster's team in a radius
 		int owner = FindParentOwnerEntity(entity);
-		if (owner != entity)
+		if (owner != entity && IsEntityClient(owner))
 		{
-			Spoof_ChangeToSpectator(owner);
+			TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(owner));
+
+			for (int client = 1; client <= MaxClients; client++)
+			{
+				if (IsClientInGame(client) && client != owner)
+				{
+					Spoof_SetTeam(client, enemyTeam);
+				}
+			}
 		}
 	}
 	else if (StrEqual(classname, "tf_weapon_medigun"))
@@ -624,17 +654,19 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 		case ThinkFunction_SentryThink:
 		{
 			TFTeam myTeam = TF2_GetEntityTeam(entity);
-			TFTeam enemyTeam = GetEnemyTeam(myTeam);
+			TFTeam enemyTeam = GetSentryEnemyTeam(myTeam);
 			Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
-			
+
 			for (int client = 1; client <= MaxClients; client++)
 			{
 				if (IsClientInGame(client))
 				{
 					TFTeam team = Entity(client).PreHookTeam;
+					bool friendly = Entity(client).PreHookFriendly;
+
 					Entity(client).PreHookTeam = TFTeam_Unassigned;
-					bool friendly = IsObjectFriendly(entity, client);
-					
+					Entity(client).PreHookFriendly = false;
+
 					if (friendly && team == enemyTeam)
 					{
 						SDKCall_CTeam_AddPlayer(pEnemyTeam, client);
@@ -643,7 +675,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 					{
 						SDKCall_CTeam_RemovePlayer(pEnemyTeam, client);
 					}
-					
+
 					if (!friendly)
 					{
 						SetEntProp(client, Prop_Send, "m_nDisguiseTeam", Entity(client).PreHookDisguiseTeam);
@@ -651,15 +683,18 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 					}
 				}
 			}
-			
+
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 			{
 				if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
 				{
 					TFTeam team = Entity(obj).PreHookTeam;
-					bool friendly = IsObjectFriendly(entity, obj);
-					
+					bool friendly = Entity(obj).PreHookFriendly;
+
+					Entity(obj).PreHookTeam = TFTeam_Unassigned;
+					Entity(obj).PreHookFriendly = false;
+
 					if (friendly && team == enemyTeam)
 					{
 						SDKCall_CTeam_AddObject(pEnemyTeam, obj);
@@ -668,8 +703,6 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 					{
 						SDKCall_CTeam_RemoveObject(pEnemyTeam, obj);
 					}
-					
-					Entity(obj).PreHookTeam = TFTeam_Unassigned;
 				}
 			}
 
@@ -768,14 +801,20 @@ static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Post(Address shared, 
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weapon)
 {
+	// Detonating a teammate's stickybombs is not friendly fire, so leave them alone in graceful mode.
+	Spoof_BeginFrame();
+
+	if (!AreTeammatesEnemies())
+		return MRES_Ignored;
+
 	// Switch the weapon
-	Entity(weapon).ChangeToSpectator();
-	
+	Spoof_ChangeToSpectator(weapon);
+
 	// Switch the weapon's owner
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
-		Entity(owner).ChangeToSpectator();
+		Spoof_ChangeToSpectator(owner);
 	}
 	
 	// Switch every pipebomb created by this weapon
@@ -784,40 +823,27 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weap
 	{
 		if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
 		{
-			Entity(pipe).ChangeToSpectator();
+			Spoof_ChangeToSpectator(pipe);
 		}
 	}
-	
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int weapon)
 {
-	Entity(weapon).ResetTeam();
-	
-	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1)
-	{
-		Entity(owner).ResetTeam();
-	}
-	
-	int pipe = -1;
-	while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
-	{
-		if (GetEntPropEnt(pipe, Prop_Send, "m_hLauncher") == weapon)
-		{
-			Entity(pipe).ResetTeam();
-		}
-	}
-	
+	Spoof_EndFrame();
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
+	Spoof_BeginFrame();
+
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	TFTeam enemyTeam = GetEnemyTeam(TF2_GetEntityTeam(entity));
-	
+
 	// VPhysicsUpdate only explodes on what it sees as the enemy team.
 	// Jars are the exception, they have to keep flying past teammates to extinguish them later on.
 	if (AreTeammatesEnemies() || !IsJarProjectile(entity))
@@ -827,7 +853,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 			if (!IsClientInGame(client))
 				continue;
 
-			Entity(client).SetTeam(enemyTeam);
+			Spoof_SetTeam(client, enemyTeam);
 		}
 	}
 
@@ -839,40 +865,17 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 		{
 			if (!IsObjectFriendly(obj, thrower))
 				continue;
-			
-			Entity(obj).SetTeam(enemyTeam);
+
+			Spoof_SetTeam(obj, enemyTeam);
 		}
 	}
-	
+
 	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post(int entity, DHookParam params)
 {
-	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	
-	if (AreTeammatesEnemies() || !IsJarProjectile(entity))
-	{
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (!IsClientInGame(client))
-				continue;
+	Spoof_EndFrame();
 
-			Entity(client).ResetTeam();
-		}
-	}
-
-	if (AreTeammatesEnemies())
-	{
-		int obj = -1;
-		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
-		{
-			if (!IsObjectFriendly(obj, thrower))
-				continue;
-			
-			Entity(obj).ResetTeam();
-		}
-	}
-	
 	return MRES_Ignored;
 }

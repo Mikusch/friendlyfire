@@ -82,31 +82,46 @@ TFTeam GetEnemyTeam(TFTeam team)
 	}
 }
 
+TFTeam GetSentryEnemyTeam(TFTeam team)
+{
+	return team == TFTeam_Blue ? TFTeam_Red : TFTeam_Blue;
+}
+
+static int GetObjectBuilder(int obj)
+{
+	if (!HasEntProp(obj, Prop_Send, "m_hBuilder"))
+		return -1;
+
+	return GetEntPropEnt(obj, Prop_Send, "m_hBuilder");
+}
+
 bool IsObjectFriendly(int obj, int entity)
 {
-	if (IsValidEntity(entity))
+	if (!IsValidEntity(obj) || !IsValidEntity(entity))
+		return false;
+
+	if (!AreTeammatesEnemies() && Entity(obj).GetOriginalTeam() == Entity(entity).GetOriginalTeam())
+		return true;
+
+	int builder = GetObjectBuilder(obj);
+
+	if (IsEntityClient(entity))
 	{
 		// Objects are friendly towards their entire team unless teammates are enemies.
 		// The original team has to be used here, because callers of this function commonly spoof team numbers.
-		if (!AreTeammatesEnemies() && IsValidEntity(obj) && Entity(obj).GetOriginalTeam() == Entity(entity).GetOriginalTeam())
+		if (builder != -1 && builder == GetEntPropEnt(entity, Prop_Send, "m_hDisguiseTarget"))
 			return true;
-		
-		if (IsEntityClient(entity))
-		{
-			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == GetEntPropEnt(entity, Prop_Send, "m_hDisguiseTarget"))
-				return true;
-			else if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == entity)	// obj_dispenser
-				return true;
-			else if (GetEntPropEnt(obj, Prop_Data, "m_hParent") == entity)	// pd_dispenser
-				return true;
-		}
-		else if (HasEntProp(entity, Prop_Send, "m_hBuilder"))
-		{
-			if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == GetEntPropEnt(entity, Prop_Send, "m_hBuilder"))
-				return true;
-		}
+		else if (builder == entity)	// obj_dispenser
+			return true;
+		else if (GetEntPropEnt(obj, Prop_Data, "m_hParent") == entity)	// pd_dispenser
+			return true;
 	}
-	
+	else if (HasEntProp(entity, Prop_Send, "m_hBuilder"))
+	{
+		if (builder != -1 && builder == GetEntPropEnt(entity, Prop_Send, "m_hBuilder"))
+			return true;
+	}
+
 	return false;
 }
 
@@ -138,13 +153,11 @@ bool IsEntityBaseGrenadeProjectile(int entity)
 
 bool IsJarProjectile(int entity)
 {
-	switch (SDKCall_CBaseProjectile_GetProjectileType(entity))
-	{
-		case TF_PROJECTILE_JAR, TF_PROJECTILE_JAR_MILK, TF_PROJECTILE_JAR_GAS, TF_PROJECTILE_FESTIVE_JAR, TF_PROJECTILE_BREADMONSTER_JARATE, TF_PROJECTILE_BREADMONSTER_MADMILK:
-			return true;
-	}
+	char classname[64];
+	if (!GetEntityClassname(entity, classname, sizeof(classname)))
+		return false;
 
-	return false;
+	return !strncmp(classname, "tf_projectile_jar", 17);
 }
 
 bool ShouldProjectileKeepTeams(int entity, int other, int owner)

@@ -34,6 +34,7 @@ enum struct EntityProperties
 	
 	TFTeam preHookTeam;
 	TFTeam preHookDisguiseTeam;
+	bool preHookFriendly;
 }
 
 methodmap Entity
@@ -107,6 +108,17 @@ methodmap Entity
 		public set(TFTeam team)
 		{
 			g_entityProperties.Set(this.ListIndex, team, EntityProperties::preHookDisguiseTeam);
+		}
+	}
+	property bool PreHookFriendly
+	{
+		public get()
+		{
+			return g_entityProperties.Get(this.ListIndex, EntityProperties::preHookFriendly) != 0;
+		}
+		public set(bool friendly)
+		{
+			g_entityProperties.Set(this.ListIndex, friendly, EntityProperties::preHookFriendly);
 		}
 	}
 	
@@ -219,19 +231,37 @@ methodmap Entity
 	}
 }
 
+enum struct SpoofFrame
+{
+	int start;	// index into g_spoofedEntities where this frame begins
+	int owner;	// reference of the entity whose hook opened the frame, or INVALID_ENT_REFERENCE
+}
+
 static ArrayList g_spoofedEntities;
 static ArrayList g_spoofFrames;
+
+int GetEntityRefSafe(int entity)
+{
+	if (!IsValidEntity(entity))
+		return INVALID_ENT_REFERENCE;
+
+	return IsEntNetworkable(entity) ? EntIndexToEntRef(entity) : entity;
+}
 
 void Spoof_Init()
 {
 	g_spoofedEntities = new ArrayList();
-	g_spoofFrames = new ArrayList();
+	g_spoofFrames = new ArrayList(sizeof(SpoofFrame));
 }
 
-// Every pre-hook using this has to call it before any other return path, so its post-hook always has a frame to close
-void Spoof_BeginFrame()
+// Every pre-hook using this has to call it before any other return path, so its post-hook always has a frame to close.
+void Spoof_BeginFrame(int owner = INVALID_ENT_REFERENCE)
 {
-	g_spoofFrames.Push(g_spoofedEntities.Length);
+	SpoofFrame frame;
+	frame.start = g_spoofedEntities.Length;
+	frame.owner = GetEntityRefSafe(owner);
+
+	g_spoofFrames.PushArray(frame);
 }
 
 void Spoof_EndFrame()
@@ -239,21 +269,42 @@ void Spoof_EndFrame()
 	int frames = g_spoofFrames.Length;
 	if (!frames)
 		return;
-	
-	int start = g_spoofFrames.Get(frames - 1);
+
+	int start = g_spoofFrames.Get(frames - 1, SpoofFrame::start);
 	g_spoofFrames.Erase(frames - 1);
-	
+
 	for (int i = g_spoofedEntities.Length - 1; i >= start; i--)
 	{
 		int ref = g_spoofedEntities.Get(i);
 		g_spoofedEntities.Erase(i);
-		
+
 		// The entity may have been removed in-between the two callbacks, taking its team history with it
 		if (Entity.IsReferenceTracked(ref))
 		{
 			view_as<Entity>(ref).ResetTeam();
 		}
 	}
+}
+
+void Spoof_EndFramesForEntity(int entity)
+{
+	int ref = GetEntityRefSafe(entity);
+	if (ref == INVALID_ENT_REFERENCE)
+		return;
+
+	while (g_spoofFrames.Length > 0 && g_spoofFrames.Get(g_spoofFrames.Length - 1, SpoofFrame::owner) == ref)
+	{
+		Spoof_EndFrame();
+	}
+}
+
+bool Spoof_IsEntitySpoofed(int entity)
+{
+	int ref = GetEntityRefSafe(entity);
+	if (ref == INVALID_ENT_REFERENCE)
+		return false;
+
+	return g_spoofedEntities.FindValue(ref) != -1;
 }
 
 void Spoof_SetTeam(int entity, TFTeam team)
@@ -276,6 +327,21 @@ void Spoof_ChangeToOriginalTeam(int entity)
 
 void Spoof_Clear()
 {
+	while (g_spoofFrames.Length > 0)
+	{
+		Spoof_EndFrame();
+	}
+
+	// Anything that was spoofed outside of a frame
+	for (int i = g_spoofedEntities.Length - 1; i >= 0; i--)
+	{
+		int ref = g_spoofedEntities.Get(i);
+		if (Entity.IsReferenceTracked(ref))
+		{
+			view_as<Entity>(ref).ResetTeam();
+		}
+	}
+
 	g_spoofedEntities.Clear();
 	g_spoofFrames.Clear();
 }
