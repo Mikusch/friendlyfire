@@ -155,7 +155,7 @@ methodmap Entity
 		this.SetTeam(TFTeam_Spectator);
 	}
 	
-	// Creates a history entry regardless of whether we already are in our original team or not
+	// Creates a history entry regardless of whether we already are in our original team or not.
 	public void ChangeToOriginalTeam()
 	{
 		this.SetTeam(this.GetOriginalTeam());
@@ -240,8 +240,8 @@ methodmap Entity
 
 enum struct SpoofFrame
 {
-	int start;	// index into g_spoofedEntities where this frame begins
-	int owner;	// reference of the entity whose hook opened the frame, or INVALID_ENT_REFERENCE
+	int start;	// Index into g_spoofedEntities where this frame begins.
+	int owner;	// Reference of the entity whose hook opened the frame, or INVALID_ENT_REFERENCE.
 }
 
 static ArrayList g_spoofedEntities;
@@ -254,6 +254,8 @@ void Spoof_Init()
 }
 
 // Every pre-hook using this has to call it before any other return path, so its post-hook always has a frame to close.
+// Only pass `owner` from an SDKHook, which drops the post callback of an entity removed mid-call.
+// DHooks still runs it, so naming an owner there would close the frame twice.
 void Spoof_BeginFrame(int owner = INVALID_ENT_REFERENCE)
 {
 	SpoofFrame frame;
@@ -277,7 +279,7 @@ void Spoof_EndFrame()
 		int ref = g_spoofedEntities.Get(i);
 		g_spoofedEntities.Erase(i);
 
-		// The entity may have been removed in-between the two callbacks, taking its team history with it
+		// The entity may have been removed in-between the two callbacks, taking its team history with it.
 		if (Entity.IsReferenceTracked(ref))
 		{
 			view_as<Entity>(ref).ResetTeam();
@@ -285,6 +287,7 @@ void Spoof_EndFrame()
 	}
 }
 
+// Closes the frames of an entity that was removed inside its own hook, whose post-hook will never run.
 void Spoof_EndFramesForEntity(int entity)
 {
 	int ref = GetEntityRefSafe(entity);
@@ -322,7 +325,7 @@ void Spoof_Clear()
 		Spoof_EndFrame();
 	}
 
-	// Anything that was spoofed outside of a frame
+	// Anything that was spoofed outside of a frame.
 	for (int i = g_spoofedEntities.Length - 1; i >= 0; i--)
 	{
 		int ref = g_spoofedEntities.Get(i);

@@ -82,6 +82,7 @@ TFTeam GetEnemyTeam(TFTeam team)
 	}
 }
 
+// CObjectSentrygun::FindTarget maps every team that is not BLUE to RED, unlike GetEnemyTeam.
 TFTeam GetSentryEnemyTeam(TFTeam team)
 {
 	return team == TFTeam_Blue ? TFTeam_Red : TFTeam_Blue;
@@ -100,6 +101,7 @@ bool IsObjectFriendly(int obj, int entity)
 	if (!IsValidEntity(obj) || !IsValidEntity(entity))
 		return false;
 
+	// The original team has to be used here, because callers of this function commonly spoof team numbers.
 	if (!AreTeammatesEnemies() && Entity(obj).GetOriginalTeam() == Entity(entity).GetOriginalTeam())
 		return true;
 
@@ -155,6 +157,8 @@ bool IsEntityBaseGrenadeProjectile(int entity)
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
 }
 
+// Keyed off the classname, because CTFProjectile_Cleaver and CTFProjectile_SpellBats inherit
+// TF_PROJECTILE_JAR from CTFProjectile_Jar without ever assigning their own type.
 bool IsJarProjectile(int entity)
 {
 	char classname[64];
@@ -169,11 +173,11 @@ bool ShouldProjectileKeepTeams(int entity, int other, int owner)
 	if (!IsEntityBaseObject(other))
 		return false;
 
-	// Our own buildings are not a valid target in any mode
+	// Our own buildings are not a valid target in any mode.
 	if (GetEntPropEnt(other, Prop_Send, "m_hBuilder") == owner)
 		return true;
 
-	// Rescue Ranger bolts repair friendly buildings instead of damaging them
+	// Rescue Ranger bolts repair friendly buildings instead of damaging them.
 	return SDKCall_CBaseProjectile_GetProjectileType(entity) == TF_PROJECTILE_BUILDING_REPAIR_BOLT
 		&& IsObjectFriendly(other, owner);
 }

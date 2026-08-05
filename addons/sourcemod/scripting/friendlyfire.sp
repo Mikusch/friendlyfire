@@ -172,7 +172,7 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 	if (!PSM_IsEnabled())
 		return Plugin_Continue;
 	
-	// Teleporters work for the entire team unless teammates are enemies
+	// Teleporters work for the entire team unless teammates are enemies.
 	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
 

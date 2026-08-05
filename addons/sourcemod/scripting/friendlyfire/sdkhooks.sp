@@ -26,7 +26,7 @@ int g_spectatorItemIDs[] =
 	TF_WEAPON_KNIFE,				// CTFKnife::BackstabVMThink
 };
 
-// These only interact with teammates in a friendly way, so they are left alone unless teammates are enemies
+// These only interact with teammates in a friendly way, so they are left alone unless teammates are enemies.
 int g_teammateSpectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,		// CTFPlayerShared::PulseRageBuff
@@ -41,7 +41,8 @@ int g_enemyItemIDs[] =
 	TF_WEAPON_ROCKETPACK,				// CTFRocketPack::Launch
 };
 
-// Moving everyone else instead of ourselves, for the same reasons as above
+// Moving everyone else instead of ourselves, for the same reasons as above.
+// Anything that creates a projectile during ItemPostFrame belongs here, projectiles copy the owner's team as they are created.
 int g_teammateEnemyItemIDs[] =
 {
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
@@ -53,7 +54,7 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))
 	{
-		// Fixes various weapons and items in friendly fire
+		// Fixes various weapons and items in friendly fire.
 		PSM_SDKHook(entity, SDKHook_PreThink, SDKHookCB_Client_PreThink);
 		PSM_SDKHook(entity, SDKHook_PreThinkPost, SDKHookCB_Client_PreThinkPost);
 		PSM_SDKHook(entity, SDKHook_PostThink, SDKHookCB_Client_PostThink);
@@ -61,17 +62,17 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 		PSM_SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_Client_OnTakeDamage);
 		PSM_SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_Client_OnTakeDamagePost);
 		
-		// Makes cloaked spies fully invisible
+		// Makes cloaked Spies fully invisible.
 		PSM_SDKHook(entity, SDKHook_SetTransmit, SDKHookCB_Client_SetTransmit);
 	}
 	else
 	{
 		if (!strncmp(classname, "obj_", 4))
 		{
-			// Makes objects solid to teammates
+			// Makes objects solid to teammates.
 			PSM_SDKHook(entity, SDKHook_SpawnPost, SDKHookCB_Object_SpawnPost);
 			
-			// Lets teammates damage them while they are only damageable.
+			// Lets teammates damage buildings.
 			// CBaseObject::TraceAttack drops the damage before OnTakeDamage ever runs, so both are needed.
 			PSM_SDKHook(entity, SDKHook_TraceAttack, SDKHookCB_Object_TraceAttack);
 			PSM_SDKHook(entity, SDKHook_TraceAttackPost, SDKHookCB_Object_TraceAttackPost);
@@ -83,32 +84,32 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 		{
 			if (StrEqual(classname, "tf_projectile_cleaver") || StrEqual(classname, "tf_projectile_pipe") || StrEqual(classname, "tf_projectile_arrow") || StrEqual(classname, "tf_projectile_energy_ring") || StrEqual(classname, "tf_projectile_balloffire"))
 			{
-				// Fixes these dealing no damage to teammates, they all skip anyone sharing their team
+				// Fixes these dealing no damage to teammates, they all skip anyone sharing their team.
 				PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_Projectile_Touch);
 				PSM_SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Projectile_TouchPost);
 			}
 			else if (StrEqual(classname, "tf_projectile_pipe_remote"))
 			{
-				// Allows detonating teammate's pipebombs
+				// Allows detonating teammates' pipebombs.
 				PSM_SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
 				PSM_SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 			}
 		}
 		else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 		{
-			// Prevents Dispensers from healing teammates
+			// Prevents Dispensers from healing teammates.
 			PSM_SDKHook(entity, SDKHook_StartTouch, SDKHookCB_ObjectDispenser_StartTouch);
 			PSM_SDKHook(entity, SDKHook_StartTouchPost, SDKHookCB_ObjectDispenser_StartTouchPost);
 		}
 		else if (StrEqual(classname, "tf_flame_manager"))
 		{
-			// Fixes Flame Throwers dealing no damage to teammates
+			// Fixes Flame Throwers dealing no damage to teammates.
 			PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_FlameManager_Touch);
 			PSM_SDKHook(entity, SDKHook_TouchPost, SDKHookCB_FlameManager_TouchPost);
 		}
 		else if (StrEqual(classname, "tf_gas_manager"))
 		{
-			// Prevents Gas Passer clouds from coating the thrower
+			// Prevents Gas Passer clouds from coating the thrower.
 			PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
 		}
 	}
@@ -119,17 +120,17 @@ static void SDKHookCB_Client_PreThink(int client)
 {
 	Spoof_BeginFrame(client);
 
-	// Disable radius buffs like the Buff Banner
+	// Disable radius buffs like the Buff Banner.
 	if (!AreTeammatesEnemies())
 		return;
 
+	// Only PulseRageBuff needs this, and spoofing outside of it would make CheckForIdle kick idle players.
 	if (!GetEntProp(client, Prop_Send, "m_bRageDraining"))
 		return;
 
 	Spoof_ChangeToSpectator(client);
 }
 
-// CTFPlayer::PreThink -> CTFPlayerShared::ConditionThink
 static void SDKHookCB_Client_PreThinkPost(int client)
 {
 	Spoof_EndFrame();
@@ -143,7 +144,7 @@ static void SDKHookCB_Client_PostThink(int client)
 	// CTFPlayer::DoTauntAttack
 	if (TF2_IsPlayerInCondition(client, TFCond_Taunting))
 	{
-		// Allows taunt kills to work on both teams
+		// Allows taunt kills to work on both teams.
 		Spoof_ChangeToSpectator(client);
 		return;
 	}
@@ -155,7 +156,7 @@ static void SDKHookCB_Client_PostThink(int client)
 	int weaponID = SDKCall_CTFWeaponBase_GetWeaponID(activeWeapon);
 	bool teammatesAreEnemies = AreTeammatesEnemies();
 
-	// For functions that use GetEnemyTeam(), move everyone else to the enemy team
+	// For functions that use GetEnemyTeam(), move everyone else to the enemy team.
 	if (IsWeaponIDInList(weaponID, g_enemyItemIDs, sizeof(g_enemyItemIDs)) || (teammatesAreEnemies && IsWeaponIDInList(weaponID, g_teammateEnemyItemIDs, sizeof(g_teammateEnemyItemIDs))))
 	{
 		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
@@ -171,7 +172,7 @@ static void SDKHookCB_Client_PostThink(int client)
 		return;
 	}
 
-	// For functions that do simple GetTeamNumber() checks, move ourselves to spectator team
+	// For functions that do simple GetTeamNumber() checks, move ourselves to the spectator team.
 	if (GameRules_GetRoundState() != RoundState_TeamWin || GetClientTeam(client) == GameRules_GetProp("m_iWinningTeam"))
 	{
 		if (IsWeaponIDInList(weaponID, g_spectatorItemIDs, sizeof(g_spectatorItemIDs)) || (teammatesAreEnemies && IsWeaponIDInList(weaponID, g_teammateSpectatorItemIDs, sizeof(g_teammateSpectatorItemIDs))))
@@ -181,7 +182,6 @@ static void SDKHookCB_Client_PostThink(int client)
 	}
 }
 
-// CTFWeaponBase::ItemPostFrame
 static void SDKHookCB_Client_PostThinkPost(int client)
 {
 	Spoof_EndFrame();
@@ -194,11 +194,11 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 	if (victim == attacker)
 		return Plugin_Continue;
 
+	// A truce means nobody damages anybody, so leave every team alone while one is running.
 	if (GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 
-	// Falling reads the lander's own team for both the stomp and the Thermal Thruster shockwave,
-	// so they keep it and everyone else moves instead
+	// Falling reads the lander's own team, so they keep it and everyone else moves instead.
 	if (damagetype & DMG_FALL)
 	{
 		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(victim));
@@ -215,7 +215,7 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 		}
 		else
 		{
-			// Stomping is damage, but the shockwave around it is not, so only the one being landed on moves
+			// Stomping is damage, but the shockwave around it is not, so only the one being landed on moves.
 			int ground = GetEntPropEnt(victim, Prop_Data, "m_hGroundEntity");
 			if (IsEntityClient(ground))
 			{
@@ -240,11 +240,11 @@ static void SDKHookCB_Client_OnTakeDamagePost(int victim, int attacker, int infl
 
 static Action SDKHookCB_Client_SetTransmit(int entity, int client)
 {
-	// Teammates can always see each other's cloaked Spies unless teammates are enemies
+	// Teammates can always see each other's cloaked Spies unless teammates are enemies.
 	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
 	
-	// Don't transmit invisible spies to living players
+	// Don't transmit invisible Spies to living players.
 	if (entity == client || !IsPlayerAlive(client))
 		return Plugin_Continue;
 	
@@ -273,26 +273,29 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
-	// Enable collisions for both teams, unless teammates are supposed to walk through their own buildings
+	// Enable collisions for both teams, unless teammates are supposed to walk through their own buildings.
 	SDKHooks_SetObjectSolidToPlayers(entity, AreTeammatesEnemies());
 }
 
-// Moves an attacking teammate out of the way so a building will accept their damage
+// Moves an attacking teammate out of the way so a building will accept their damage.
 static void SpoofObjectAttacker(int victim, int attacker)
 {
 	if (AreTeammatesEnemies() || !IsEntityClient(attacker))
 		return;
 
-	// Buildings only take teammate damage, never damage from the one who built them
+	// Buildings only take teammate damage, never damage from the one who built them.
 	if (GetEntPropEnt(victim, Prop_Send, "m_hBuilder") == attacker)
 		return;
 
+	// A sapped building routes same-team damage to the sapper, which is how melee weapons knock them off.
 	if (GetEntProp(victim, Prop_Send, "m_bHasSapper"))
 		return;
 
+	// CBaseObject::OnTakeDamage blocks building damage during a truce by comparing real team numbers.
 	if (GameRules_GetProp("m_bTruceActive"))
 		return;
 
+	// Another hook already moved this building along, moving the attacker too would pair them up again.
 	if (Entity(victim).TeamCount > 0)
 		return;
 
@@ -374,11 +377,11 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 	if (attacker == -1)
 		return Plugin_Continue;
 
-	// We might already be in spectate from another hook, do not allow damaging our own pipebombs
+	// We might already be in spectate from another hook, so do not allow damaging our own pipebombs.
 	if (FindParentOwnerEntity(victim) == attacker)
 		return Plugin_Handled;
 
-	// Allows destroying projectiles (e.g. pipebombs)
+	// Allows destroying projectiles (e.g. pipebombs).
 	Spoof_ChangeToSpectator(attacker);
 	
 	return Plugin_Continue;
@@ -396,7 +399,6 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
-		// Fixes Flame Throwers during friendly fire
 		Spoof_ChangeToSpectator(owner);
 	}
 
@@ -412,7 +414,7 @@ static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
 	if (FindParentOwnerEntity(entity) == other)
 	{
-		// Do not coat ourselves in our own gas
+		// Do not coat ourselves in our own gas.
 		return Plugin_Handled;
 	}
 	

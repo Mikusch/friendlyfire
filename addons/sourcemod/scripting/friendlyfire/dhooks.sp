@@ -73,35 +73,35 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))
 	{
-		// Fixes on-death effects (e.g. ragdolls) showing spectator visuals
+		// Fixes on-death effects (e.g. ragdolls) showing spectator visuals.
 		PSM_DHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, entity, DHookCallback_CTFPlayer_Event_Killed_Pre);
 		PSM_DHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Post, entity, DHookCallback_CTFPlayer_Event_Killed_Post);
 	}
 	else if (!strncmp(classname, "tf_projectile_", 14))
 	{
-		// Fixes projectiles sometimes not colliding with teammates
+		// Fixes projectiles sometimes not colliding with teammates.
 		PSM_DHookEntity(g_dhook_CBaseProjectile_CanCollideWithTeammates, Hook_Post, entity, DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post);
 		
-		// Fixes reflected projectiles being in spectator team
+		// Fixes reflected projectiles being in the spectator team.
 		PSM_DHookEntity(g_dhook_CBaseEntity_Deflected, Hook_Pre, entity, DHookCallback_CBaseEntity_Deflected_Pre);
 		PSM_DHookEntity(g_dhook_CBaseEntity_Deflected, Hook_Post, entity, DHookCallback_CBaseEntity_Deflected_Post);
 		
 		if (IsEntityBaseGrenadeProjectile(entity))
 		{
-			// Fixes grenades rarely bouncing off friendly objects
+			// Fixes grenades rarely bouncing off friendly objects.
 			PSM_DHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre);
 			PSM_DHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
 		}
 		
 		if (!strncmp(classname, "tf_projectile_jar", 17))
 		{
-			// Fixes jars not applying effects to teammates when hitting the world
+			// Fixes jars not applying effects to teammates when hitting the world.
 			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
 			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
 		}
 		else if (StrEqual(classname, "tf_projectile_flare"))
 		{
-			// Fixes Scorch Shot knockback on teammates
+			// Fixes Scorch Shot knockback on teammates.
 			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
 			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
 		}
@@ -114,13 +114,13 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	}
 	else if (IsEntityBaseCombatWeapon(entity))
 	{
-		// Fixes weapons able to deflect entities during truce
+		// Fixes weapons being able to deflect entities during a truce.
 		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Pre, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre);
 		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Post, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Post);
 		
 		if (IsEntityBaseMelee(entity))
 		{
-			// Fixes wrenches not being able to upgrade friendly objects, as well as a few other melee weapons
+			// Fixes wrenches not being able to upgrade friendly objects.
 			PSM_DHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
 			PSM_DHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
 		}
@@ -129,12 +129,12 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 			int weaponID = SDKCall_CTFWeaponBase_GetWeaponID(entity);
 			if (weaponID == TF_WEAPON_SNIPERRIFLE || weaponID == TF_WEAPON_SNIPERRIFLE_DECAP || weaponID == TF_WEAPON_SNIPERRIFLE_CLASSIC)
 			{
-				// Fixes Sniper Rifles dealing no damage to teammates
+				// Fixes Sniper Rifles dealing no damage to teammates.
 				PSM_DHookEntity(g_dhook_CTFSniperRifle_GetCustomDamageType, Hook_Post, entity, DHookCallback_CTFSniperRifle_GetCustomDamageType_Post);
 			}
 			else if (weaponID == TF_WEAPON_PIPEBOMBLAUNCHER)
 			{
-				// Fixes pipebomb launchers not being able to knock around friendly pipebombs
+				// Fixes pipebomb launchers not being able to knock around friendly pipebombs.
 				PSM_DHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
 				PSM_DHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
 			}
@@ -146,7 +146,7 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookPara
 {
 	Spoof_BeginFrame();
 	
-	// Switch back to the original team to force proper skin for ragdolls and other on-death effects
+	// Switch back to the original team so ragdolls and other on-death effects use the right skin.
 	Spoof_ChangeToOriginalTeam(player);
 
 	int attacker = params.GetObjectVar(1, g_offset_CTakeDamageInfo_m_hAttacker, ObjectValueType_Ehandle);
@@ -172,10 +172,10 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwner");
 	if (IsEntityClient(owner))
 	{
-		// DeflectProjectiles checks the enemy team of each entity in the box
+		// DeflectProjectiles checks the enemy team of each entity in the box.
 		Spoof_ChangeToOriginalTeam(owner);
 
-		// Airblasting a teammate extinguishes them instead of pushing them around
+		// Airblasting a teammate extinguishes them instead of pushing them around.
 		if (!AreTeammatesEnemies())
 			return MRES_Ignored;
 
@@ -194,7 +194,7 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 		int projectile = -1;
 		while ((projectile = FindEntityByClassname(projectile, "tf_projectile_*")) != -1)
 		{
-			// Our own projectiles were never deflectable, leave them alone
+			// Our own projectiles were never deflectable, leave them alone.
 			if (FindParentOwnerEntity(projectile) == owner)
 				continue;
 
@@ -271,7 +271,7 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Pre(int enti
 {
 	Spoof_BeginFrame();
 
-	// ExplodeEffectOnTarget skips every target that shares our team number
+	// ExplodeEffectOnTarget skips every target that shares our team number.
 	Spoof_ChangeToSpectator(entity);
 
 	// Move the caster along with the fireball so they still compare equal to it and stay excluded.
@@ -296,17 +296,16 @@ static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int
 {
 	if (!AreTeammatesEnemies())
 	{
-		// Grappling onto a teammate is not friendly fire
+		// Grappling onto a teammate is not friendly fire.
 		if (SDKCall_CBaseProjectile_GetProjectileType(entity) == TF_PROJECTILE_GRAPPLINGHOOK)
 			return MRES_Ignored;
 
-		// Jars keep their grace period, so they still fly past a teammate that is not burning instead of stopping on them.
+		// Jars keep their grace period, so they still fly past teammates that are not burning.
 		// See CTFProjectile_Jar::PipebombTouch.
 		if (IsJarProjectile(entity))
 			return MRES_Ignored;
 	}
 
-	// Always make projectiles collide with teammates
 	ret.Value = true;
 
 	return MRES_Supercede;
@@ -316,7 +315,7 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Pre(int entity, DHookParam
 {
 	Spoof_BeginFrame();
 	
-	// Make projectiles have the original team of the deflector
+	// Make projectiles have the original team of the deflector.
 	if (!params.IsNull(1))
 		Spoof_ChangeToOriginalTeam(params.Get(1));
 	
@@ -333,6 +332,7 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Post(int entity, DHookPara
 static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
 	// Allow Sydney Sleeper shots to pass through healthy teammates and extinguish burning ones.
+	// SourceMod's TF_CUSTOM_PENETRATE_HEADSHOT is a stale name for TF_DMG_CUSTOM_PENETRATE_NONBURNING_TEAMMATE.
 	if (!AreTeammatesEnemies() && ret.Value == TF_CUSTOM_PENETRATE_HEADSHOT)
 		return MRES_Ignored;
 
@@ -355,15 +355,14 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 	if (owner == -1)
 		return MRES_Ignored;
 
-	// Wrenches need the owner in spectator to repair friendly buildings
+	// Wrenches need the owner in spectator to repair friendly buildings.
 	bool isWrench = SDKCall_CTFWeaponBase_GetWeaponID(entity) == TF_WEAPON_WRENCH;
 	if (!AreTeammatesEnemies() && !isWrench)
 		return MRES_Ignored;
 
-	// The owner being in spectator makes friendly buildings valid melee targets, so move them along
+	// The owner being in spectator makes friendly buildings valid melee targets, so move them along.
 	if (isWrench)
 	{
-		// Move all our buildings to spectator to allow them to be repaired by us
 		int obj = -1;
 		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 		{
@@ -395,7 +394,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
 	
-	// Special case, respawn rooms should work regardless
+	// Special case, respawn rooms should work regardless.
 	if (StrEqual(classname, "func_respawnroom"))
 		return MRES_Ignored;
 	
@@ -404,7 +403,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	
 	int other = params.Get(1);
 	
-	// Allow Rescue Ranger healing bolts to work on friendly buildings
+	// Allow Rescue Ranger healing bolts to work on friendly buildings.
 	if (StrEqual(classname, "tf_projectile_arrow") &&
 		GetEntProp(entity, Prop_Send, "m_iProjectileType") == TF_PROJECTILE_BUILDING_REPAIR_BOLT &&
 		IsEntityBaseObject(other) &&
@@ -414,7 +413,7 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 		return MRES_Supercede;
 	}
 
-	// Unless we are the owner, assume every other entity is an enemy
+	// Unless we are the owner, assume every other entity is an enemy.
 	entity = FindParentOwnerEntity(entity);
 	other = FindParentOwnerEntity(other);
 	
@@ -428,11 +427,11 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	if (!GetEntityClassname(entity, classname, sizeof(classname)))
 		return MRES_Ignored;
 
-	// These orbs deal their damage from a think and skip anyone on the owner's team,
-	// so the owner has to be moved out of the way for teammates to be hurt at all.
+	// These orbs damage from a think and skip the owner's team, so the owner has to move out of the way.
+	// Handled before the convar gate below, because they are purely offensive in both modes.
 	if (StrEqual(classname, "tf_projectile_mechanicalarmorb"))
 	{
-		// CTFProjectile_MechanicalArmOrb::OrbThink, and the terminal burst from ExplodeAndRemove
+		// CTFProjectile_MechanicalArmOrb::OrbThink, and the terminal burst from ExplodeAndRemove.
 		if (SDKCall_CBaseEntity_GetNextThink(entity, "OrbThink") != TICK_NEVER_THINK && SDKCall_CBaseEntity_GetNextThink(entity, "ExplodeAndRemoveThink") != TICK_NEVER_THINK)
 			return MRES_Ignored;
 
@@ -449,7 +448,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	}
 	else if (StrEqual(classname, "tf_projectile_lightningorb"))
 	{
-		// CTFProjectile_SpellLightningOrb::ZapThink, and the terminal burst from ExplodeAndRemove
+		// CTFProjectile_SpellLightningOrb::ZapThink, and the terminal burst from ExplodeAndRemove.
 		if (SDKCall_CBaseEntity_GetNextThink(entity, "ZapThink") != TICK_NEVER_THINK && SDKCall_CBaseEntity_GetNextThink(entity, "ExplodeAndRemoveThink") != TICK_NEVER_THINK)
 			return MRES_Ignored;
 
@@ -465,7 +464,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		return MRES_Ignored;
 	}
 
-	// Sentry Gun targeting, Dispenser eligibility and Sappers are all team-based
+	// Sentry Gun targeting, Dispenser eligibility and Sappers are all team-based.
 	if (!AreTeammatesEnemies())
 		return MRES_Ignored;
 
@@ -491,6 +490,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 				TFTeam team = TF2_GetClientTeam(client);
 				bool friendly = IsObjectFriendly(entity, client);
 
+				// Latch both inputs, the think can kill a disguised Spy and flip the answer under us.
 				Entity(client).PreHookTeam = team;
 				Entity(client).PreHookFriendly = friendly;
 
@@ -503,7 +503,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 					SDKCall_CTeam_AddPlayer(pEnemyTeam, client);
 				}
 				
-				// Sentry Guns don't shoot spies disguised as the same team, spoof the disguise team
+				// Sentry Guns don't shoot Spies disguised as their own team, so spoof the disguise team.
 				if (!friendly)
 				{
 					Entity(client).PreHookDisguiseTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
@@ -513,8 +513,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		}
 
 		// Buildings work in a similar way.
-		// NOTE: Previously, we would use CBaseObject::ChangeTeam, but we switched to AddObject/RemoveObject calls,
-		// due to ChangeTeam recreating the build points, causing issues with sapper placement.
+		// NOTE: CBaseObject::ChangeTeam recreates the build points and breaks sapper placement, so we use AddObject/RemoveObject.
 		int obj = -1;
 		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 		{
@@ -537,8 +536,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			}
 		}
 
-		// The Wrangler's auto-aim target is confirmed with a trace that ignores everyone on the builder's team,
-		// so move them out of the way to allow snapping onto teammates.
+		// The Wrangler's auto-aim trace ignores the builder's team, so move the builder out of the way.
 		int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
 		if (builder != -1)
 		{
@@ -560,7 +558,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			g_thinkFunction = ThinkFunction_DispenseThink;
 			Spoof_BeginFrame();
 
-			// Disallow players able to be healed from dispenser
+			// Stop the Dispenser from healing players that are not friendly to it.
 			for (int client = 1; client <= MaxClients; client++)
 			{
 				if (IsClientInGame(client))
@@ -581,7 +579,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		
 		g_thinkFunction = ThinkFunction_SapperThink;
 		
-		// Always set team to spectator so we can place sappers on buildings of both teams
+		// Always set team to spectator so we can place sappers on buildings of both teams.
 		SDKCall_CBaseEntity_ChangeTeam(entity, TFTeam_Spectator);
 	}
 	else if (StrEqual(classname, "tf_weapon_spellbook"))
@@ -593,7 +591,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		g_thinkFunction = ThinkFunction_TossJarThink;
 		Spoof_BeginFrame();
 
-		// Self-cast spells like Overheal buff everyone on the caster's team in a radius
+		// Self-cast spells like Overheal buff everyone on the caster's team in a radius.
 		int owner = FindParentOwnerEntity(entity);
 		if (owner != entity && IsEntityClient(owner))
 		{
@@ -740,7 +738,7 @@ static MRESReturn DHookCallback_CTFPlayer_CanAttack_Pre(int player, DHookReturn 
 {
 	Spoof_BeginFrame();
 
-	// Fixes the winning team not being able to use certain weapon
+	// Fixes the winning team not being able to use certain weapons.
 	Spoof_ChangeToOriginalTeam(player);
 
 	return MRES_Ignored;
@@ -782,17 +780,14 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weap
 	if (!AreTeammatesEnemies())
 		return MRES_Ignored;
 
-	// Switch the weapon
 	Spoof_ChangeToSpectator(weapon);
 
-	// Switch the weapon's owner
 	int owner = GetEntPropEnt(weapon, Prop_Send, "m_hOwnerEntity");
 	if (owner != -1)
 	{
 		Spoof_ChangeToSpectator(owner);
 	}
 	
-	// Switch every pipebomb created by this weapon
 	int pipe = -1;
 	while ((pipe = FindEntityByClassname(pipe, "tf_projectile_pipe_remote")) != -1)
 	{
@@ -832,7 +827,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 		}
 	}
 
-	// Fix projectiles rarely bouncing off buildings
+	// Fixes projectiles rarely bouncing off buildings.
 	if (AreTeammatesEnemies())
 	{
 		int obj = -1;
