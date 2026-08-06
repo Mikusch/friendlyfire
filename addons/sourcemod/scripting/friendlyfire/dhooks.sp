@@ -866,17 +866,17 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 		}
 	}
 
-	// Fixes projectiles rarely bouncing off buildings.
-	if (AreTeammatesEnemies())
+	// Fixes projectiles bouncing off buildings instead of exploding on them.
+	int obj = -1;
+	while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 	{
-		int obj = -1;
-		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
-		{
-			if (IsObjectFriendly(obj, thrower))
-				continue;
+		if (thrower != -1 && GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == thrower)
+			continue;
 
-			Spoof_SetTeam(obj, enemyTeam);
-		}
+		if (TF2_GetEntityTeam(obj) == enemyTeam)
+			continue;
+
+		Spoof_SetTeam(obj, enemyTeam);
 	}
 
 	return MRES_Ignored;
