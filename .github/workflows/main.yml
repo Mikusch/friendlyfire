@@ -12,16 +12,18 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
+    outputs:
+      plugin-version: ${{ steps.setup_sp.outputs.plugin-version }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - sm-version: '1.12.x'
-            release: true
-          - sm-version: '1.13.x'
+          - sm: '1.12'
+            sm-version: '1.12.x'
+          - sm: '1.13'
+            sm-version: '1.13.x'
 
     steps:
       - name: Checkout repository
@@ -58,29 +60,41 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.PLUGIN_NAME }}-${{ matrix.sm-version }}
+          name: ${{ env.PLUGIN_NAME }}-sm${{ matrix.sm }}
           path: addons/sourcemod/plugins/${{ env.PLUGIN_NAME }}.smx
           if-no-files-found: error
 
       - name: Zip output
-        if: matrix.release
-        run: zip -qq -r ${{ github.event.repository.name }}.zip addons
+        run: zip -qq -r ${{ github.event.repository.name }}-sm${{ matrix.sm }}.zip addons
 
       - name: Upload package artifact
-        if: matrix.release
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.event.repository.name }}
-          path: addons
+          name: package-sm${{ matrix.sm }}
+          path: ${{ github.event.repository.name }}-sm${{ matrix.sm }}.zip
           if-no-files-found: error
 
+  release:
+    needs: build
+    if: github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v7
+        with:
+          pattern: package-sm*
+          path: dist
+          merge-multiple: true
+
       - name: Create GitHub release
-        if: github.ref_name == 'master' && matrix.release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.setup_sp.outputs.plugin-version }}
-          artifacts: ./${{ github.event.repository.name }}.zip
+          tag: ${{ needs.build.outputs.plugin-version }}
+          artifacts: dist/*.zip
           draft: true
           allowUpdates: true
           updateOnlyUnreleased: true

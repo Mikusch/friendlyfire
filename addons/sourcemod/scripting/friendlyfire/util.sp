@@ -141,7 +141,7 @@ bool IsObjectFriendly(int obj, int entity)
 
 bool IsObjectSapped(int obj)
 {
-	return HasEntProp(obj, Prop_Send, "m_bHasSapper") && GetEntProp(obj, Prop_Send, "m_bHasSapper") != 0;
+	return HasEntProp(obj, Prop_Send, "m_bHasSapper") && GetEntProp(obj, Prop_Send, "m_bHasSapper");
 }
 
 bool IsThinkRunning(int entity, const char[] context)

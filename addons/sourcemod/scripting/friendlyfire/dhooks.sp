@@ -650,7 +650,6 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "tf_weapon_medigun"))
 	{
 		// CWeaponMedigun::HealTargetThink
-		// An unregistered context also reads TICK_NEVER_THINK, so require an actual healing target.
 		if (!IsThinkRunning(entity, "MedigunHealTargetThink") || GetEntPropEnt(entity, Prop_Send, "m_hHealingTarget") == -1)
 			return MRES_Ignored;
 
