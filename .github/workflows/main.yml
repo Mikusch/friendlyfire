@@ -64,14 +64,11 @@ jobs:
           path: addons/sourcemod/plugins/${{ env.PLUGIN_NAME }}.smx
           if-no-files-found: error
 
-      - name: Zip output
-        run: zip -qq -r ${{ github.event.repository.name }}-sm${{ matrix.sm }}.zip addons
-
       - name: Upload package artifact
         uses: actions/upload-artifact@v7
         with:
           name: package-sm${{ matrix.sm }}
-          path: ${{ github.event.repository.name }}-sm${{ matrix.sm }}.zip
+          path: addons
           if-no-files-found: error
 
   release:
@@ -87,14 +84,21 @@ jobs:
         with:
           pattern: package-sm*
           path: dist
-          merge-multiple: true
+
+      - name: Zip packages
+        run: |
+          set -euo pipefail
+          for dir in dist/package-sm*; do
+            sm="${dir##*-sm}"
+            (cd "$dir" && zip -qq -r "$GITHUB_WORKSPACE/${{ github.event.repository.name }}-sm${sm}.zip" addons)
+          done
 
       - name: Create GitHub release
         uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.build.outputs.plugin-version }}
-          artifacts: dist/*.zip
+          artifacts: ${{ github.event.repository.name }}-sm*.zip
           draft: true
           allowUpdates: true
           updateOnlyUnreleased: true
