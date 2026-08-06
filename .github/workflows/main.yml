@@ -64,11 +64,17 @@ jobs:
           path: addons/sourcemod/plugins/${{ env.PLUGIN_NAME }}.smx
           if-no-files-found: error
 
+      - name: Stage package
+        run: |
+          set -euo pipefail
+          mkdir -p package
+          cp -r addons package/
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v7
         with:
           name: package-sm${{ matrix.sm }}
-          path: addons
+          path: package
           if-no-files-found: error
 
   release:
