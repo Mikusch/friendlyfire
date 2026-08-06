@@ -25,7 +25,7 @@
 #include <tf2_stocks>
 #include <pluginstatemanager>
 
-#define PLUGIN_VERSION	"1.5.0"
+#define PLUGIN_VERSION	"2.0.0"
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
