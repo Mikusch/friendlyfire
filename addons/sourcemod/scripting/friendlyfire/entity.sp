@@ -150,17 +150,6 @@ methodmap Entity
 		TF2_SetEntityTeam(this.Ref, team);
 	}
 	
-	public void ChangeToSpectator()
-	{
-		this.SetTeam(TFTeam_Spectator);
-	}
-	
-	// Creates a history entry regardless of whether we already are in our original team or not.
-	public void ChangeToOriginalTeam()
-	{
-		this.SetTeam(this.GetOriginalTeam());
-	}
-	
 	public void ResetTeam()
 	{
 		int listIndex = this.ListIndex;
@@ -300,24 +289,6 @@ void Spoof_EndFramesForEntity(int entity)
 	}
 }
 
-void Spoof_SetTeam(int entity, TFTeam team)
-{
-	Entity target = Entity(entity);
-	
-	target.SetTeam(team);
-	g_spoofedEntities.Push(target.Ref);
-}
-
-void Spoof_ChangeToSpectator(int entity)
-{
-	Spoof_SetTeam(entity, TFTeam_Spectator);
-}
-
-void Spoof_ChangeToOriginalTeam(int entity)
-{
-	Spoof_SetTeam(entity, Entity(entity).GetOriginalTeam());
-}
-
 void Spoof_Clear()
 {
 	while (g_spoofFrames.Length > 0)
@@ -337,4 +308,22 @@ void Spoof_Clear()
 
 	g_spoofedEntities.Clear();
 	g_spoofFrames.Clear();
+}
+
+void Spoof_SetTeam(int entity, TFTeam team)
+{
+	Entity target = Entity(entity);
+	
+	target.SetTeam(team);
+	g_spoofedEntities.Push(target.Ref);
+}
+
+void Spoof_ChangeToSpectator(int entity)
+{
+	Spoof_SetTeam(entity, TFTeam_Spectator);
+}
+
+void Spoof_ChangeToOriginalTeam(int entity)
+{
+	Spoof_SetTeam(entity, Entity(entity).GetOriginalTeam());
 }

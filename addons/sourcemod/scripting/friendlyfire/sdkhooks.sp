@@ -309,7 +309,7 @@ static void SDKHookCB_ObjectDispenser_StartTouchPost(int entity, int other)
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
 	// Enable collisions for both teams, unless teammates are supposed to walk through their own buildings.
-	SDKHooks_SetObjectSolidToPlayers(entity, AreTeammatesEnemies());
+	SetObjectSolidToPlayers(entity, AreTeammatesEnemies());
 }
 
 // Moves an attacking teammate out of the way so a building will accept their damage.
@@ -370,24 +370,6 @@ static Action SDKHookCB_Object_OnTakeDamage(int victim, int &attacker, int &infl
 static void SDKHookCB_Object_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	Spoof_EndFrame();
-}
-
-void SDKHooks_SetObjectSolidToPlayers(int entity, bool solid)
-{
-	SetVariantInt(solid ? SOLID_TO_PLAYER_YES : SOLID_TO_PLAYER_USE_DEFAULT);
-	AcceptEntityInput(entity, "SetSolidToPlayer");
-}
-
-void SDKHooks_SetAllObjectsSolidToPlayers(bool solid)
-{
-	if (!g_isMapRunning)
-		return;
-
-	int entity = -1;
-	while ((entity = FindEntityByClassname(entity, "obj_*")) != -1)
-	{
-		SDKHooks_SetObjectSolidToPlayers(entity, solid);
-	}
 }
 
 static Action SDKHookCB_Projectile_Touch(int entity, int other)

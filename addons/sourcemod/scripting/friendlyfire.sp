@@ -176,6 +176,10 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
 
+	// Spies can use any Teleporter, see CObjectTeleporter::PlayerCanBeTeleported.
+	if (TF2_GetPlayerClass(client) == TFClass_Spy)
+		return Plugin_Continue;
+
 	if (IsObjectFriendly(teleporter, client))
 		return Plugin_Continue;
 
@@ -199,9 +203,12 @@ static void ConVars_Init()
 
 static void OnPluginStateChanged(bool enable)
 {
+	if (!g_isMapRunning)
+		return;
+
 	if (!enable)
 		Spoof_Clear();
-	
+
 	int entity = -1;
 	while ((entity = FindEntityByClassname(entity, "*")) != -1)
 	{
@@ -220,7 +227,7 @@ static void OnPluginStateChanged(bool enable)
 		}
 	}
 
-	SDKHooks_SetAllObjectsSolidToPlayers(enable && AreTeammatesEnemies());
+	SetAllObjectsSolidToPlayers(enable && AreTeammatesEnemies());
 }
 
 static bool ShouldEnable()
@@ -240,5 +247,5 @@ static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const ch
 
 static void OnTeammatesAreEnemiesChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	SDKHooks_SetAllObjectsSolidToPlayers(convar.BoolValue);
+	SetAllObjectsSolidToPlayers(AreTeammatesEnemies());
 }
