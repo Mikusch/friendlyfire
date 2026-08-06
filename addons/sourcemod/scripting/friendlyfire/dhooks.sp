@@ -18,16 +18,11 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-#define SENTRYGUN_THINK_CONTEXT		"SentrygunContext"		// SENTRYGUN_CONTEXT
-#define DISPENSER_THINK_CONTEXT		"DispenseContext"		// DISPENSE_CONTEXT
-#define BASE_OBJECT_THINK_CONTEXT	"BaseObjectThink"		// OBJ_BASE_THINK_CONTEXT
-
 enum ThinkFunction
 {
 	ThinkFunction_None,
 	ThinkFunction_DispenseThink,
 	ThinkFunction_SentryThink,
-	ThinkFunction_SapperThink,
 	ThinkFunction_MedigunHealTargetThink,
 	ThinkFunction_TossJarThink,
 	ThinkFunction_OrbThink,
@@ -111,6 +106,12 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_SpellFireball_Explode_Pre);
 			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_SpellFireball_Explode_Post);
 		}
+		else if (StrEqual(classname, "tf_projectile_spellbats"))
+		{
+			// Fixes the Bats spell not stunning, bleeding or launching teammates.
+			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_SpellBats_Explode_Pre);
+			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_SpellBats_Explode_Post);
+		}
 	}
 	else if (IsEntityBaseCombatWeapon(entity))
 	{
@@ -175,17 +176,17 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 		// DeflectProjectiles checks the enemy team of each entity in the box.
 		Spoof_ChangeToOriginalTeam(owner);
 
-		// Airblasting a teammate extinguishes them instead of pushing them around.
-		if (!AreTeammatesEnemies())
-			return MRES_Ignored;
-
 		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(owner));
 
-		for (int client = 1; client <= MaxClients; client++)
+		// Airblasting a teammate extinguishes them instead of pushing them around.
+		if (AreTeammatesEnemies())
 		{
-			if (IsClientInGame(client) && client != owner)
+			for (int client = 1; client <= MaxClients; client++)
 			{
-				Spoof_SetTeam(client, enemyTeam);
+				if (IsClientInGame(client) && client != owner)
+				{
+					Spoof_SetTeam(client, enemyTeam);
+				}
 			}
 		}
 
@@ -275,9 +276,8 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Pre(int enti
 	Spoof_ChangeToSpectator(entity);
 
 	// Move the caster along with the fireball so they still compare equal to it and stay excluded.
-	// Otherwise nobody matches the spectator team and the caster burns themselves down.
-	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	if (thrower != -1)
+	int thrower = FindParentOwnerEntity(entity);
+	if (thrower != entity)
 	{
 		Spoof_ChangeToSpectator(thrower);
 	}
@@ -286,6 +286,29 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Pre(int enti
 }
 
 static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Post(int entity, DHookParam params)
+{
+	Spoof_EndFrame();
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFProjectile_SpellBats_Explode_Pre(int entity, DHookParam params)
+{
+	Spoof_BeginFrame();
+
+	// ExplodeEffectOnTarget skips every target that shares our team number.
+	Spoof_ChangeToSpectator(entity);
+
+	int thrower = FindParentOwnerEntity(entity);
+	if (thrower != entity)
+	{
+		Spoof_ChangeToSpectator(thrower);
+	}
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_CTFProjectile_SpellBats_Explode_Post(int entity, DHookParam params)
 {
 	Spoof_EndFrame();
 
@@ -421,6 +444,27 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	return MRES_Supercede;
 }
 
+static void SpoofWrangledSentryTargets(int sentry)
+{
+	int builder = GetEntPropEnt(sentry, Prop_Send, "m_hBuilder");
+	if (builder == -1)
+		return;
+
+	int weapon = GetEntPropEnt(builder, Prop_Send, "m_hActiveWeapon");
+	if (weapon == -1 || SDKCall_CTFWeaponBase_GetWeaponID(weapon) != TF_WEAPON_LASER_POINTER)
+		return;
+
+	TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(builder));
+
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && client != builder)
+		{
+			Spoof_SetTeam(client, enemyTeam);
+		}
+	}
+}
+
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 {
 	char classname[64];
@@ -432,7 +476,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	if (StrEqual(classname, "tf_projectile_mechanicalarmorb"))
 	{
 		// CTFProjectile_MechanicalArmOrb::OrbThink, and the terminal burst from ExplodeAndRemove.
-		if (SDKCall_CBaseEntity_GetNextThink(entity, "OrbThink") != TICK_NEVER_THINK && SDKCall_CBaseEntity_GetNextThink(entity, "ExplodeAndRemoveThink") != TICK_NEVER_THINK)
+		if (!IsThinkRunning(entity, "OrbThink") && !IsThinkRunning(entity, "ExplodeAndRemoveThink"))
 			return MRES_Ignored;
 
 		g_thinkFunction = ThinkFunction_OrbThink;
@@ -448,12 +492,15 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	}
 	else if (StrEqual(classname, "tf_projectile_lightningorb"))
 	{
-		// CTFProjectile_SpellLightningOrb::ZapThink, and the terminal burst from ExplodeAndRemove.
-		if (SDKCall_CBaseEntity_GetNextThink(entity, "ZapThink") != TICK_NEVER_THINK && SDKCall_CBaseEntity_GetNextThink(entity, "ExplodeAndRemoveThink") != TICK_NEVER_THINK)
+		// CTFProjectile_SpellLightningOrb::ZapThink and VortexThink, and the terminal burst from ExplodeAndRemove.
+		if (!IsThinkRunning(entity, "ZapThink") && !IsThinkRunning(entity, "VortexThink") && !IsThinkRunning(entity, "ExplodeAndRemoveThink"))
 			return MRES_Ignored;
 
 		g_thinkFunction = ThinkFunction_ZapThink;
 		Spoof_BeginFrame();
+
+		// VortexThink compares against the orb itself rather than the owner, so both have to move.
+		Spoof_ChangeToSpectator(entity);
 
 		int owner = FindParentOwnerEntity(entity);
 		if (owner != entity)
@@ -471,7 +518,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	if (StrEqual(classname, "obj_sentrygun"))
 	{
 		// CObjectSentrygun::SentryThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, SENTRYGUN_THINK_CONTEXT) != TICK_NEVER_THINK)
+		if (!IsThinkRunning(entity, "SentrygunContext"))
 			return MRES_Ignored;
 
 		g_thinkFunction = ThinkFunction_SentryThink;
@@ -489,6 +536,10 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			{
 				TFTeam team = TF2_GetClientTeam(client);
 				bool friendly = IsObjectFriendly(entity, client);
+
+				// Keep shooting a Spy who disguises after being acquired.
+				if (friendly && GetEntPropEnt(entity, Prop_Send, "m_hEnemy") == client)
+					friendly = false;
 
 				// Latch both inputs, the think can kill a disguised Spy and flip the answer under us.
 				Entity(client).PreHookTeam = team;
@@ -517,7 +568,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		int obj = -1;
 		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 		{
-			if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
+			if (obj != entity && !GetEntProp(obj, Prop_Send, "m_bPlacing"))
 			{
 				TFTeam team = TF2_GetEntityTeam(obj);
 				bool friendly = IsObjectFriendly(entity, obj);
@@ -536,21 +587,13 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			}
 		}
 
-		// The Wrangler's auto-aim trace ignores the builder's team, so move the builder out of the way.
-		int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
-		if (builder != -1)
-		{
-			int weapon = GetEntPropEnt(builder, Prop_Send, "m_hActiveWeapon");
-			if (weapon != -1 && SDKCall_CTFWeaponBase_GetWeaponID(weapon) == TF_WEAPON_LASER_POINTER)
-			{
-				Spoof_ChangeToSpectator(builder);
-			}
-		}
+		// Has to run last, the latching above reads real team numbers.
+		SpoofWrangledSentryTargets(entity);
 	}
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
 		// CObjectDispenser::DispenseThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, DISPENSER_THINK_CONTEXT) != TICK_NEVER_THINK)
+		if (!IsThinkRunning(entity, "DispenseContext"))
 			return MRES_Ignored;
 		
 		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
@@ -574,18 +617,16 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "obj_attachment_sapper"))
 	{
 		// CBaseObject::BaseObjectThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, BASE_OBJECT_THINK_CONTEXT) != TICK_NEVER_THINK)
+		if (!IsThinkRunning(entity, "BaseObjectThink"))
 			return MRES_Ignored;
-		
-		g_thinkFunction = ThinkFunction_SapperThink;
-		
+
 		// Always set team to spectator so we can place sappers on buildings of both teams.
 		SDKCall_CBaseEntity_ChangeTeam(entity, TFTeam_Spectator);
 	}
 	else if (StrEqual(classname, "tf_weapon_spellbook"))
 	{
 		// CTFSpellBook::TossJarThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, "TOSS_JAR_THINK") != TICK_NEVER_THINK)
+		if (!IsThinkRunning(entity, "TOSS_JAR_THINK"))
 			return MRES_Ignored;
 
 		g_thinkFunction = ThinkFunction_TossJarThink;
@@ -609,7 +650,8 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "tf_weapon_medigun"))
 	{
 		// CWeaponMedigun::HealTargetThink
-		if (SDKCall_CBaseEntity_GetNextThink(entity, "MedigunHealTargetThink") != TICK_NEVER_THINK)
+		// An unregistered context also reads TICK_NEVER_THINK, so require an actual healing target.
+		if (!IsThinkRunning(entity, "MedigunHealTargetThink") || GetEntPropEnt(entity, Prop_Send, "m_hHealingTarget") == -1)
 			return MRES_Ignored;
 
 		g_thinkFunction = ThinkFunction_MedigunHealTargetThink;
@@ -656,18 +698,20 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 						SDKCall_CTeam_RemovePlayer(pEnemyTeam, client);
 					}
 
-					if (!friendly)
+					// Only undo our own write, the think may have killed the Spy and cleared his disguise.
+					if (!friendly && view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam")) == TFTeam_Unassigned)
 					{
 						SetEntProp(client, Prop_Send, "m_nDisguiseTeam", Entity(client).PreHookDisguiseTeam);
-						Entity(client).PreHookDisguiseTeam = TFTeam_Unassigned;
 					}
+
+					Entity(client).PreHookDisguiseTeam = TFTeam_Unassigned;
 				}
 			}
 
 			int obj = -1;
 			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 			{
-				if (!GetEntProp(obj, Prop_Send, "m_bPlacing"))
+				if (obj != entity && !GetEntProp(obj, Prop_Send, "m_bPlacing"))
 				{
 					TFTeam team = Entity(obj).PreHookTeam;
 					bool friendly = Entity(obj).PreHookFriendly;
@@ -774,11 +818,7 @@ static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Post(Address shared, 
 
 static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weapon)
 {
-	// Detonating a teammate's stickybombs is not friendly fire, so leave them alone in graceful mode.
 	Spoof_BeginFrame();
-
-	if (!AreTeammatesEnemies())
-		return MRES_Ignored;
 
 	Spoof_ChangeToSpectator(weapon);
 
@@ -833,7 +873,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 		int obj = -1;
 		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
 		{
-			if (!IsObjectFriendly(obj, thrower))
+			if (IsObjectFriendly(obj, thrower))
 				continue;
 
 			Spoof_SetTeam(obj, enemyTeam);

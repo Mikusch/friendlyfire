@@ -101,11 +101,21 @@ bool IsObjectFriendly(int obj, int entity)
 	if (!IsValidEntity(obj) || !IsValidEntity(entity))
 		return false;
 
+	if (obj == entity)
+		return true;
+
 	// The original team has to be used here, because callers of this function commonly spoof team numbers.
-	if (!AreTeammatesEnemies() && Entity(obj).GetOriginalTeam() == Entity(entity).GetOriginalTeam())
+	TFTeam objTeam = Entity(obj).GetOriginalTeam();
+	TFTeam entityTeam = Entity(entity).GetOriginalTeam();
+
+	if (!AreTeammatesEnemies() && objTeam == entityTeam)
 		return true;
 
 	int builder = GetObjectBuilder(obj);
+
+	// Map-placed buildings have no builder, see CBaseObject::InitializeMapPlacedObject.
+	if (builder == -1 && objTeam == entityTeam)
+		return true;
 
 	if (IsEntityClient(entity))
 	{
@@ -114,7 +124,7 @@ bool IsObjectFriendly(int obj, int entity)
 			return true;
 
 		// Buildings treat a Spy disguised as their own team as one of their own.
-		if (TF2_IsPlayerInCondition(entity, TFCond_Disguised) && view_as<TFTeam>(GetEntProp(entity, Prop_Send, "m_nDisguiseTeam")) == Entity(obj).GetOriginalTeam())
+		if (objTeam != entityTeam && TF2_IsPlayerInCondition(entity, TFCond_Disguised) && view_as<TFTeam>(GetEntProp(entity, Prop_Send, "m_nDisguiseTeam")) == objTeam)
 			return true;
 
 		if (builder == entity)
@@ -127,6 +137,30 @@ bool IsObjectFriendly(int obj, int entity)
 	}
 
 	return false;
+}
+
+bool IsObjectSapped(int obj)
+{
+	return HasEntProp(obj, Prop_Send, "m_bHasSapper") && GetEntProp(obj, Prop_Send, "m_bHasSapper") != 0;
+}
+
+bool IsThinkRunning(int entity, const char[] context)
+{
+	return SDKCall_CBaseEntity_GetNextThink(entity, context) == TICK_NEVER_THINK;
+}
+
+bool IsPulsingRadiusBuff(int client)
+{
+	// CTFPlayerShared::PulseRageBuff
+	if (GetEntProp(client, Prop_Send, "m_bRageDraining"))
+		return true;
+
+	// CTFPlayerShared::PulseKingRuneBuff
+	if (TF2_IsPlayerInCondition(client, TFCond_KingRune))
+		return true;
+
+	// CTFPlayerShared::PulseMedicRadiusHeal
+	return TF2_IsPlayerInCondition(client, TFCond_Taunting) || TF2_IsPlayerInCondition(client, TFCond_RadiusHealOnDamage);
 }
 
 float GetPercentInvisible(int client)
@@ -173,6 +207,10 @@ bool ShouldProjectileKeepTeams(int entity, int other, int owner)
 
 	// Our own buildings are not a valid target in any mode.
 	if (GetEntPropEnt(other, Prop_Send, "m_hBuilder") == owner)
+		return true;
+
+	// Leave a sapped friendly building alone so its damage keeps being routed to the sapper.
+	if (!AreTeammatesEnemies() && IsObjectSapped(other) && IsObjectFriendly(other, owner))
 		return true;
 
 	// Rescue Ranger bolts repair friendly buildings instead of damaging them.

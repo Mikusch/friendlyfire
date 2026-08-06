@@ -20,34 +20,37 @@
 
 int g_spectatorItemIDs[] =
 {
-	TF_WEAPON_SNIPERRIFLE,			// CTFPlayer::FireBullet
-	TF_WEAPON_SNIPERRIFLE_DECAP,	// CTFPlayer::FireBullet
-	TF_WEAPON_SNIPERRIFLE_CLASSIC,	// CTFPlayer::FireBullet
 	TF_WEAPON_KNIFE,				// CTFKnife::BackstabVMThink
 };
 
 // These only interact with teammates in a friendly way, so they are left alone unless teammates are enemies.
 int g_teammateSpectatorItemIDs[] =
 {
-	TF_WEAPON_BUFF_ITEM,		// CTFPlayerShared::PulseRageBuff
-	TF_WEAPON_FLAMETHROWER,		// CTFFlameThrower::SecondaryAttack
-	TF_WEAPON_LASER_POINTER,	// CTFLaserPointer::UpdateLaserDot
-	TF_WEAPON_MEDIGUN,			// CWeaponMedigun::AllowedToHealTarget
+	TF_WEAPON_BUFF_ITEM,			// CTFPlayerShared::PulseRageBuff
+	TF_WEAPON_FLAMETHROWER,			// CTFFlameThrower::SecondaryAttack
+	TF_WEAPON_MEDIGUN,				// CWeaponMedigun::AllowedToHealTarget
+	TF_WEAPON_SNIPERRIFLE,			// CTFPlayer::FireBullet
+	TF_WEAPON_SNIPERRIFLE_DECAP,	// CTFPlayer::FireBullet
+	TF_WEAPON_SNIPERRIFLE_CLASSIC,	// CTFPlayer::FireBullet
 };
 
+// Moving everyone else instead of ourselves.
+// Required whenever the team check is on an entity we do not own, e.g. the weapon itself.
 int g_enemyItemIDs[] =
 {
 	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,	// CTFPistol_ScoutPrimary::Push
-	TF_WEAPON_ROCKETPACK,				// CTFRocketPack::Launch
+	TF_WEAPON_MINIGUN,					// CTFMinigun::RingOfFireAttack, AttackEnemyProjectiles
 };
 
-// Moving everyone else instead of ourselves, for the same reasons as above.
 // Anything that creates a projectile during ItemPostFrame belongs here, projectiles copy the owner's team as they are created.
 int g_teammateEnemyItemIDs[] =
 {
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
 	TF_WEAPON_FLAME_BALL,				// CTFWeaponFlameBall::SecondaryAttack
 	TF_WEAPON_RAYGUN_REVENGE,			// CTFFlareGun_Revenge::ExtinguishPlayerInternal
+	TF_WEAPON_ROCKETPACK,				// CTFRocketPack::Launch
+	TF_WEAPON_SPELLBOOK,				// CTFSpellBook::CastKartSpell, which bypasses TossJarThink in kart mode
+	TF_WEAPON_LASER_POINTER,			// CTFLaserPointer::UpdateLaserDot
 };
 
 void SDKHooks_OnEntityCreated(int entity, const char[] classname)
@@ -94,6 +97,18 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 				PSM_SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_ProjectilePipeRemote_OnTakeDamage);
 				PSM_SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_ProjectilePipeRemote_OnTakeDamagePost);
 			}
+			else if (StrEqual(classname, "tf_projectile_mechanicalarmorb") || StrEqual(classname, "tf_projectile_lightningorb"))
+			{
+				// Fixes the terminal burst skipping teammates.
+				PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_Orb_Touch);
+				PSM_SDKHook(entity, SDKHook_TouchPost, SDKHookCB_Orb_TouchPost);
+			}
+		}
+		else if (StrEqual(classname, "tf_pumpkin_bomb"))
+		{
+			// Fixes spell pumpkin bombs being deleted instead of detonating.
+			PSM_SDKHook(entity, SDKHook_OnTakeDamage, SDKHookCB_PumpkinBomb_OnTakeDamage);
+			PSM_SDKHook(entity, SDKHook_OnTakeDamagePost, SDKHookCB_PumpkinBomb_OnTakeDamagePost);
 		}
 		else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 		{
@@ -111,7 +126,28 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 		{
 			// Prevents Gas Passer clouds from coating the thrower.
 			PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
+
+			// Created while the thrower is spoofed, which would leave the cloud the wrong colour.
+			RequestFrame(Frame_RestoreOwnerTeam, GetEntityRefSafe(entity));
 		}
+		else if (StrEqual(classname, "entity_medigun_shield"))
+		{
+			// CTFMedigunShield::Create copies the Medic's team, which is spoofed during ItemPostFrame.
+			RequestFrame(Frame_RestoreOwnerTeam, GetEntityRefSafe(entity));
+		}
+	}
+}
+
+static void Frame_RestoreOwnerTeam(int ref)
+{
+	int entity = EntRefToEntIndex(ref);
+	if (entity == -1)
+		return;
+
+	int owner = FindParentOwnerEntity(entity);
+	if (owner != entity)
+	{
+		SDKCall_CBaseEntity_ChangeTeam(entity, Entity(owner).GetOriginalTeam());
 	}
 }
 
@@ -124,8 +160,7 @@ static void SDKHookCB_Client_PreThink(int client)
 	if (!AreTeammatesEnemies())
 		return;
 
-	// Only PulseRageBuff needs this, and spoofing outside of it would make CheckForIdle kick idle players.
-	if (!GetEntProp(client, Prop_Send, "m_bRageDraining"))
+	if (!IsPulsingRadiusBuff(client))
 		return;
 
 	Spoof_ChangeToSpectator(client);
@@ -288,11 +323,7 @@ static void SpoofObjectAttacker(int victim, int attacker)
 		return;
 
 	// A sapped building routes same-team damage to the sapper, which is how melee weapons knock them off.
-	if (GetEntProp(victim, Prop_Send, "m_bHasSapper"))
-		return;
-
-	// CBaseObject::OnTakeDamage blocks building damage during a truce by comparing real team numbers.
-	if (GameRules_GetProp("m_bTruceActive"))
+	if (IsObjectSapped(victim))
 		return;
 
 	// Another hook already moved this building along, moving the attacker too would pair them up again.
@@ -302,9 +333,17 @@ static void SpoofObjectAttacker(int victim, int attacker)
 	Spoof_ChangeToSpectator(attacker);
 }
 
+static bool IsTruceBlockingObjectDamage(int attacker)
+{
+	return IsEntityClient(attacker) && GameRules_GetProp("m_bTruceActive") != 0;
+}
+
 static Action SDKHookCB_Object_TraceAttack(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &ammotype, int hitbox, int hitgroup)
 {
 	Spoof_BeginFrame(victim);
+
+	if (IsTruceBlockingObjectDamage(attacker))
+		return Plugin_Handled;
 
 	SpoofObjectAttacker(victim, attacker);
 
@@ -319,6 +358,9 @@ static void SDKHookCB_Object_TraceAttackPost(int victim, int attacker, int infli
 static Action SDKHookCB_Object_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	Spoof_BeginFrame(victim);
+
+	if (IsTruceBlockingObjectDamage(attacker))
+		return Plugin_Handled;
 
 	SpoofObjectAttacker(victim, attacker);
 
@@ -399,6 +441,10 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
+		// Leave a sapped friendly building alone so its damage keeps being routed to the sapper.
+		if (!AreTeammatesEnemies() && IsEntityBaseObject(other) && IsObjectSapped(other) && IsObjectFriendly(other, owner))
+			return Plugin_Continue;
+
 		Spoof_ChangeToSpectator(owner);
 	}
 
@@ -406,6 +452,41 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 }
 
 static void SDKHookCB_FlameManager_TouchPost(int entity, int other)
+{
+	Spoof_EndFrame();
+}
+
+static Action SDKHookCB_Orb_Touch(int entity, int other)
+{
+	Spoof_BeginFrame(entity);
+
+	int owner = FindParentOwnerEntity(entity);
+	if (IsValidEntity(owner) && owner != entity)
+	{
+		Spoof_ChangeToSpectator(owner);
+	}
+
+	return Plugin_Continue;
+}
+
+static void SDKHookCB_Orb_TouchPost(int entity, int other)
+{
+	Spoof_EndFrame();
+}
+
+static Action SDKHookCB_PumpkinBomb_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+	Spoof_BeginFrame(victim);
+
+	if (IsEntityClient(attacker))
+	{
+		Spoof_ChangeToOriginalTeam(attacker);
+	}
+
+	return Plugin_Continue;
+}
+
+static void SDKHookCB_PumpkinBomb_OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	Spoof_EndFrame();
 }

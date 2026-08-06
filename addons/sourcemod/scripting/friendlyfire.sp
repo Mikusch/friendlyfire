@@ -185,6 +185,7 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 
 static void ConVars_Init()
 {
+	CreateConVar("sm_ff_enabled", "1", "Enable the plugin?");
 	CreateConVar("sm_ff_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
 	sm_ff_teammates_are_enemies = CreateConVar("sm_ff_teammates_are_enemies", "1", "When set, your teammates act as enemies and all players are valid targets.", _, true, 0.0, true, 1.0);
 
