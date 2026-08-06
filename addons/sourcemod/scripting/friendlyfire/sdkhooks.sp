@@ -441,10 +441,6 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 	int owner = FindParentOwnerEntity(entity);
 	if (IsValidEntity(owner) && owner != other)
 	{
-		// Leave a sapped friendly building alone so its damage keeps being routed to the sapper.
-		if (!AreTeammatesEnemies() && IsEntityBaseObject(other) && IsObjectSapped(other) && IsObjectFriendly(other, owner))
-			return Plugin_Continue;
-
 		Spoof_ChangeToSpectator(owner);
 	}
 

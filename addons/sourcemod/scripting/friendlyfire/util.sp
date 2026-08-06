@@ -209,10 +209,6 @@ bool ShouldProjectileKeepTeams(int entity, int other, int owner)
 	if (GetEntPropEnt(other, Prop_Send, "m_hBuilder") == owner)
 		return true;
 
-	// Leave a sapped friendly building alone so its damage keeps being routed to the sapper.
-	if (!AreTeammatesEnemies() && IsObjectSapped(other) && IsObjectFriendly(other, owner))
-		return true;
-
 	// Rescue Ranger bolts repair friendly buildings instead of damaging them.
 	return SDKCall_CBaseProjectile_GetProjectileType(entity) == TF_PROJECTILE_BUILDING_REPAIR_BOLT
 		&& IsObjectFriendly(other, owner);
