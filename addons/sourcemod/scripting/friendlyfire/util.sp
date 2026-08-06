@@ -117,9 +117,7 @@ bool IsObjectFriendly(int obj, int entity)
 		if (TF2_IsPlayerInCondition(entity, TFCond_Disguised) && view_as<TFTeam>(GetEntProp(entity, Prop_Send, "m_nDisguiseTeam")) == Entity(obj).GetOriginalTeam())
 			return true;
 
-		if (builder == entity)	// obj_dispenser
-			return true;
-		else if (GetEntPropEnt(obj, Prop_Data, "m_hParent") == entity)	// pd_dispenser
+		if (builder == entity)
 			return true;
 	}
 	else if (HasEntProp(entity, Prop_Send, "m_hBuilder"))
