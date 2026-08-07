@@ -181,7 +181,7 @@ static Handle PrepSDKCall_CBaseEntity_ChangeTeam(GameData gamedata)
 	return call;
 }
 
-float SDKCall_CBaseEntity_GetNextThink(int entity, const char[] context = "")
+float SDKCall_CBaseEntity_GetNextThink(int entity, const char[] context)
 {
 	if (g_sdkCall_CBaseEntity_GetNextThink)
 		return SDKCall(g_sdkCall_CBaseEntity_GetNextThink, entity, context);

@@ -184,18 +184,43 @@ bool IsJarProjectile(int projectile)
 	return !strncmp(classname, "tf_projectile_jar", 17);
 }
 
+bool ShouldObjectKeepTeams(int obj, int attacker, bool routesToSapper)
+{
+	if (!IsEntityBaseObject(obj))
+		return false;
+
+	// Buildings never take damage from the one who built them, in any mode.
+	if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == attacker)
+		return true;
+
+	// A sapped building routes same-team damage to the sapper, which is how it gets knocked off.
+	return routesToSapper && !AreTeammatesEnemies() && IsObjectSapped(obj);
+}
+
+bool IsHelpfulProjectile(int projectile)
+{
+	switch (SDKCall_CBaseProjectile_GetProjectileType(projectile))
+	{
+		case TF_PROJECTILE_HEALING_BOLT, TF_PROJECTILE_FESTIVE_HEALING_BOLT, TF_PROJECTILE_BUILDING_REPAIR_BOLT:
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool ShouldProjectileKeepTeams(int projectile, int other, int owner)
 {
 	if (!IsEntityBaseObject(other))
 		return false;
 
 	// Our own buildings are not a valid target in any mode.
-	if (GetEntPropEnt(other, Prop_Send, "m_hBuilder") == owner)
+	if (ShouldObjectKeepTeams(other, owner, false))
 		return true;
 
 	// Rescue Ranger bolts repair friendly buildings instead of damaging them.
-	return SDKCall_CBaseProjectile_GetProjectileType(projectile) == TF_PROJECTILE_BUILDING_REPAIR_BOLT
-		&& IsObjectFriendly(other, owner);
+	return IsHelpfulProjectile(projectile) && IsObjectFriendly(other, owner);
 }
 
 float GetPercentInvisible(int client)

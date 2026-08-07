@@ -126,28 +126,12 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 		{
 			// Prevents Gas Passer clouds from coating the thrower.
 			PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
-
-			// Created while the thrower is spoofed, which would leave the cloud the wrong colour.
-			RequestFrame(Frame_RestoreOwnerTeam, GetEntityRefSafe(entity));
 		}
 		else if (StrEqual(classname, "entity_medigun_shield"))
 		{
 			// CTFMedigunShield::Create copies the Medic's team, which is spoofed during ItemPostFrame.
 			RequestFrame(Frame_RestoreOwnerTeam, GetEntityRefSafe(entity));
 		}
-	}
-}
-
-static void Frame_RestoreOwnerTeam(int ref)
-{
-	int entity = EntRefToEntIndex(ref);
-	if (entity == -1)
-		return;
-
-	int owner = FindParentOwnerEntity(entity);
-	if (owner != entity)
-	{
-		SDKCall_CBaseEntity_ChangeTeam(entity, Entity(owner).GetOriginalTeam());
 	}
 }
 
@@ -313,17 +297,12 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 }
 
 // Moves an attacking teammate out of the way so a building will accept their damage.
-static void SpoofObjectAttacker(int victim, int attacker)
+static void SpoofObjectAttacker(int victim, int attacker, bool routesToSapper)
 {
 	if (AreTeammatesEnemies() || !IsEntityClient(attacker))
 		return;
 
-	// Buildings only take teammate damage, never damage from the one who built them.
-	if (GetEntPropEnt(victim, Prop_Send, "m_hBuilder") == attacker)
-		return;
-
-	// A sapped building routes same-team damage to the sapper, which is how melee weapons knock them off.
-	if (IsObjectSapped(victim))
+	if (ShouldObjectKeepTeams(victim, attacker, routesToSapper))
 		return;
 
 	// Another hook already moved this building along, moving the attacker too would pair them up again.
@@ -345,7 +324,7 @@ static Action SDKHookCB_Object_TraceAttack(int victim, int &attacker, int &infli
 	if (IsTruceBlockingObjectDamage(attacker))
 		return Plugin_Handled;
 
-	SpoofObjectAttacker(victim, attacker);
+	SpoofObjectAttacker(victim, attacker, true);
 
 	return Plugin_Continue;
 }
@@ -362,7 +341,7 @@ static Action SDKHookCB_Object_OnTakeDamage(int victim, int &attacker, int &infl
 	if (IsTruceBlockingObjectDamage(attacker))
 		return Plugin_Handled;
 
-	SpoofObjectAttacker(victim, attacker);
+	SpoofObjectAttacker(victim, attacker, false);
 
 	return Plugin_Continue;
 }
@@ -421,7 +400,7 @@ static Action SDKHookCB_FlameManager_Touch(int entity, int other)
 	Spoof_BeginFrame(entity);
 
 	int owner = FindParentOwnerEntity(entity);
-	if (IsValidEntity(owner) && owner != other)
+	if (IsValidEntity(owner) && owner != other && !ShouldObjectKeepTeams(other, owner, true))
 	{
 		Spoof_ChangeToSpectator(owner);
 	}

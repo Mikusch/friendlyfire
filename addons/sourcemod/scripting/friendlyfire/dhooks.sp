@@ -254,10 +254,16 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHook
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHookParam params)
 {
 	Spoof_BeginFrame();
-	
-	if (!params.IsNull(2))
-		Spoof_ChangeToSpectator(params.Get(2));
-	
+
+	if (params.IsNull(2))
+		return MRES_Ignored;
+
+	int other = params.Get(2);
+	if (IsEntityClient(other))
+	{
+		Spoof_ChangeToSpectator(other);
+	}
+
 	return MRES_Ignored;
 }
 
@@ -481,6 +487,9 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 		g_thinkFunction = ThinkFunction_OrbThink;
 		Spoof_BeginFrame();
+
+		// CheckForProjectiles compares against the orb itself rather than the owner, so both have to move.
+		Spoof_ChangeToSpectator(entity);
 
 		int owner = FindParentOwnerEntity(entity);
 		if (owner != entity)

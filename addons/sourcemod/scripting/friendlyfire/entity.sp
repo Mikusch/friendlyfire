@@ -229,8 +229,9 @@ methodmap Entity
 
 enum struct SpoofFrame
 {
-	int start;	// Index into g_spoofedEntities where this frame begins.
-	int owner;	// Reference of the entity whose hook opened the frame, or INVALID_ENT_REFERENCE.
+	int start;		// Index into g_spoofedEntities where this frame begins.
+	int owner;		// Reference of the entity whose hook opened the frame, or INVALID_ENT_REFERENCE.
+	bool orphaned;	// The owner was removed mid-call, so its post-hook will never close this frame.
 }
 
 static ArrayList g_spoofedEntities;
@@ -250,15 +251,15 @@ void Spoof_BeginFrame(int owner = INVALID_ENT_REFERENCE)
 	SpoofFrame frame;
 	frame.start = g_spoofedEntities.Length;
 	frame.owner = GetEntityRefSafe(owner);
+	frame.orphaned = false;
 
 	g_spoofFrames.PushArray(frame);
 }
 
-void Spoof_EndFrame()
+// Restores everything the topmost frame spoofed.
+static void Spoof_PopFrame()
 {
 	int frames = g_spoofFrames.Length;
-	if (!frames)
-		return;
 
 	int start = g_spoofFrames.Get(frames - 1, SpoofFrame::start);
 	g_spoofFrames.Erase(frames - 1);
@@ -276,16 +277,43 @@ void Spoof_EndFrame()
 	}
 }
 
-// Closes the frames of an entity that was removed inside its own hook, whose post-hook will never run.
+void Spoof_EndFrame()
+{
+	if (!g_spoofFrames.Length)
+	{
+		// If you hit this, a post-hook ran without its pre-hook ever opening a frame.
+		LogError("Tried to close a spoof frame while none were open");
+		return;
+	}
+
+	Spoof_PopFrame();
+
+	// An orphaned frame underneath has nobody left to close it, so it goes now that it is on top.
+	while (g_spoofFrames.Length > 0 && g_spoofFrames.Get(g_spoofFrames.Length - 1, SpoofFrame::orphaned) != 0)
+	{
+		Spoof_PopFrame();
+	}
+}
+
+// Marks the frames of an entity that was removed inside its own hook, whose post-hook will never run.
+// Such a frame is not always on top, so anything a deeper hook opened has to unwind first.
 void Spoof_EndFramesForEntity(int entity)
 {
 	int ref = GetEntityRefSafe(entity);
 	if (ref == INVALID_ENT_REFERENCE)
 		return;
 
-	while (g_spoofFrames.Length > 0 && g_spoofFrames.Get(g_spoofFrames.Length - 1, SpoofFrame::owner) == ref)
+	for (int i = g_spoofFrames.Length - 1; i >= 0; i--)
 	{
-		Spoof_EndFrame();
+		if (g_spoofFrames.Get(i, SpoofFrame::owner) == ref)
+		{
+			g_spoofFrames.Set(i, true, SpoofFrame::orphaned);
+		}
+	}
+
+	while (g_spoofFrames.Length > 0 && g_spoofFrames.Get(g_spoofFrames.Length - 1, SpoofFrame::orphaned) != 0)
+	{
+		Spoof_PopFrame();
 	}
 }
 
@@ -293,7 +321,7 @@ void Spoof_Clear()
 {
 	while (g_spoofFrames.Length > 0)
 	{
-		Spoof_EndFrame();
+		Spoof_PopFrame();
 	}
 
 	// Anything that was spoofed outside of a frame.
