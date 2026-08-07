@@ -127,11 +127,6 @@ void SDKHooks_OnEntityCreated(int entity, const char[] classname)
 			// Prevents Gas Passer clouds from coating the thrower.
 			PSM_SDKHook(entity, SDKHook_Touch, SDKHookCB_GasManager_Touch);
 		}
-		else if (StrEqual(classname, "entity_medigun_shield"))
-		{
-			// CTFMedigunShield::Create copies the Medic's team, which is spoofed during ItemPostFrame.
-			RequestFrame(Frame_RestoreOwnerTeam, GetEntityRefSafe(entity));
-		}
 	}
 }
 
