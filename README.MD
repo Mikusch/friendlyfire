@@ -9,7 +9,7 @@ This plugin attempts to fix the incredibly broken friendly fire in Team Fortress
 * SourceMod 1.12+
 * [Mikusch/PluginStateManager](https://github.com/Mikusch/PluginStateManager) (compile only)
 
-## What does this fix?
+## What Does This Fix?
 
 This fixes pretty much all interactions with weapons against your own team or entities created by your team's weapons.
 
