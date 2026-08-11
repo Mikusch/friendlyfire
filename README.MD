@@ -1,6 +1,6 @@
 # [TF2] Friendly Fire Fix
 
-This plugin fixes broken interactions during friendly fire in Team Fortress 2.
+A SourceMod plugin for Team Fortress 2 that fixes broken interactions during friendly fire.
 
 > [!NOTE]
 > This plugin does nothing if `mp_friendlyfire` is not enabled.
@@ -12,7 +12,8 @@ This plugin fixes broken interactions during friendly fire in Team Fortress 2.
 
 ## What Does This Fix?
 
-`mp_friendlyfire` allows teammates to damage each other, but the vast majority of weapons and mechanics were not made with it in mind, and thus do nothing if two players are on the same team. This plugin hooks into various game functions to rewrite and fix that behavior.
+`mp_friendlyfire` allows teammates to damage each other, but the vast majority of weapons and mechanics were not made with it in mind, and thus do nothing if two players are on the same team.
+This plugin hooks into various game functions to rewrite and fix that behavior.
 
 > [!NOTE]
 > The following changes only apply while `mp_friendlyfire` is `1`.
@@ -73,7 +74,8 @@ This plugin fixes broken interactions during friendly fire in Team Fortress 2.
 ## Free-for-All Mode
 
 `sm_ff_teammates_are_enemies` is a separate opt-in that goes considerably further, and it stops teammates from counting as teammates at all.
-Interactions that were never meant for your own team start working on them, and every friendly interaction stops. It effectively turns the game into a free-for-all.
+Interactions that were never meant for your own team start working on them, and every friendly interaction stops.
+It effectively turns the game into a free-for-all.
 
 > [!NOTE]
 > The following changes only apply while `sm_ff_teammates_are_enemies` is `1`.
