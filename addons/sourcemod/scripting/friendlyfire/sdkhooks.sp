@@ -18,6 +18,8 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+// Moving ourselves instead of everyone else.
+// Required whenever the team check compares us against the target.
 int g_spectatorItemIDs[] =
 {
 	TF_WEAPON_KNIFE,				// CTFKnife::BackstabVMThink
@@ -208,7 +210,6 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 	if (victim == attacker)
 		return Plugin_Continue;
 
-	// A truce means nobody damages anybody, so leave every team alone while one is running.
 	if (GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 
@@ -291,7 +292,6 @@ static void SDKHookCB_Object_SpawnPost(int entity)
 	SetObjectSolidToPlayers(entity, AreTeammatesEnemies());
 }
 
-// Moves an attacking teammate out of the way so a building will accept their damage.
 static void SpoofObjectAttacker(int victim, int attacker, bool routesToSapper)
 {
 	if (AreTeammatesEnemies() || !IsEntityClient(attacker))

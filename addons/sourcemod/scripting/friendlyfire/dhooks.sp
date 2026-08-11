@@ -361,7 +361,6 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Post(int entity, DHookPara
 static MRESReturn DHookCallback_CTFSniperRifle_GetCustomDamageType_Post(int entity, DHookReturn ret)
 {
 	// Allow Sydney Sleeper shots to pass through healthy teammates and extinguish burning ones.
-	// SourceMod's TF_CUSTOM_PENETRATE_HEADSHOT is a stale name for TF_DMG_CUSTOM_PENETRATE_NONBURNING_TEAMMATE.
 	if (!AreTeammatesEnemies() && ret.Value == TF_CUSTOM_PENETRATE_HEADSHOT)
 		return MRES_Ignored;
 
@@ -478,7 +477,6 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		return MRES_Ignored;
 
 	// These orbs damage from a think and skip the owner's team, so the owner has to move out of the way.
-	// Handled before the convar gate below, because they are purely offensive in both modes.
 	if (StrEqual(classname, "tf_projectile_mechanicalarmorb"))
 	{
 		// CTFProjectile_MechanicalArmOrb::OrbThink, and the terminal burst from ExplodeAndRemove.
@@ -740,23 +738,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity
 
 			Spoof_EndFrame();
 		}
-		case ThinkFunction_DispenseThink:
-		{
-			Spoof_EndFrame();
-		}
-		case ThinkFunction_MedigunHealTargetThink:
-		{
-			Spoof_EndFrame();
-		}
-		case ThinkFunction_TossJarThink:
-		{
-			Spoof_EndFrame();
-		}
-		case ThinkFunction_OrbThink:
-		{
-			Spoof_EndFrame();
-		}
-		case ThinkFunction_ZapThink:
+		case ThinkFunction_DispenseThink, ThinkFunction_MedigunHealTargetThink, ThinkFunction_TossJarThink, ThinkFunction_OrbThink, ThinkFunction_ZapThink:
 		{
 			Spoof_EndFrame();
 		}

@@ -22,9 +22,6 @@
 
 static ArrayList g_entityProperties;
 
-/**
- * Property storage struct for Entity.
- */
 enum struct EntityProperties
 {
 	int ref;
