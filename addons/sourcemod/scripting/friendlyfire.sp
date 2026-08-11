@@ -91,9 +91,9 @@ int g_offset_CTakeDamageInfo_m_hAttacker;
 
 public Plugin myinfo =
 {
-	name = "[TF2] Fixed Friendly Fire",
+	name = "[TF2] Friendly Fire Fix",
 	author = "Mikusch",
-	description = "Fixes mp_friendlyfire in Team Fortress 2.",
+	description = "Fixes broken interactions during friendly fire in Team Fortress 2.",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Mikusch/friendlyfire"
 }
@@ -171,8 +171,7 @@ public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 {
 	if (!PSM_IsEnabled())
 		return Plugin_Continue;
-	
-	// Teleporters work for the entire team unless teammates are enemies.
+
 	if (!AreTeammatesEnemies())
 		return Plugin_Continue;
 
@@ -191,7 +190,7 @@ static void ConVars_Init()
 {
 	CreateConVar("sm_ff_enabled", "1", "Enable the plugin?");
 	CreateConVar("sm_ff_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-	sm_ff_teammates_are_enemies = CreateConVar("sm_ff_teammates_are_enemies", "1", "When set, your teammates act as enemies and all players are valid targets.", _, true, 0.0, true, 1.0);
+	sm_ff_teammates_are_enemies = CreateConVar("sm_ff_teammates_are_enemies", "0", "When set, your teammates act as enemies and all players are valid targets.", _, true, 0.0, true, 1.0);
 
 	PSM_AddEnforcedConVar("tf_avoidteammates", "0", AreTeammatesEnemies, sm_ff_teammates_are_enemies);
 	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0", AreTeammatesEnemies, sm_ff_teammates_are_enemies);
