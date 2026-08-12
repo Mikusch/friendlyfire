@@ -5,6 +5,7 @@
 // Required for checks that compare the target against us.
 int g_spectatorItemIDs[] =
 {
+	TF_WEAPON_FISTS,				// CTFWeaponBaseMelee::DoMeleeDamage
 	TF_WEAPON_KNIFE,				// CTFKnife::BackstabVMThink
 	TF_WEAPON_STICKBOMB,			// CTFWeaponBaseMelee::OnSwingHit
 };
