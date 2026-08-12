@@ -1,20 +1,3 @@
-/**
- * Copyright (C) 2022  Mikusch
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 #pragma newdecls required
 #pragma semicolon 1
 
@@ -84,9 +67,9 @@ ConVar sm_ff_teammates_are_enemies;
 int g_offset_CTakeDamageInfo_m_hAttacker;
 
 #include "friendlyfire/dhooks.sp"
-#include "friendlyfire/entity.sp"
 #include "friendlyfire/sdkcalls.sp"
 #include "friendlyfire/sdkhooks.sp"
+#include "friendlyfire/spoof.sp"
 #include "friendlyfire/util.sp"
 
 public Plugin myinfo =
@@ -112,9 +95,8 @@ public void OnPluginStart()
 	PSM_AddPluginStateChangedHook(OnPluginStateChanged);
 	PSM_AddShouldEnableCallback(ShouldEnable);
 	
-	Entity.Init();
 	Spoof_Init();
-	
+
 	ConVars_Init();
 	DHooks_Init();
 	
@@ -157,14 +139,9 @@ public void OnEntityDestroyed(int entity)
 	if (!PSM_IsEnabled())
 		return;
 	
-	Spoof_EndFramesForEntity(entity);
+	Spoof_OnEntityDestroyed(entity);
 
 	PSM_SDKUnhook(entity);
-
-	if (Entity.IsEntityTracked(entity))
-	{
-		Entity(entity).Destroy();
-	}
 }
 
 public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
@@ -205,13 +182,10 @@ static void OnPluginStateChanged(bool enable)
 	if (!g_isMapRunning)
 		return;
 
-	if (!enable)
-		Spoof_Clear();
-
-	int entity = -1;
-	while ((entity = FindEntityByClassname(entity, "*")) != -1)
+	if (enable)
 	{
-		if (enable)
+		int entity = -1;
+		while ((entity = FindEntityByClassname(entity, "*")) != -1)
 		{
 			char classname[64];
 			if (!GetEntityClassname(entity, classname, sizeof(classname)))
@@ -219,11 +193,10 @@ static void OnPluginStateChanged(bool enable)
 
 			OnEntityCreated(entity, classname);
 		}
-		else
-		{
-			if (Entity.IsEntityTracked(entity))
-				Entity(entity).Destroy();
-		}
+	}
+	else
+	{
+		Spoof_Clear();
 	}
 
 	SetAllObjectsSolidToPlayers(enable && AreTeammatesEnemies());

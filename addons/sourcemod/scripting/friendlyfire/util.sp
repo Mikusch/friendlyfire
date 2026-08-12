@@ -1,32 +1,5 @@
-/**
- * Copyright (C) 2022  Mikusch
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 #pragma newdecls required
 #pragma semicolon 1
-
-TFTeam TF2_GetEntityTeam(int entity)
-{
-	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
-}
-
-void TF2_SetEntityTeam(int entity, TFTeam team)
-{
-	SetEntProp(entity, Prop_Send, "m_iTeamNum", team);
-}
 
 TFTeam GetEnemyTeam(TFTeam team)
 {
@@ -123,8 +96,8 @@ bool IsObjectFriendly(int obj, int other)
 		return true;
 
 	// The original team has to be used here, because callers of this function commonly spoof team numbers.
-	TFTeam objTeam = Entity(obj).GetOriginalTeam();
-	TFTeam otherTeam = Entity(other).GetOriginalTeam();
+	TFTeam objTeam = Spoof_GetOriginalTeam(obj);
+	TFTeam otherTeam = Spoof_GetOriginalTeam(other);
 
 	if (!AreTeammatesEnemies() && objTeam == otherTeam)
 		return true;

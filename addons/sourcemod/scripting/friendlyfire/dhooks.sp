@@ -1,32 +1,18 @@
-/**
- * Copyright (C) 2022  Mikusch
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 #pragma newdecls required
 #pragma semicolon 1
 
-enum ThinkFunction
+enum SentryTeamChange
 {
-	ThinkFunction_None,
-	ThinkFunction_DispenseThink,
-	ThinkFunction_SentryThink,
-	ThinkFunction_MedigunHealTargetThink,
-	ThinkFunction_TossJarThink,
-	ThinkFunction_OrbThink,
-	ThinkFunction_ZapThink,
+	SentryTeamChange_None,
+	SentryTeamChange_Added,
+	SentryTeamChange_Removed,
+}
+
+enum struct SentryTarget
+{
+	int ref;
+	SentryTeamChange undo;
+	TFTeam disguiseTeam;
 }
 
 static DynamicHook g_dhook_CBaseProjectile_CanCollideWithTeammates;
@@ -41,15 +27,19 @@ static DynamicHook g_dhook_CTFWeaponBase_SecondaryAttack;
 static DynamicHook g_dhook_CBaseEntity_Deflected;
 static DynamicHook g_dhook_CBaseEntity_VPhysicsUpdate;
 
-static ThinkFunction g_thinkFunction = ThinkFunction_None;
+static bool g_thinkOpenedSpoofFrame;
+static ArrayList g_sentryTargets;
+static Address g_sentryEnemyTeam;
 
 void DHooks_Init()
 {
+	g_sentryTargets = new ArrayList(sizeof(SentryTarget));
+
 	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre, _, AreTeammatesEnemies, sm_ff_teammates_are_enemies);
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
-	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post);
-	PSM_AddDynamicDetourFromConf("CTFPlayer::CanAttack", DHookCallback_CTFPlayer_CanAttack_Pre, DHookCallback_CTFPlayer_CanAttack_Post);
-	PSM_AddDynamicDetourFromConf("CTFPlayerShared::StunPlayer", DHookCallback_CTFPlayerShared_StunPlayer_Pre, DHookCallback_CTFPlayerShared_StunPlayer_Post);
+	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_EndSpoofFrameWithParams_Post);
+	PSM_AddDynamicDetourFromConf("CTFPlayer::CanAttack", DHookCallback_CTFPlayer_CanAttack_Pre, DHookCallback_EndSpoofFrameWithReturnAndParams_Post);
+	PSM_AddDynamicDetourFromConf("CTFPlayerShared::StunPlayer", DHookCallback_CTFPlayerShared_StunPlayer_Pre, DHookCallback_EndSpoofFrameOnAddress_Post);
 	
 	g_dhook_CBaseProjectile_CanCollideWithTeammates = PSM_AddDynamicHookFromConf("CBaseProjectile::CanCollideWithTeammates");
 	g_dhook_CTFSniperRifle_GetCustomDamageType = PSM_AddDynamicHookFromConf("CTFSniperRifle::GetCustomDamageType");
@@ -70,7 +60,7 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 	{
 		// Fixes on-death effects (e.g. ragdolls) showing spectator visuals.
 		PSM_DHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Pre, entity, DHookCallback_CTFPlayer_Event_Killed_Pre);
-		PSM_DHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Post, entity, DHookCallback_CTFPlayer_Event_Killed_Post);
+		PSM_DHookEntity(g_dhook_CBasePlayer_Event_Killed, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 	}
 	else if (!strncmp(classname, "tf_projectile_", 14))
 	{
@@ -79,51 +69,51 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 		
 		// Fixes reflected projectiles being in the spectator team.
 		PSM_DHookEntity(g_dhook_CBaseEntity_Deflected, Hook_Pre, entity, DHookCallback_CBaseEntity_Deflected_Pre);
-		PSM_DHookEntity(g_dhook_CBaseEntity_Deflected, Hook_Post, entity, DHookCallback_CBaseEntity_Deflected_Post);
+		PSM_DHookEntity(g_dhook_CBaseEntity_Deflected, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		
 		if (IsEntityBaseGrenadeProjectile(entity))
 		{
 			// Fixes grenades rarely bouncing off friendly objects.
 			PSM_DHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Pre, entity, DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre);
-			PSM_DHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post);
+			PSM_DHookEntity(g_dhook_CBaseEntity_VPhysicsUpdate, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		}
 		
 		if (!strncmp(classname, "tf_projectile_jar", 17))
 		{
 			// Fixes jars not applying effects to teammates when hitting the world.
 			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Jar_Explode_Pre);
-			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Jar_Explode_Post);
+			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		}
 		else if (StrEqual(classname, "tf_projectile_flare"))
 		{
 			// Fixes Scorch Shot knockback on teammates.
 			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_Flare_Explode_Pre);
-			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_Flare_Explode_Post);
+			PSM_DHookEntity(g_dhook_CTFBaseRocket_Explode, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		}
 		else if (StrEqual(classname, "tf_projectile_spellfireball"))
 		{
 			// Fixes the Fireball spell not burning or knocking back teammates.
 			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_SpellFireball_Explode_Pre);
-			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_SpellFireball_Explode_Post);
+			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		}
 		else if (StrEqual(classname, "tf_projectile_spellbats"))
 		{
 			// Fixes the Bats spell not stunning, bleeding or launching teammates.
 			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_SpellBats_Explode_Pre);
-			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_CTFProjectile_SpellBats_Explode_Post);
+			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		}
 	}
 	else if (IsEntityBaseCombatWeapon(entity))
 	{
 		// Fixes weapons being able to deflect entities during a truce.
 		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Pre, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre);
-		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Post, entity, DHookCallback_CTFWeaponBase_DeflectProjectiles_Post);
+		PSM_DHookEntity(g_dhook_CTFWeaponBase_DeflectProjectiles, Hook_Post, entity, DHookCallback_EndSpoofFrameWithReturn_Post);
 		
 		if (IsEntityBaseMelee(entity))
 		{
 			// Fixes wrenches not being able to upgrade friendly objects.
 			PSM_DHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Pre, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Pre);
-			PSM_DHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_CTFWeaponBaseMelee_Smack_Post);
+			PSM_DHookEntity(g_dhook_CTFWeaponBaseMelee_Smack, Hook_Post, entity, DHookCallback_EndSpoofFrame_Post);
 		}
 		else
 		{
@@ -137,10 +127,45 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 			{
 				// Fixes pipebomb launchers not being able to knock around friendly pipebombs.
 				PSM_DHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Pre, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre);
-				PSM_DHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post);
+				PSM_DHookEntity(g_dhook_CTFWeaponBase_SecondaryAttack, Hook_Post, entity, DHookCallback_EndSpoofFrame_Post);
 			}
 		}
 	}
+}
+
+static MRESReturn DHookCallback_EndSpoofFrame_Post(int entity)
+{
+	Spoof_EndFrame();
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_EndSpoofFrameWithParams_Post(int entity, DHookParam params)
+{
+	Spoof_EndFrame();
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_EndSpoofFrameWithReturn_Post(int entity, DHookReturn ret)
+{
+	Spoof_EndFrame();
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_EndSpoofFrameWithReturnAndParams_Post(int entity, DHookReturn ret, DHookParam params)
+{
+	Spoof_EndFrame();
+
+	return MRES_Ignored;
+}
+
+static MRESReturn DHookCallback_EndSpoofFrameOnAddress_Post(Address address, DHookParam params)
+{
+	Spoof_EndFrame();
+
+	return MRES_Ignored;
 }
 
 static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookParam params)
@@ -155,13 +180,6 @@ static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Pre(int player, DHookPara
 	{
 		Spoof_ChangeToOriginalTeam(attacker);
 	}
-
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFPlayer_Event_Killed_Post(int player, DHookParam params)
-{
-	Spoof_EndFrame();
 
 	return MRES_Ignored;
 }
@@ -199,19 +217,12 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 			if (FindParentOwnerEntity(projectile) == owner)
 				continue;
 
-			if (TF2_GetEntityTeam(projectile) != enemyTeam)
+			if (view_as<TFTeam>(GetEntProp(projectile, Prop_Data, "m_iTeamNum")) != enemyTeam)
 			{
 				Spoof_SetTeam(projectile, enemyTeam);
 			}
 		}
 	}
-
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Post(int weapon, DHookReturn ret)
-{
-	Spoof_EndFrame();
 
 	return MRES_Ignored;
 }
@@ -244,13 +255,6 @@ static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Pre(int entity, DHookP
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFProjectile_Jar_Explode_Post(int entity, DHookParam params)
-{
-	Spoof_EndFrame();
-
-	return MRES_Ignored;
-}
-
 static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHookParam params)
 {
 	Spoof_BeginFrame();
@@ -264,13 +268,6 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHoo
 		Spoof_ChangeToSpectator(other);
 	}
 
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Post(int entity, DHookParam params)
-{
-	Spoof_EndFrame();
-	
 	return MRES_Ignored;
 }
 
@@ -291,13 +288,6 @@ static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Pre(int enti
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Post(int entity, DHookParam params)
-{
-	Spoof_EndFrame();
-
-	return MRES_Ignored;
-}
-
 static MRESReturn DHookCallback_CTFProjectile_SpellBats_Explode_Pre(int entity, DHookParam params)
 {
 	Spoof_BeginFrame();
@@ -310,13 +300,6 @@ static MRESReturn DHookCallback_CTFProjectile_SpellBats_Explode_Pre(int entity, 
 	{
 		Spoof_ChangeToSpectator(thrower);
 	}
-
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFProjectile_SpellBats_Explode_Post(int entity, DHookParam params)
-{
-	Spoof_EndFrame();
 
 	return MRES_Ignored;
 }
@@ -347,13 +330,6 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Pre(int entity, DHookParam
 	// Make projectiles have the original team of the deflector.
 	if (!params.IsNull(1))
 		Spoof_ChangeToOriginalTeam(params.Get(1));
-	
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CBaseEntity_Deflected_Post(int entity, DHookParam params)
-{
-	Spoof_EndFrame();
 	
 	return MRES_Ignored;
 }
@@ -406,13 +382,6 @@ static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Pre(int entity)
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFWeaponBaseMelee_Smack_Post(int entity)
-{
-	Spoof_EndFrame();
-
-	return MRES_Ignored;
-}
-
 static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookReturn ret, DHookParam params)
 {
 	if (!AreTeammatesEnemies())
@@ -449,6 +418,113 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	return MRES_Supercede;
 }
 
+static void BeginThinkSpoofFrame()
+{
+	g_thinkOpenedSpoofFrame = true;
+
+	Spoof_BeginFrame();
+}
+
+static void SpoofOrbThinkTeams(int orb)
+{
+	BeginThinkSpoofFrame();
+
+	Spoof_ChangeToSpectator(orb);
+
+	int owner = FindParentOwnerEntity(orb);
+	if (owner != orb)
+	{
+		Spoof_ChangeToSpectator(owner);
+	}
+}
+
+// NOTE: CBaseObject::ChangeTeam recreates the build points and breaks sapper placement, so we use AddObject/RemoveObject.
+static void ApplySentryTeamChange(int entity, SentryTeamChange change)
+{
+	bool isPlayer = IsEntityClient(entity);
+
+	switch (change)
+	{
+		case SentryTeamChange_Added:
+		{
+			if (isPlayer)
+				SDKCall_CTeam_AddPlayer(g_sentryEnemyTeam, entity);
+			else
+				SDKCall_CTeam_AddObject(g_sentryEnemyTeam, entity);
+		}
+		case SentryTeamChange_Removed:
+		{
+			if (isPlayer)
+				SDKCall_CTeam_RemovePlayer(g_sentryEnemyTeam, entity);
+			else
+				SDKCall_CTeam_RemoveObject(g_sentryEnemyTeam, entity);
+		}
+	}
+}
+
+static void SpoofSentryTarget(int sentry, int entity, TFTeam enemyTeam)
+{
+	bool isPlayer = IsEntityClient(entity);
+	bool friendly = IsObjectFriendly(sentry, entity);
+
+	// Keep shooting a Spy who disguises after being acquired.
+	if (friendly && isPlayer && GetEntPropEnt(sentry, Prop_Send, "m_hEnemy") == entity)
+		friendly = false;
+
+	SentryTarget target;
+	target.ref = EntIndexToEntRef(entity);
+	target.undo = SentryTeamChange_None;
+	target.disguiseTeam = TFTeam_Unassigned;
+
+	// A friendly target has to be out of that list, an unfriendly one has to be in it.
+	bool listed = view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum")) == enemyTeam;
+	if (listed == friendly)
+	{
+		ApplySentryTeamChange(entity, friendly ? SentryTeamChange_Removed : SentryTeamChange_Added);
+		target.undo = friendly ? SentryTeamChange_Added : SentryTeamChange_Removed;
+	}
+
+	// Sentry Guns don't shoot Spies disguised as their own team, so spoof the disguise team.
+	if (!friendly && isPlayer)
+	{
+		target.disguiseTeam = view_as<TFTeam>(GetEntProp(entity, Prop_Send, "m_nDisguiseTeam"));
+		SetEntProp(entity, Prop_Send, "m_nDisguiseTeam", TFTeam_Unassigned);
+	}
+
+	if (target.undo != SentryTeamChange_None || target.disguiseTeam != TFTeam_Unassigned)
+	{
+		g_sentryTargets.PushArray(target);
+	}
+}
+
+static void SpoofSentryTargets(int sentry)
+{
+	TFTeam enemyTeam = GetSentryEnemyTeam(view_as<TFTeam>(GetEntProp(sentry, Prop_Data, "m_iTeamNum")));
+
+	g_sentryEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
+	if (g_sentryEnemyTeam == Address_Null)
+		return;
+
+	g_sentryTargets.Clear();
+
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client))
+		{
+			SpoofSentryTarget(sentry, client, enemyTeam);
+		}
+	}
+
+	int obj = -1;
+	while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
+	{
+		if (obj != sentry && !GetEntProp(obj, Prop_Send, "m_bPlacing"))
+		{
+			SpoofSentryTarget(sentry, obj, enemyTeam);
+		}
+	}
+}
+
 static void SpoofWrangledSentryTargets(int sentry)
 {
 	int builder = GetEntPropEnt(sentry, Prop_Send, "m_hBuilder");
@@ -470,6 +546,30 @@ static void SpoofWrangledSentryTargets(int sentry)
 	}
 }
 
+static void RestoreSentryTargets()
+{
+	for (int i = 0; i < g_sentryTargets.Length; i++)
+	{
+		SentryTarget target;
+		g_sentryTargets.GetArray(i, target);
+
+		int entity = EntRefToEntIndex(target.ref);
+		if (!IsValidEntity(entity))
+			continue;
+
+		ApplySentryTeamChange(entity, target.undo);
+
+		// Only undo our own write, the think may have killed the Spy and cleared his disguise.
+		if (target.disguiseTeam != TFTeam_Unassigned && view_as<TFTeam>(GetEntProp(entity, Prop_Send, "m_nDisguiseTeam")) == TFTeam_Unassigned)
+		{
+			SetEntProp(entity, Prop_Send, "m_nDisguiseTeam", target.disguiseTeam);
+		}
+	}
+
+	g_sentryTargets.Clear();
+	g_sentryEnemyTeam = Address_Null;
+}
+
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 {
 	char classname[64];
@@ -483,17 +583,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		if (!IsThinkRunning(entity, "OrbThink") && !IsThinkRunning(entity, "ExplodeAndRemoveThink"))
 			return MRES_Ignored;
 
-		g_thinkFunction = ThinkFunction_OrbThink;
-		Spoof_BeginFrame();
-
-		// CheckForProjectiles compares against the orb itself rather than the owner, so both have to move.
-		Spoof_ChangeToSpectator(entity);
-
-		int owner = FindParentOwnerEntity(entity);
-		if (owner != entity)
-		{
-			Spoof_ChangeToSpectator(owner);
-		}
+		SpoofOrbThinkTeams(entity);
 
 		return MRES_Ignored;
 	}
@@ -503,17 +593,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		if (!IsThinkRunning(entity, "ZapThink") && !IsThinkRunning(entity, "VortexThink") && !IsThinkRunning(entity, "ExplodeAndRemoveThink"))
 			return MRES_Ignored;
 
-		g_thinkFunction = ThinkFunction_ZapThink;
-		Spoof_BeginFrame();
-
-		// VortexThink compares against the orb itself rather than the owner, so both have to move.
-		Spoof_ChangeToSpectator(entity);
-
-		int owner = FindParentOwnerEntity(entity);
-		if (owner != entity)
-		{
-			Spoof_ChangeToSpectator(owner);
-		}
+		SpoofOrbThinkTeams(entity);
 
 		return MRES_Ignored;
 	}
@@ -528,73 +608,11 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		if (!IsThinkRunning(entity, "SentrygunContext"))
 			return MRES_Ignored;
 
-		g_thinkFunction = ThinkFunction_SentryThink;
-		Spoof_BeginFrame();
+		BeginThinkSpoofFrame();
 
-		TFTeam myTeam = TF2_GetEntityTeam(entity);
-		TFTeam enemyTeam = GetSentryEnemyTeam(myTeam);
-		Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
+		SpoofSentryTargets(entity);
 
-		// CObjectSentrygun::FindTarget uses CTFTeamManager to collect valid players.
-		// Add all enemy players to the desired team.
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (IsClientInGame(client))
-			{
-				TFTeam team = TF2_GetClientTeam(client);
-				bool friendly = IsObjectFriendly(entity, client);
-
-				// Keep shooting a Spy who disguises after being acquired.
-				if (friendly && GetEntPropEnt(entity, Prop_Send, "m_hEnemy") == client)
-					friendly = false;
-
-				// Latch both inputs, the think can kill a disguised Spy and flip the answer under us.
-				Entity(client).PreHookTeam = team;
-				Entity(client).PreHookFriendly = friendly;
-
-				if (friendly && team == enemyTeam)
-				{
-					SDKCall_CTeam_RemovePlayer(pEnemyTeam, client);
-				}
-				else if (!friendly && team != enemyTeam)
-				{
-					SDKCall_CTeam_AddPlayer(pEnemyTeam, client);
-				}
-				
-				// Sentry Guns don't shoot Spies disguised as their own team, so spoof the disguise team.
-				if (!friendly)
-				{
-					Entity(client).PreHookDisguiseTeam = view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam"));
-					SetEntProp(client, Prop_Send, "m_nDisguiseTeam", TFTeam_Unassigned);
-				}
-			}
-		}
-
-		// Buildings work in a similar way.
-		// NOTE: CBaseObject::ChangeTeam recreates the build points and breaks sapper placement, so we use AddObject/RemoveObject.
-		int obj = -1;
-		while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
-		{
-			if (obj != entity && !GetEntProp(obj, Prop_Send, "m_bPlacing"))
-			{
-				TFTeam team = TF2_GetEntityTeam(obj);
-				bool friendly = IsObjectFriendly(entity, obj);
-
-				Entity(obj).PreHookTeam = team;
-				Entity(obj).PreHookFriendly = friendly;
-
-				if (friendly && team == enemyTeam)
-				{
-					SDKCall_CTeam_RemoveObject(pEnemyTeam, obj);
-				}
-				else if (!friendly && team != enemyTeam)
-				{
-					SDKCall_CTeam_AddObject(pEnemyTeam, obj);
-				}
-			}
-		}
-
-		// Has to run last, the latching above reads real team numbers.
+		// Has to run last, the snapshot above reads real team numbers.
 		SpoofWrangledSentryTargets(entity);
 	}
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
@@ -602,11 +620,10 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		// CObjectDispenser::DispenseThink
 		if (!IsThinkRunning(entity, "DispenseContext"))
 			return MRES_Ignored;
-		
+
 		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
 		{
-			g_thinkFunction = ThinkFunction_DispenseThink;
-			Spoof_BeginFrame();
+			BeginThinkSpoofFrame();
 
 			// Stop the Dispenser from healing players that are not friendly to it.
 			for (int client = 1; client <= MaxClients; client++)
@@ -636,8 +653,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		if (!IsThinkRunning(entity, "TOSS_JAR_THINK"))
 			return MRES_Ignored;
 
-		g_thinkFunction = ThinkFunction_TossJarThink;
-		Spoof_BeginFrame();
+		BeginThinkSpoofFrame();
 
 		// Self-cast spells like Overheal buff everyone on the caster's team in a radius.
 		int owner = FindParentOwnerEntity(entity);
@@ -660,8 +676,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		if (!IsThinkRunning(entity, "MedigunHealTargetThink") || GetEntPropEnt(entity, Prop_Send, "m_hHealingTarget") == -1)
 			return MRES_Ignored;
 
-		g_thinkFunction = ThinkFunction_MedigunHealTargetThink;
-		Spoof_BeginFrame();
+		BeginThinkSpoofFrame();
 
 		// An established healing beam is only re-validated here.
 		// CWeaponMedigun::AllowedToHealTarget keeps letting us heal enemies that are disguised as our own team.
@@ -677,75 +692,18 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 
 static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Post(int entity)
 {
-	switch (g_thinkFunction)
+	if (g_sentryEnemyTeam != Address_Null)
 	{
-		case ThinkFunction_SentryThink:
-		{
-			TFTeam myTeam = TF2_GetEntityTeam(entity);
-			TFTeam enemyTeam = GetSentryEnemyTeam(myTeam);
-			Address pEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
-
-			for (int client = 1; client <= MaxClients; client++)
-			{
-				if (IsClientInGame(client))
-				{
-					TFTeam team = Entity(client).PreHookTeam;
-					bool friendly = Entity(client).PreHookFriendly;
-
-					Entity(client).PreHookTeam = TFTeam_Unassigned;
-					Entity(client).PreHookFriendly = false;
-
-					if (friendly && team == enemyTeam)
-					{
-						SDKCall_CTeam_AddPlayer(pEnemyTeam, client);
-					}
-					else if (!friendly && team != enemyTeam)
-					{
-						SDKCall_CTeam_RemovePlayer(pEnemyTeam, client);
-					}
-
-					// Only undo our own write, the think may have killed the Spy and cleared his disguise.
-					if (!friendly && view_as<TFTeam>(GetEntProp(client, Prop_Send, "m_nDisguiseTeam")) == TFTeam_Unassigned)
-					{
-						SetEntProp(client, Prop_Send, "m_nDisguiseTeam", Entity(client).PreHookDisguiseTeam);
-					}
-
-					Entity(client).PreHookDisguiseTeam = TFTeam_Unassigned;
-				}
-			}
-
-			int obj = -1;
-			while ((obj = FindEntityByClassname(obj, "obj_*")) != -1)
-			{
-				if (obj != entity && !GetEntProp(obj, Prop_Send, "m_bPlacing"))
-				{
-					TFTeam team = Entity(obj).PreHookTeam;
-					bool friendly = Entity(obj).PreHookFriendly;
-
-					Entity(obj).PreHookTeam = TFTeam_Unassigned;
-					Entity(obj).PreHookFriendly = false;
-
-					if (friendly && team == enemyTeam)
-					{
-						SDKCall_CTeam_AddObject(pEnemyTeam, obj);
-					}
-					else if (!friendly && team != enemyTeam)
-					{
-						SDKCall_CTeam_RemoveObject(pEnemyTeam, obj);
-					}
-				}
-			}
-
-			Spoof_EndFrame();
-		}
-		case ThinkFunction_DispenseThink, ThinkFunction_MedigunHealTargetThink, ThinkFunction_TossJarThink, ThinkFunction_OrbThink, ThinkFunction_ZapThink:
-		{
-			Spoof_EndFrame();
-		}
+		RestoreSentryTargets();
 	}
 
-	g_thinkFunction = ThinkFunction_None;
-	
+	if (g_thinkOpenedSpoofFrame)
+	{
+		g_thinkOpenedSpoofFrame = false;
+
+		Spoof_EndFrame();
+	}
+
 	return MRES_Ignored;
 }
 
@@ -761,26 +719,12 @@ static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre(int pl
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Post(int player, DHookParam params)
-{
-	Spoof_EndFrame();
-	
-	return MRES_Ignored;
-}
-
 static MRESReturn DHookCallback_CTFPlayer_CanAttack_Pre(int player, DHookReturn ret, DHookParam params)
 {
 	Spoof_BeginFrame();
 
 	// Fixes the winning team not being able to use certain weapons.
 	Spoof_ChangeToOriginalTeam(player);
-
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFPlayer_CanAttack_Post(int player, DHookReturn ret, DHookParam params)
-{
-	Spoof_EndFrame();
 
 	return MRES_Ignored;
 }
@@ -795,13 +739,6 @@ static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Pre(Address shared, D
 	int attacker = params.Get(4);
 	if (IsEntityClient(attacker))
 		Spoof_ChangeToOriginalTeam(attacker);
-	
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Post(Address shared, DHookParam params)
-{
-	Spoof_EndFrame();
 	
 	return MRES_Ignored;
 }
@@ -830,19 +767,12 @@ static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Pre(int weap
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFPipebombLauncher_SecondaryAttack_Post(int weapon)
-{
-	Spoof_EndFrame();
-
-	return MRES_Ignored;
-}
-
 static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int entity, DHookParam params)
 {
 	Spoof_BeginFrame();
 
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	TFTeam enemyTeam = GetEnemyTeam(TF2_GetEntityTeam(entity));
+	TFTeam enemyTeam = GetEnemyTeam(view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum")));
 
 	// VPhysicsUpdate only explodes on what it sees as the enemy team.
 	// Jars are the exception, they have to keep flying past teammates to extinguish them later on.
@@ -864,18 +794,11 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 		if (thrower != -1 && GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == thrower)
 			continue;
 
-		if (TF2_GetEntityTeam(obj) == enemyTeam)
+		if (view_as<TFTeam>(GetEntProp(obj, Prop_Data, "m_iTeamNum")) == enemyTeam)
 			continue;
 
 		Spoof_SetTeam(obj, enemyTeam);
 	}
-
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFWeaponBaseGrenade_VPhysicsUpdate_Post(int entity, DHookParam params)
-{
-	Spoof_EndFrame();
 
 	return MRES_Ignored;
 }
