@@ -56,11 +56,13 @@ void DHooks_Init()
 
 void DHooks_Clear()
 {
+	// CTeam membership and disguise teams outlive the plugin, so an interrupted Sentry Gun think has to be undone.
 	if (g_sentryEnemyTeam != Address_Null)
 	{
 		RestoreSentryTargets();
 	}
 
+	// Spoof_Clear empties the frame stack, so a pending close would underflow it.
 	g_thinkOpenedSpoofFrame = false;
 }
 
