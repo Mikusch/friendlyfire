@@ -271,7 +271,6 @@ static Action SDKHookCB_ObjectDispenser_StartTouch(int entity, int other)
 
 static void SDKHookCB_Object_SpawnPost(int entity)
 {
-	// Enable collisions for both teams, unless teammates are supposed to walk through their own buildings.
 	SetObjectSolidToPlayers(entity, AreTeammatesEnemies());
 }
 

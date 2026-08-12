@@ -35,7 +35,7 @@ void DHooks_Init()
 {
 	g_sentryTargets = new ArrayList(sizeof(SentryTarget));
 
-	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre, _, AreTeammatesEnemies, sm_ff_teammates_are_enemies);
+	PSM_AddDynamicDetourFromConf("CBaseEntity::InSameTeam", DHookCallback_CBaseEntity_InSameTeam_Pre, _, AreTeammatesEnemies, sm_friendlyfire_teammates_are_enemies);
 	PSM_AddDynamicDetourFromConf("CBaseEntity::PhysicsDispatchThink", DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre, DHookCallback_CBaseEntity_PhysicsDispatchThink_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::ApplyGenericPushbackImpulse", DHookCallback_CTFPlayer_ApplyGenericPushbackImpulse_Pre, DHookCallback_EndSpoofFrameWithParams_Post);
 	PSM_AddDynamicDetourFromConf("CTFPlayer::CanAttack", DHookCallback_CTFPlayer_CanAttack_Pre, DHookCallback_EndSpoofFrameWithReturnAndParams_Post);
@@ -580,7 +580,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	if (StrEqual(classname, "tf_projectile_mechanicalarmorb"))
 	{
 		// CTFProjectile_MechanicalArmOrb::OrbThink, and the terminal burst from ExplodeAndRemove.
-		if (!IsThinkRunning(entity, "OrbThink") && !IsThinkRunning(entity, "ExplodeAndRemoveThink"))
+		if (IsThinkPending(entity, "OrbThink") && IsThinkPending(entity, "ExplodeAndRemoveThink"))
 			return MRES_Ignored;
 
 		SpoofOrbThinkTeams(entity);
@@ -590,7 +590,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "tf_projectile_lightningorb"))
 	{
 		// CTFProjectile_SpellLightningOrb::ZapThink and VortexThink, and the terminal burst from ExplodeAndRemove.
-		if (!IsThinkRunning(entity, "ZapThink") && !IsThinkRunning(entity, "VortexThink") && !IsThinkRunning(entity, "ExplodeAndRemoveThink"))
+		if (IsThinkPending(entity, "ZapThink") && IsThinkPending(entity, "VortexThink") && IsThinkPending(entity, "ExplodeAndRemoveThink"))
 			return MRES_Ignored;
 
 		SpoofOrbThinkTeams(entity);
@@ -605,7 +605,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	if (StrEqual(classname, "obj_sentrygun"))
 	{
 		// CObjectSentrygun::SentryThink
-		if (!IsThinkRunning(entity, "SentrygunContext"))
+		if (IsThinkPending(entity, "SentrygunContext"))
 			return MRES_Ignored;
 
 		BeginThinkSpoofFrame();
@@ -618,7 +618,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "obj_dispenser") || StrEqual(classname, "pd_dispenser"))
 	{
 		// CObjectDispenser::DispenseThink
-		if (!IsThinkRunning(entity, "DispenseContext"))
+		if (IsThinkPending(entity, "DispenseContext"))
 			return MRES_Ignored;
 
 		if (!GetEntProp(entity, Prop_Send, "m_bPlacing") && !GetEntProp(entity, Prop_Send, "m_bBuilding"))
@@ -641,7 +641,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "obj_attachment_sapper"))
 	{
 		// CBaseObject::BaseObjectThink
-		if (!IsThinkRunning(entity, "BaseObjectThink"))
+		if (IsThinkPending(entity, "BaseObjectThink"))
 			return MRES_Ignored;
 
 		// Always set team to spectator so we can place sappers on buildings of both teams.
@@ -650,7 +650,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "tf_weapon_spellbook"))
 	{
 		// CTFSpellBook::TossJarThink
-		if (!IsThinkRunning(entity, "TOSS_JAR_THINK"))
+		if (IsThinkPending(entity, "TOSS_JAR_THINK"))
 			return MRES_Ignored;
 
 		BeginThinkSpoofFrame();
@@ -673,7 +673,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 	else if (StrEqual(classname, "tf_weapon_medigun"))
 	{
 		// CWeaponMedigun::HealTargetThink
-		if (!IsThinkRunning(entity, "MedigunHealTargetThink") || GetEntPropEnt(entity, Prop_Send, "m_hHealingTarget") == -1)
+		if (IsThinkPending(entity, "MedigunHealTargetThink") || GetEntPropEnt(entity, Prop_Send, "m_hHealingTarget") == -1)
 			return MRES_Ignored;
 
 		BeginThinkSpoofFrame();

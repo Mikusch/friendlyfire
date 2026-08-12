@@ -11,9 +11,9 @@ TFTeam GetEnemyTeam(TFTeam team)
 	}
 }
 
-// CObjectSentrygun::FindTarget maps every team that is not BLU to RED, unlike GetEnemyTeam.
 TFTeam GetSentryEnemyTeam(TFTeam team)
 {
+	// CObjectSentrygun::FindTarget maps every team that is not BLU to RED, unlike GetEnemyTeam.
 	return team == TFTeam_Blue ? TFTeam_Red : TFTeam_Blue;
 }
 
@@ -146,14 +146,13 @@ void SetAllObjectsSolidToPlayers(bool solid)
 	}
 }
 
-// Keyed off the classname, because CTFProjectile_Cleaver and CTFProjectile_SpellBats inherit
-// TF_PROJECTILE_JAR from CTFProjectile_Jar without ever assigning their own type.
 bool IsJarProjectile(int projectile)
 {
 	char classname[64];
 	if (!GetEntityClassname(projectile, classname, sizeof(classname)))
 		return false;
 
+	// CTFProjectile_Cleaver and CTFProjectile_SpellBats inherit TF_PROJECTILE_JAR from CTFProjectile_Jar.
 	return !strncmp(classname, "tf_projectile_jar", 17);
 }
 
@@ -162,11 +161,9 @@ bool ShouldObjectKeepTeams(int obj, int attacker, bool routesToSapper)
 	if (!IsEntityBaseObject(obj))
 		return false;
 
-	// Buildings never take damage from the one who built them, in any mode.
 	if (GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == attacker)
 		return true;
 
-	// A sapped building routes same-team damage to the sapper, which is how it gets knocked off.
 	return routesToSapper && !AreTeammatesEnemies() && IsObjectSapped(obj);
 }
 
@@ -188,7 +185,6 @@ bool ShouldProjectileKeepTeams(int projectile, int other, int owner)
 	if (!IsEntityBaseObject(other))
 		return false;
 
-	// Our own buildings are not a valid target in any mode.
 	if (ShouldObjectKeepTeams(other, owner, false))
 		return true;
 
@@ -216,9 +212,9 @@ bool IsPulsingRadiusBuff(int client)
 	return TF2_IsPlayerInCondition(client, TFCond_Taunting) || TF2_IsPlayerInCondition(client, TFCond_RadiusHealOnDamage);
 }
 
-bool IsThinkRunning(int entity, const char[] context)
+bool IsThinkPending(int entity, const char[] context)
 {
-	return SDKCall_CBaseEntity_GetNextThink(entity, context) == TICK_NEVER_THINK;
+	return SDKCall_CBaseEntity_GetNextThink(entity, context) != TICK_NEVER_THINK;
 }
 
 bool IsWeaponIDInList(int weaponID, const int[] list, int size)

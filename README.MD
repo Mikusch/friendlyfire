@@ -7,10 +7,10 @@ A SourceMod plugin for Team Fortress 2 that fixes broken interactions during fri
 
 ## Requirements
 
-* SourceMod 1.12 or 1.13
+* SourceMod 1.12+
 * [Mikusch/PluginStateManager](https://github.com/Mikusch/PluginStateManager) (compile only)
 
-## What Does This Fix?
+## What Does This Do?
 
 `mp_friendlyfire` allows teammates to damage each other, but the vast majority of weapons and mechanics were not made with it in mind, and thus do nothing if two players are on the same team.
 This plugin hooks into various game functions to rewrite and fix that behavior.
@@ -21,64 +21,64 @@ This plugin hooks into various game functions to rewrite and fix that behavior.
 ### Changes
 
 * **General**
-    * Fixed projectiles passing through teammates instead of colliding with them
-    * Fixed not being able to destroy your team's stickybombs with regular weapons
-    * Fixed taunt kills not working on teammates
+    * Projectiles collide with teammates instead of passing through them
+    * Your team's stickybombs can be destroyed with regular weapons
+    * Taunt kills work on teammates
 * **Halloween spells**
-    * Fixed the Fireball spell not burning or knocking back teammates
-    * Fixed the Bats spell not stunning, bleeding or launching teammates
-    * Fixed the Ball O' Lightning not zapping teammates
-    * Fixed a teammate's pumpkin bombs vanishing instead of detonating when shot
+    * The Fireball spell burns and knocks back teammates
+    * The Bats spell stuns, bleeds and launches teammates
+    * The Ball O' Lightning zaps teammates
+    * A teammate's pumpkin bombs detonate when shot instead of vanishing
 * **Scout**
     * Shortstop
-        * Fixed secondary attack not shoving teammates
+        * Secondary attack shoves teammates
     * Flying Guillotine
-        * Fixed cleavers not damaging teammates
+        * Cleavers damage teammates
 * **Soldier**
     * Righteous Bison
-        * Fixed energy rings passing through teammates
+        * Energy rings hit teammates instead of passing through them
 * **Pyro**
     * Flame Thrower
-        * Fixed not being able to set teammates on fire
-        * Fixed not being able to reflect projectiles fired by your own team
+        * Teammates can be set on fire
+        * Projectiles fired by your own team can be reflected
     * Dragon's Fury
-        * Fixed fireballs not damaging teammates on a direct hit
+        * Fireballs damage teammates on a direct hit
     * Scorch Shot
-        * Fixed flare projectiles not applying knockback to teammates
+        * Flare projectiles apply knockback to teammates
 * **Demoman**
     * Grenade Launcher
-        * Fixed grenades bouncing off your team's buildings instead of exploding on them
+        * Grenades explode on your team's buildings instead of bouncing off them
     * Stickybomb Launcher
-        * Fixed not being able to knock around your team's stickybombs
+        * Your team's stickybombs can be knocked around
     * Scottish Resistance/Quickiebomb Launcher
-        * Fixed not being able to detonate your team's stickybombs
+        * Your team's stickybombs can be detonated
 * **Heavy**
     * Huo-Long Heater
-        * Fixed the ring of fire not burning teammates or destroying their projectiles
+        * The ring of fire burns teammates and destroys their projectiles
 * **Engineer**
     * Buildings
-        * Fixed not being able to damage your team's buildings, your own are still off limits
+        * Your team's buildings can be damaged, your own are still off limits
     * Short Circuit
-        * Fixed the energy orb not zapping teammates or destroying their projectiles
+        * The energy orb zaps teammates and destroys their projectiles
     * Pomson 6000
-        * Fixed energy rings passing through teammates
+        * Energy rings hit teammates instead of passing through them
 * **Sniper**
     * Sniper Rifle
-        * Fixed being unable to deal damage to teammates, without breaking Machina penetration
+        * Rifles deal damage to teammates, without breaking Machina penetration
     * Huntsman
-        * Fixed arrows passing through teammates
+        * Arrows hit teammates instead of passing through them
 * **Spy**
     * Knife
-        * Fixed the "backstab ready" animation not playing on teammates
+        * The "backstab ready" animation plays on teammates
 
 ## Free-for-All Mode
 
-`sm_ff_teammates_are_enemies` is a separate opt-in that goes considerably further, and it stops teammates from counting as teammates at all.
+`sm_friendlyfire_teammates_are_enemies` is a separate opt-in that goes considerably further, and it stops teammates from counting as teammates at all.
 Interactions that were never meant for your own team start working on them, and every friendly interaction stops.
 It effectively turns the game into a free-for-all.
 
 > [!NOTE]
-> The following changes only apply while `sm_ff_teammates_are_enemies` is `1`.
+> The following changes only apply while `sm_friendlyfire_teammates_are_enemies` is `1`.
 
 ### Changes
 

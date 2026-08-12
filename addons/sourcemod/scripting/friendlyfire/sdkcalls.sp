@@ -84,8 +84,6 @@ static Handle PrepSDKCall_GetGlobalTeam(GameData gamedata)
 	StartPrepSDKCall(SDKCall_Static);
 	PrepSDKCall_SetFromConf(gamedata, SDKConf_Signature, "GetGlobalTeam");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	// This returns a CTeam*, which SDKType_PlainOldData would truncate to a single 32-bit cell.
-	// `#if defined SDKType_Address` does not work here, the preprocessor cannot see enum members.
 #if SOURCEMOD_V_MAJOR > 1 || (SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 13)
 	PrepSDKCall_SetReturnInfo(SDKType_Address, SDKPass_Plain);
 #else
@@ -202,7 +200,6 @@ Address SDKCall_GetGlobalTeam(TFTeam team)
 		return Address_Null;
 
 #if SOURCEMOD_V_MAJOR > 1 || (SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 13)
-	// An SDKType_Address return is written into the second argument instead of being returned.
 	Address result = Address_Null;
 	SDKCall(g_sdkCall_GetGlobalTeam, result, team);
 
