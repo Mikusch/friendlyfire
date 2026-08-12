@@ -1,14 +1,14 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-// Moving ourselves instead of everyone else.
-// Required whenever the team check compares us against the target.
+// Weapons we fix by moving ourselves to the spectator team.
+// Required for checks that compare the target against us.
 int g_spectatorItemIDs[] =
 {
 	TF_WEAPON_KNIFE,				// CTFKnife::BackstabVMThink
 };
 
-// These only interact with teammates in a friendly way, so they are left alone unless teammates are enemies.
+// The same, but only while teammates are enemies, because these either help a teammate or ignore them.
 int g_teammateSpectatorItemIDs[] =
 {
 	TF_WEAPON_BUFF_ITEM,			// CTFPlayerShared::PulseRageBuff
@@ -19,15 +19,15 @@ int g_teammateSpectatorItemIDs[] =
 	TF_WEAPON_SNIPERRIFLE_CLASSIC,	// CTFPlayer::FireBullet
 };
 
-// Moving everyone else instead of ourselves.
-// Required whenever the team check is on an entity we do not own, e.g. the weapon itself.
+// Weapons we fix by moving everyone else to our enemy team.
+// Required for checks that moving ourselves cannot reach, e.g. ones that run on the weapon.
 int g_enemyItemIDs[] =
 {
 	TF_WEAPON_HANDGUN_SCOUT_PRIMARY,	// CTFPistol_ScoutPrimary::Push
 	TF_WEAPON_MINIGUN,					// CTFMinigun::RingOfFireAttack, AttackEnemyProjectiles
 };
 
-// Anything that creates a projectile during ItemPostFrame belongs here, projectiles copy the owner's team as they are created.
+// The same, but only while teammates are enemies, because these either help a teammate or ignore them.
 int g_teammateEnemyItemIDs[] =
 {
 	TF_WEAPON_GRAPPLINGHOOK,			// CTFGrapplingHook::ActivateRune
@@ -186,9 +186,9 @@ static void SDKHookCB_Client_PostThink(int client)
 		return;
 	}
 
-	// For functions that do simple GetTeamNumber() checks, move ourselves to the spectator team.
 	if (GameRules_GetRoundState() != RoundState_TeamWin || GetClientTeam(client) == GameRules_GetProp("m_iWinningTeam"))
 	{
+		// For functions that do simple GetTeamNumber() checks, move ourselves to the spectator team.
 		if (IsWeaponIDInList(weaponID, g_spectatorItemIDs, sizeof(g_spectatorItemIDs)) || (teammatesAreEnemies && IsWeaponIDInList(weaponID, g_teammateSpectatorItemIDs, sizeof(g_teammateSpectatorItemIDs))))
 		{
 			Spoof_ChangeToSpectator(client);
@@ -203,6 +203,7 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 	if (victim == attacker)
 		return Plugin_Continue;
 
+	// CTFGameRules::FPlayerCanTakeDamage only enforces the truce for RED against BLU, so the spoofs below would defeat it.
 	if (GameRules_GetProp("m_bTruceActive"))
 		return Plugin_Continue;
 
@@ -291,6 +292,7 @@ static void SpoofObjectAttacker(int victim, int attacker, bool routesToSapper)
 
 static bool IsTruceBlockingObjectDamage(int attacker)
 {
+	// CBaseObject::OnTakeDamage only blocks RED and BLU attackers during a truce, and ours may be spoofed.
 	return IsEntityClient(attacker) && GameRules_GetProp("m_bTruceActive") != 0;
 }
 
@@ -346,7 +348,6 @@ static Action SDKHookCB_ProjectilePipeRemote_OnTakeDamage(int victim, int &attac
 	if (FindParentOwnerEntity(victim) == attacker)
 		return Plugin_Handled;
 
-	// Allows destroying projectiles (e.g. pipebombs).
 	Spoof_ChangeToSpectator(attacker);
 	
 	return Plugin_Continue;
@@ -384,6 +385,7 @@ static Action SDKHookCB_PumpkinBomb_OnTakeDamage(int victim, int &attacker, int 
 
 	if (IsEntityClient(attacker))
 	{
+		// CTFPumpkinBomb::OnTakeDamage only detonates for an attacker on the pumpkin's own team.
 		Spoof_ChangeToOriginalTeam(attacker);
 	}
 
@@ -394,7 +396,6 @@ static Action SDKHookCB_GasManager_Touch(int entity, int other)
 {
 	if (FindParentOwnerEntity(entity) == other)
 	{
-		// Do not coat ourselves in our own gas.
 		return Plugin_Handled;
 	}
 	

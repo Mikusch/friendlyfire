@@ -209,7 +209,6 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 		}
 
 		// CTFFlameThrower::DeflectEntity compares raw team numbers.
-		// A teammate's projectile is not a valid airblast target until it looks like it belongs to the enemy team.
 		int projectile = -1;
 		while ((projectile = FindEntityByClassname(projectile, "tf_projectile_*")) != -1)
 		{
@@ -295,6 +294,7 @@ static MRESReturn DHookCallback_CTFProjectile_SpellBats_Explode_Pre(int entity, 
 	// ExplodeEffectOnTarget skips every target that shares our team number.
 	Spoof_ChangeToSpectator(entity);
 
+	// Move the caster along with the bats so they still compare equal and stay excluded.
 	int thrower = FindParentOwnerEntity(entity);
 	if (thrower != entity)
 	{
@@ -327,7 +327,7 @@ static MRESReturn DHookCallback_CBaseEntity_Deflected_Pre(int entity, DHookParam
 {
 	Spoof_BeginFrame();
 	
-	// Make projectiles have the original team of the deflector.
+	// CBaseEntity::Deflected copies the deflector's team onto the projectile.
 	if (!params.IsNull(1))
 		Spoof_ChangeToOriginalTeam(params.Get(1));
 	
@@ -438,7 +438,7 @@ static void SpoofOrbThinkTeams(int orb)
 	}
 }
 
-// NOTE: CBaseObject::ChangeTeam recreates the build points and breaks sapper placement, so we use AddObject/RemoveObject.
+// CBaseObject::ChangeTeam recreates the build points and breaks sapper placement, so we use AddObject/RemoveObject.
 static void ApplySentryTeamChange(int entity, SentryTeamChange change)
 {
 	bool isPlayer = IsEntityClient(entity);
@@ -476,7 +476,7 @@ static void SpoofSentryTarget(int sentry, int entity, TFTeam enemyTeam)
 	target.undo = SentryTeamChange_None;
 	target.disguiseTeam = TFTeam_Unassigned;
 
-	// A friendly target has to be out of that list, an unfriendly one has to be in it.
+	// CObjectSentrygun::FindTarget only scans the enemy team's player and object lists.
 	bool listed = view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum")) == enemyTeam;
 	if (listed == friendly)
 	{

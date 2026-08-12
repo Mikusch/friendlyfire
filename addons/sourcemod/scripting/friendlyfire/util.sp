@@ -22,8 +22,7 @@ bool IsEntityClient(int entity)
 	return 0 < entity <= MaxClients;
 }
 
-// Useful to get the parent owner for entities that have a chain of owners.
-// e.g. `CTFFlameManager` -> `CTFFlameThrower` -> `CTFPlayer`.
+// Ownership can be a chain, e.g. `CTFFlameManager` -> `CTFFlameThrower` -> `CTFPlayer`.
 int FindParentOwnerEntity(int entity)
 {
 	int parent = -1;
@@ -214,6 +213,7 @@ bool IsPulsingRadiusBuff(int client)
 
 bool IsThinkPending(int entity, const char[] context)
 {
+	// The context currently being dispatched reads TICK_NEVER_THINK, see CBaseEntity::PhysicsRunSpecificThink.
 	return SDKCall_CBaseEntity_GetNextThink(entity, context) != TICK_NEVER_THINK;
 }
 

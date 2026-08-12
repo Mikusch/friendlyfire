@@ -140,6 +140,7 @@ static void PopFrame()
 
 static void PopOrphanedFrames()
 {
+	// Popping an orphaned frame out of order would also restore everything the frames above it spoofed.
 	while (g_spoofFrames.Length && g_spoofFrames.Get(g_spoofFrames.Length - 1, SpoofFrame::orphaned) != 0)
 	{
 		PopFrame();
@@ -148,6 +149,7 @@ static void PopOrphanedFrames()
 
 static void RestoreTeams(int start)
 {
+	// Newest first, an entity spoofed more than once would otherwise be left on an intermediate team.
 	for (int i = g_spoofedTeams.Length - 1; i >= start; i--)
 	{
 		SpoofedTeam spoof;
