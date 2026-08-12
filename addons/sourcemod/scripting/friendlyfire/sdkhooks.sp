@@ -6,6 +6,7 @@
 int g_spectatorItemIDs[] =
 {
 	TF_WEAPON_KNIFE,				// CTFKnife::BackstabVMThink
+	TF_WEAPON_STICKBOMB,			// CTFWeaponBaseMelee::OnSwingHit
 };
 
 // The same, but only while teammates are enemies, because these either help a teammate or ignore them.
