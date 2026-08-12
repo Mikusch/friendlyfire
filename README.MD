@@ -54,7 +54,7 @@ This plugin hooks into various game functions to rewrite and fix that behavior.
         * Your team's stickybombs can be detonated
 * **Heavy**
     * Huo-Long Heater
-        * The ring of fire burns teammates and destroys their projectiles
+        * The ring of fire burns teammates
 * **Engineer**
     * Buildings
         * Your team's buildings can be damaged, your own are still off limits
