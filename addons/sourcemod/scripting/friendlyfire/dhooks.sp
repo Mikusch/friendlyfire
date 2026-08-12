@@ -312,9 +312,8 @@ static MRESReturn DHookCallback_CBaseProjectile_CanCollideWithTeammates_Post(int
 		if (SDKCall_CBaseProjectile_GetProjectileType(entity) == TF_PROJECTILE_GRAPPLINGHOOK)
 			return MRES_Ignored;
 
-		// Jars keep their grace period, so they still fly past teammates that are not burning.
-		// See CTFProjectile_Jar::PipebombTouch.
-		if (IsJarProjectile(entity))
+		// The pending think is the grace period, see CBaseProjectile::ResetCollideWithTeammates.
+		if (IsThinkPending(entity, "CollideWithTeammates"))
 			return MRES_Ignored;
 	}
 
