@@ -54,6 +54,16 @@ void DHooks_Init()
 	g_dhook_CBaseEntity_VPhysicsUpdate = PSM_AddDynamicHookFromConf("CBaseEntity::VPhysicsUpdate");
 }
 
+void DHooks_Clear()
+{
+	if (g_sentryEnemyTeam != Address_Null)
+	{
+		RestoreSentryTargets();
+	}
+
+	g_thinkOpenedSpoofFrame = false;
+}
+
 void DHooks_OnEntityCreated(int entity, const char[] classname)
 {
 	if (IsEntityClient(entity))

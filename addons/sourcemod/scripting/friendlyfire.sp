@@ -196,6 +196,7 @@ static void OnPluginStateChanged(bool enable)
 	}
 	else
 	{
+		DHooks_Clear();
 		Spoof_Clear();
 	}
 
