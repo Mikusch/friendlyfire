@@ -93,6 +93,17 @@ void Spoof_SetTeam(int entity, TFTeam team)
 	SetEntProp(entity, Prop_Data, "m_iTeamNum", team);
 }
 
+void Spoof_SetTeamForClients(TFTeam team, int except = 0)
+{
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (client != except && IsClientInGame(client))
+		{
+			Spoof_SetTeam(client, team);
+		}
+	}
+}
+
 void Spoof_ChangeToSpectator(int entity)
 {
 	Spoof_SetTeam(entity, TFTeam_Spectator);
@@ -110,11 +121,9 @@ TFTeam Spoof_GetOriginalTeam(int entity)
 		return TFTeam_Unassigned;
 
 	// The oldest entry holds the team the entity had before the first spoof.
-	for (int i = 0; i < g_spoofedTeams.Length; i++)
-	{
-		if (g_spoofedTeams.Get(i, SpoofedTeam::ref) == ref)
-			return g_spoofedTeams.Get(i, SpoofedTeam::team);
-	}
+	int index = g_spoofedTeams.FindValue(ref, SpoofedTeam::ref);
+	if (index != -1)
+		return g_spoofedTeams.Get(index, SpoofedTeam::team);
 
 	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
 }

@@ -105,13 +105,13 @@ void DHooks_OnEntityCreated(int entity, const char[] classname)
 		else if (StrEqual(classname, "tf_projectile_spellfireball"))
 		{
 			// Fixes the Fireball spell not burning or knocking back teammates.
-			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_SpellFireball_Explode_Pre);
+			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Pre, entity, DHookCallback_SpellProjectile_Explode_Pre);
 			PSM_DHookEntity(g_dhook_CTFProjectile_SpellFireball_Explode, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		}
 		else if (StrEqual(classname, "tf_projectile_spellbats"))
 		{
 			// Fixes the Bats spell not stunning, bleeding or launching teammates.
-			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_CTFProjectile_SpellBats_Explode_Pre);
+			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Pre, entity, DHookCallback_SpellProjectile_Explode_Pre);
 			PSM_DHookEntity(g_dhook_CBaseGrenade_Explode, Hook_Post, entity, DHookCallback_EndSpoofFrameWithParams_Post);
 		}
 	}
@@ -211,13 +211,7 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 		// Airblasting a teammate extinguishes them instead of pushing them around.
 		if (AreTeammatesEnemies())
 		{
-			for (int client = 1; client <= MaxClients; client++)
-			{
-				if (IsClientInGame(client) && client != owner)
-				{
-					Spoof_SetTeam(client, enemyTeam);
-				}
-			}
+			Spoof_SetTeamForClients(enemyTeam, owner);
 		}
 
 		// CTFFlameThrower::DeflectEntity compares raw team numbers.
@@ -282,31 +276,14 @@ static MRESReturn DHookCallback_CTFProjectile_Flare_Explode_Pre(int entity, DHoo
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFProjectile_SpellFireball_Explode_Pre(int entity, DHookParam params)
+static MRESReturn DHookCallback_SpellProjectile_Explode_Pre(int entity, DHookParam params)
 {
 	Spoof_BeginFrame();
 
 	// ExplodeEffectOnTarget skips every target that shares our team number.
 	Spoof_ChangeToSpectator(entity);
 
-	// Move the caster along with the fireball so they still compare equal to it and stay excluded.
-	int thrower = FindParentOwnerEntity(entity);
-	if (thrower != entity)
-	{
-		Spoof_ChangeToSpectator(thrower);
-	}
-
-	return MRES_Ignored;
-}
-
-static MRESReturn DHookCallback_CTFProjectile_SpellBats_Explode_Pre(int entity, DHookParam params)
-{
-	Spoof_BeginFrame();
-
-	// ExplodeEffectOnTarget skips every target that shares our team number.
-	Spoof_ChangeToSpectator(entity);
-
-	// Move the caster along with the bats so they still compare equal and stay excluded.
+	// Move the caster along with the spell so they still compare equal to it and stay excluded.
 	int thrower = FindParentOwnerEntity(entity);
 	if (thrower != entity)
 	{
@@ -546,15 +523,7 @@ static void SpoofWrangledSentryTargets(int sentry)
 	if (weapon == -1 || SDKCall_CTFWeaponBase_GetWeaponID(weapon) != TF_WEAPON_LASER_POINTER)
 		return;
 
-	TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(builder));
-
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (IsClientInGame(client) && client != builder)
-		{
-			Spoof_SetTeam(client, enemyTeam);
-		}
-	}
+	Spoof_SetTeamForClients(GetEnemyTeam(TF2_GetClientTeam(builder)), builder);
 }
 
 static void RestoreSentryTargets()
@@ -670,15 +639,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		int owner = FindParentOwnerEntity(entity);
 		if (owner != entity && IsEntityClient(owner))
 		{
-			TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(owner));
-
-			for (int client = 1; client <= MaxClients; client++)
-			{
-				if (IsClientInGame(client) && client != owner)
-				{
-					Spoof_SetTeam(client, enemyTeam);
-				}
-			}
+			Spoof_SetTeamForClients(GetEnemyTeam(TF2_GetClientTeam(owner)), owner);
 		}
 	}
 	else if (StrEqual(classname, "tf_weapon_medigun"))
@@ -789,13 +750,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 	// Jars are the exception, they have to keep flying past teammates to extinguish them later on.
 	if (AreTeammatesEnemies() || !IsJarProjectile(entity))
 	{
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (!IsClientInGame(client))
-				continue;
-
-			Spoof_SetTeam(client, enemyTeam);
-		}
+		Spoof_SetTeamForClients(enemyTeam);
 	}
 
 	// Fixes projectiles bouncing off buildings instead of exploding on them.

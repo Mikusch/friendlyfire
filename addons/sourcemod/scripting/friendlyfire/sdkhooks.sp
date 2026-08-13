@@ -175,15 +175,7 @@ static void SDKHookCB_Client_PostThink(int client)
 	// For functions that use GetEnemyTeam(), move everyone else to the enemy team.
 	if (IsWeaponIDInList(weaponID, g_enemyItemIDs, sizeof(g_enemyItemIDs)) || (teammatesAreEnemies && IsWeaponIDInList(weaponID, g_teammateEnemyItemIDs, sizeof(g_teammateEnemyItemIDs))))
 	{
-		TFTeam enemyTeam = GetEnemyTeam(TF2_GetClientTeam(client));
-
-		for (int other = 1; other <= MaxClients; other++)
-		{
-			if (IsClientInGame(other) && other != client)
-			{
-				Spoof_SetTeam(other, enemyTeam);
-			}
-		}
+		Spoof_SetTeamForClients(GetEnemyTeam(TF2_GetClientTeam(client)), client);
 
 		return;
 	}
@@ -216,13 +208,7 @@ static Action SDKHookCB_Client_OnTakeDamage(int victim, int &attacker, int &infl
 		
 		if (AreTeammatesEnemies())
 		{
-			for (int other = 1; other <= MaxClients; other++)
-			{
-				if (IsClientInGame(other) && other != victim)
-				{
-					Spoof_SetTeam(other, enemyTeam);
-				}
-			}
+			Spoof_SetTeamForClients(enemyTeam, victim);
 		}
 		else
 		{

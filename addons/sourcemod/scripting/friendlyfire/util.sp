@@ -78,14 +78,6 @@ bool IsEntityBaseGrenadeProjectile(int entity)
 	return HasEntProp(entity, Prop_Data, "CTFWeaponBaseGrenadeProjDetonateThink");
 }
 
-static int GetObjectBuilder(int obj)
-{
-	if (!HasEntProp(obj, Prop_Send, "m_hBuilder"))
-		return -1;
-
-	return GetEntPropEnt(obj, Prop_Send, "m_hBuilder");
-}
-
 bool IsObjectFriendly(int obj, int other)
 {
 	if (!IsValidEntity(obj) || !IsValidEntity(other))
@@ -101,7 +93,7 @@ bool IsObjectFriendly(int obj, int other)
 	if (!AreTeammatesEnemies() && objTeam == otherTeam)
 		return true;
 
-	int builder = GetObjectBuilder(obj);
+	int builder = GetEntPropEnt(obj, Prop_Send, "m_hBuilder");
 
 	// Map-placed buildings have no builder, see CBaseObject::InitializeMapPlacedObject.
 	if (builder == -1 && objTeam == otherTeam)
@@ -116,8 +108,9 @@ bool IsObjectFriendly(int obj, int other)
 		if (builder == other)
 			return true;
 	}
-	else if (HasEntProp(other, Prop_Send, "m_hBuilder"))
+	else if (IsEntityBaseObject(other))
 	{
+		// Two buildings are friendly if the same Engineer built both of them.
 		if (builder != -1 && builder == GetEntPropEnt(other, Prop_Send, "m_hBuilder"))
 			return true;
 	}
