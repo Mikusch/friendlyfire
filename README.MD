@@ -24,6 +24,7 @@ This plugin hooks into various game functions to rewrite and fix that behavior.
     * Projectiles collide with teammates instead of passing through them
     * Your team's stickybombs can be destroyed with regular weapons
     * Taunt kills work on teammates
+    * On-Hit effects from weapons trigger on teammates
 * **Halloween spells**
     * The Fireball spell burns and knocks back teammates
     * The Bats spell stuns, bleeds and launches teammates
@@ -64,7 +65,7 @@ This plugin hooks into various game functions to rewrite and fix that behavior.
         * Energy rings hit teammates instead of passing through them
 * **Sniper**
     * Sniper Rifle
-        * Rifles deal damage to teammates, without breaking Machina penetration
+        * Rifles deal damage to teammates
     * Huntsman
         * Arrows hit teammates instead of passing through them
 * **Spy**
