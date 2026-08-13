@@ -185,14 +185,6 @@
 				"windows"	"210"
 				"windows64"	"210"
 			}
-			"CBaseEntity::ChangeTeam"
-			{
-				"library"	"server"
-				"linux"		"98"
-				"linux64"	"98"
-				"windows"	"97"
-				"windows64"	"97"
-			}
 			"CBasePlayer::Event_Killed"
 			{
 				"library"	"server"

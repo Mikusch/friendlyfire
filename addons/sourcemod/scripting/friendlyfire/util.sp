@@ -129,6 +129,12 @@ void SetObjectSolidToPlayers(int entity, bool solid)
 	AcceptEntityInput(entity, "SetSolidToPlayer");
 }
 
+void ChangeEntityTeam(int entity, TFTeam team)
+{
+	SetVariantInt(view_as<int>(team));
+	AcceptEntityInput(entity, "SetTeam");
+}
+
 void SetAllObjectsSolidToPlayers(bool solid)
 {
 	int entity = -1;

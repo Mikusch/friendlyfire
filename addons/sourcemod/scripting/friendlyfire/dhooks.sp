@@ -625,7 +625,7 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 			return MRES_Ignored;
 
 		// Always set team to spectator so we can place sappers on buildings of both teams.
-		SDKCall_CBaseEntity_ChangeTeam(entity, TFTeam_Spectator);
+		ChangeEntityTeam(entity, TFTeam_Spectator);
 	}
 	else if (StrEqual(classname, "tf_weapon_spellbook"))
 	{

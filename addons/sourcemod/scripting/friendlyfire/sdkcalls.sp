@@ -10,7 +10,6 @@ static Handle g_sdkCall_CTeam_AddPlayer;
 static Handle g_sdkCall_CTeam_RemovePlayer;
 static Handle g_sdkCall_CTeam_AddObject;
 static Handle g_sdkCall_CTeam_RemoveObject;
-static Handle g_sdkCall_CBaseEntity_ChangeTeam;
 
 void SDKCalls_Init(GameData gamedata)
 {
@@ -23,7 +22,6 @@ void SDKCalls_Init(GameData gamedata)
 	g_sdkCall_CTeam_RemovePlayer = PrepSDKCall_CTeam_RemovePlayer(gamedata);
 	g_sdkCall_CTeam_AddObject = PrepSDKCall_CTeam_AddObject(gamedata);
 	g_sdkCall_CTeam_RemoveObject = PrepSDKCall_CTeam_RemoveObject(gamedata);
-	g_sdkCall_CBaseEntity_ChangeTeam = PrepSDKCall_CBaseEntity_ChangeTeam(gamedata);
 }
 
 static Handle PrepSDKCall_CBaseEntity_GetNextThink(GameData gamedata)
@@ -149,19 +147,6 @@ static Handle PrepSDKCall_CTeam_RemoveObject(GameData gamedata)
 	return call;
 }
 
-static Handle PrepSDKCall_CBaseEntity_ChangeTeam(GameData gamedata)
-{
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(gamedata, SDKConf_Virtual, "CBaseEntity::ChangeTeam");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-	
-	Handle call = EndPrepSDKCall();
-	if (!call)
-		ThrowError("Failed to create SDKCall: CBaseEntity::ChangeTeam");
-	
-	return call;
-}
-
 float SDKCall_CBaseEntity_GetNextThink(int entity, const char[] context)
 {
 	if (g_sdkCall_CBaseEntity_GetNextThink)
@@ -231,10 +216,4 @@ void SDKCall_CTeam_RemoveObject(Address team, int obj)
 {
 	if (g_sdkCall_CTeam_RemoveObject)
 		SDKCall(g_sdkCall_CTeam_RemoveObject, team, obj);
-}
-
-void SDKCall_CBaseEntity_ChangeTeam(int entity, TFTeam team)
-{
-	if (g_sdkCall_CBaseEntity_ChangeTeam)
-		SDKCall(g_sdkCall_CBaseEntity_ChangeTeam, entity, team);
 }
