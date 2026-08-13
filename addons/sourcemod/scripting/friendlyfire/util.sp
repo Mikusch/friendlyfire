@@ -1,6 +1,16 @@
 #pragma newdecls required
 #pragma semicolon 1
 
+TFTeam TF2_GetEntityTeam(int entity)
+{
+	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
+}
+
+void TF2_SetEntityTeam(int entity, TFTeam team)
+{
+	SetEntProp(entity, Prop_Data, "m_iTeamNum", team);
+}
+
 TFTeam GetEnemyTeam(TFTeam team)
 {
 	switch (team)
@@ -25,6 +35,9 @@ bool IsEntityClient(int entity)
 // Ownership can be a chain, e.g. `CTFFlameManager` -> `CTFFlameThrower` -> `CTFPlayer`.
 int FindParentOwnerEntity(int entity)
 {
+	if (IsEntityClient(entity))
+		return entity;
+
 	int parent = -1;
 
 	if (HasEntProp(entity, Prop_Send, "m_hThrower"))
@@ -192,7 +205,10 @@ bool ShouldProjectileKeepTeams(int projectile, int other, int owner)
 
 float GetPercentInvisible(int client)
 {
-	int offset = FindSendPropInfo("CTFPlayer", "m_flInvisChangeCompleteTime") - 8;
+	static int offset = -1;
+	if (offset == -1)
+		offset = FindSendPropInfo("CTFPlayer", "m_flInvisChangeCompleteTime") - 8;
+
 	return GetEntDataFloat(client, offset);
 }
 

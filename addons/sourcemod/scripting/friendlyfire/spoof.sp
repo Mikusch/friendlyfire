@@ -86,21 +86,24 @@ void Spoof_SetTeam(int entity, TFTeam team)
 
 	SpoofedTeam spoof;
 	spoof.ref = ref;
-	spoof.team = view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
+	spoof.team = TF2_GetEntityTeam(entity);
 
 	g_spoofedTeams.PushArray(spoof);
 
-	SetEntProp(entity, Prop_Data, "m_iTeamNum", team);
+	TF2_SetEntityTeam(entity, team);
 }
 
 void Spoof_SetTeamForClients(TFTeam team, int except = 0)
 {
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (client != except && IsClientInGame(client))
-		{
-			Spoof_SetTeam(client, team);
-		}
+		if (client == except || !IsClientInGame(client))
+			continue;
+
+		if (TF2_GetEntityTeam(client) == team)
+			continue;
+
+		Spoof_SetTeam(client, team);
 	}
 }
 
@@ -125,7 +128,7 @@ TFTeam Spoof_GetOriginalTeam(int entity)
 	if (index != -1)
 		return g_spoofedTeams.Get(index, SpoofedTeam::team);
 
-	return view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum"));
+	return TF2_GetEntityTeam(entity);
 }
 
 bool Spoof_IsSpoofed(int entity)
@@ -168,7 +171,7 @@ static void RestoreTeams(int start)
 		int entity = EntRefToEntIndex(spoof.ref);
 		if (IsValidEntity(entity))
 		{
-			SetEntProp(entity, Prop_Data, "m_iTeamNum", spoof.team);
+			TF2_SetEntityTeam(entity, spoof.team);
 		}
 	}
 }

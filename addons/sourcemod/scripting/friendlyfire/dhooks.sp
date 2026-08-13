@@ -222,7 +222,7 @@ static MRESReturn DHookCallback_CTFWeaponBase_DeflectProjectiles_Pre(int weapon,
 			if (FindParentOwnerEntity(projectile) == owner)
 				continue;
 
-			if (view_as<TFTeam>(GetEntProp(projectile, Prop_Data, "m_iTeamNum")) != enemyTeam)
+			if (TF2_GetEntityTeam(projectile) != enemyTeam)
 			{
 				Spoof_SetTeam(projectile, enemyTeam);
 			}
@@ -375,34 +375,40 @@ static MRESReturn DHookCallback_CBaseEntity_InSameTeam_Pre(int entity, DHookRetu
 	if (!AreTeammatesEnemies())
 		return MRES_Ignored;
 
-	char classname[64];
-	if (!GetEntityClassname(entity, classname, sizeof(classname)))
-		return MRES_Ignored;
-	
-	// Special case, respawn rooms should work regardless.
-	if (StrEqual(classname, "func_respawnroom"))
-		return MRES_Ignored;
-	
 	if (params.IsNull(1))
 		return MRES_Ignored;
-	
+
 	int other = params.Get(1);
-	
-	// Allow Rescue Ranger healing bolts to work on friendly buildings.
-	if (StrEqual(classname, "tf_projectile_arrow") &&
-		GetEntProp(entity, Prop_Send, "m_iProjectileType") == TF_PROJECTILE_BUILDING_REPAIR_BOLT &&
-		IsEntityBaseObject(other) &&
-		IsObjectFriendly(other, GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")))
+
+	if (entity == other)
 	{
 		ret.Value = true;
 		return MRES_Supercede;
 	}
 
+	if (!IsEntityClient(entity))
+	{
+		char classname[64];
+		if (!GetEntityClassname(entity, classname, sizeof(classname)))
+			return MRES_Ignored;
+
+		// Special case, respawn rooms should work regardless.
+		if (StrEqual(classname, "func_respawnroom"))
+			return MRES_Ignored;
+
+		// Allow Rescue Ranger healing bolts to work on friendly buildings.
+		if (StrEqual(classname, "tf_projectile_arrow") &&
+			GetEntProp(entity, Prop_Send, "m_iProjectileType") == TF_PROJECTILE_BUILDING_REPAIR_BOLT &&
+			IsEntityBaseObject(other) &&
+			IsObjectFriendly(other, GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity")))
+		{
+			ret.Value = true;
+			return MRES_Supercede;
+		}
+	}
+
 	// Unless we are the owner, assume every other entity is an enemy.
-	entity = FindParentOwnerEntity(entity);
-	other = FindParentOwnerEntity(other);
-	
-	ret.Value = (entity == other);
+	ret.Value = (FindParentOwnerEntity(entity) == FindParentOwnerEntity(other));
 	return MRES_Supercede;
 }
 
@@ -465,7 +471,7 @@ static void SpoofSentryTarget(int sentry, int entity, TFTeam enemyTeam)
 	target.disguiseTeam = TFTeam_Unassigned;
 
 	// CObjectSentrygun::FindTarget only scans the enemy team's player and object lists.
-	bool listed = view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum")) == enemyTeam;
+	bool listed = TF2_GetEntityTeam(entity) == enemyTeam;
 	if (listed == friendly)
 	{
 		ApplySentryTeamChange(entity, friendly ? SentryTeamChange_Removed : SentryTeamChange_Added);
@@ -487,7 +493,7 @@ static void SpoofSentryTarget(int sentry, int entity, TFTeam enemyTeam)
 
 static void SpoofSentryTargets(int sentry)
 {
-	TFTeam enemyTeam = GetSentryEnemyTeam(view_as<TFTeam>(GetEntProp(sentry, Prop_Data, "m_iTeamNum")));
+	TFTeam enemyTeam = GetSentryEnemyTeam(TF2_GetEntityTeam(sentry));
 
 	g_sentryEnemyTeam = SDKCall_GetGlobalTeam(enemyTeam);
 	if (g_sentryEnemyTeam == Address_Null)
@@ -497,7 +503,7 @@ static void SpoofSentryTargets(int sentry)
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client))
+		if (IsClientInGame(client) && IsPlayerAlive(client))
 		{
 			SpoofSentryTarget(sentry, client, enemyTeam);
 		}
@@ -624,8 +630,11 @@ static MRESReturn DHookCallback_CBaseEntity_PhysicsDispatchThink_Pre(int entity)
 		if (IsThinkPending(entity, "BaseObjectThink"))
 			return MRES_Ignored;
 
-		// Always set team to spectator so we can place sappers on buildings of both teams.
-		ChangeEntityTeam(entity, TFTeam_Spectator);
+		// Set team to spectator so we can place sappers on buildings of both teams.
+		if (TF2_GetEntityTeam(entity) != TFTeam_Spectator)
+		{
+			ChangeEntityTeam(entity, TFTeam_Spectator);
+		}
 	}
 	else if (StrEqual(classname, "tf_weapon_spellbook"))
 	{
@@ -744,7 +753,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 	Spoof_BeginFrame();
 
 	int thrower = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
-	TFTeam enemyTeam = GetEnemyTeam(view_as<TFTeam>(GetEntProp(entity, Prop_Data, "m_iTeamNum")));
+	TFTeam enemyTeam = GetEnemyTeam(TF2_GetEntityTeam(entity));
 
 	// VPhysicsUpdate only explodes on what it sees as the enemy team.
 	// Jars are the exception, they have to keep flying past teammates to extinguish them later on.
@@ -760,7 +769,7 @@ static MRESReturn DHookCallback_CTFWeaponBaseGrenadeProj_VPhysicsUpdate_Pre(int 
 		if (thrower != -1 && GetEntPropEnt(obj, Prop_Send, "m_hBuilder") == thrower)
 			continue;
 
-		if (view_as<TFTeam>(GetEntProp(obj, Prop_Data, "m_iTeamNum")) == enemyTeam)
+		if (TF2_GetEntityTeam(obj) == enemyTeam)
 			continue;
 
 		Spoof_SetTeam(obj, enemyTeam);
