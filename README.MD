@@ -1,72 +1,112 @@
-# [TF2] Fixed Friendly Fire
+# [TF2] Friendly Fire Fix
 
-This plugin attempts to fix the incredibly broken friendly fire in Team Fortress 2.
+A SourceMod plugin for Team Fortress 2 that fixes broken interactions during friendly fire.
 
-**Note:** This plugin does nothing if `mp_friendlyfire` is not enabled.
+> [!NOTE]
+> This plugin does nothing if `mp_friendlyfire` is not enabled.
 
 ## Requirements
 
 * SourceMod 1.12+
-* [nosoop/SM-TFUtils](https://github.com/nosoop/SM-TFUtils)
 * [Mikusch/PluginStateManager](https://github.com/Mikusch/PluginStateManager) (compile only)
 
-## What does this fix?
+## What Does This Do?
 
-This fixes pretty much all interactions with weapons against your own team or entities created by your team's weapons.
+`mp_friendlyfire` allows teammates to damage each other, but the vast majority of weapons and mechanics were not made with it in mind, and thus do nothing if two players are on the same team.
+This plugin hooks into various game functions to rewrite and fix that behavior.
 
-The full changelog is far too big to include, but some notable changes include:
+> [!NOTE]
+> The following changes only apply while `mp_friendlyfire` is `1`.
+
+### Changes
 
 * **General**
-    * Fixed jar-based projectiles not affecting teammates
-    * Fixed projectiles not colliding with teammates under certain conditions
-    * Fixed not being able to destroy your team's stickybombs with regular weapons
+    * Projectiles collide with teammates instead of passing through them
+    * Your team's stickybombs can be destroyed with regular weapons
+    * Taunt kills work on teammates
+    * On-Hit effects from weapons trigger on teammates
+* **Halloween spells**
+    * The Fireball spell burns and knocks back teammates
+    * The Bats spell stuns, bleeds and launches teammates
+    * The Ball O' Lightning zaps teammates
+    * A teammate's pumpkin bombs detonate when shot instead of vanishing
 * **Scout**
     * Shortstop
-        * Fixed secondary attack not shoving teammates
+        * Secondary attack shoves teammates
+    * Flying Guillotine
+        * Cleavers damage teammates
 * **Soldier**
-    * Buff Banner
-        * No longer applies buffs to teammates
+    * Righteous Bison
+        * Energy rings hit teammates instead of passing through them
 * **Pyro**
     * Flame Thrower
-        * Fixed not being able to set teammates on fire
-        * Fixed not being able to airblast teammates
-    * Manmelter
-        * Secondary attack no longer extinguishes teammates
+        * Teammates can be set on fire
+        * Projectiles fired by your own team can be reflected
+    * Dragon's Fury
+        * Fireballs damage teammates on a direct hit
     * Scorch Shot
-        * Fixed flare projectiles not applying knockback to teammates
-    * Gas Passer
-        * Fixed gas clouds not coating teammates
+        * Flare projectiles apply knockback to teammates
 * **Demoman**
     * Grenade Launcher
-        * Fixed grenades rarely bouncing off your team's buildings
+        * Grenades explode on your team's buildings instead of bouncing off them
     * Stickybomb Launcher
-        * Fixed not being able to knock around your team's stickybombs
+        * Your team's stickybombs can be knocked around
     * Scottish Resistance/Quickiebomb Launcher
-        * Fixed not being able to detonate your team's stickybombs
+        * Your team's stickybombs can be detonated
 * **Heavy**
-    * No special fixes required
+    * Huo-Long Heater
+        * The ring of fire burns teammates
 * **Engineer**
     * Buildings
-        * Sentry Guns now shoot all players except the builder
-        * Dispensers and Teleporters now only work for the builder
-        * Buildings are now solid to teammates
-    * Wrench
-        * Now damages your team's buildings instead of repairing them
-* **Medic**
-    * Crusader's Crossbow
-        * Arrows no longer heal teammates
-    * Medi Gun
-        * Cannot heal teammates anymore (configurable with `sm_friendlyfire_medic_allow_healing`)
+        * Your team's buildings can be damaged, your own are still off limits
+    * Short Circuit
+        * The energy orb zaps teammates and destroys their projectiles
+    * Pomson 6000
+        * Energy rings hit teammates instead of passing through them
 * **Sniper**
     * Sniper Rifle
-        * Fixed being unable to deal damage to teammates
+        * Rifles deal damage to teammates
+    * Huntsman
+        * Arrows hit teammates instead of passing through them
 * **Spy**
-    * Can no longer see cloaked teammates
     * Knife
-        * Fixed the "backstab ready" animation not playing on teammates
-    * Sapper
-        * Fixed not being able to sap friendly buildings
+        * The "backstab ready" animation plays on teammates
 
-## Found a bug?
+## Free-for-All Mode
 
-Please [open an issue](https://github.com/Mikusch/friendlyfire/issues) with detailed steps on how to reproduce your bug.
+`sm_friendlyfire_teammates_are_enemies` is a separate opt-in that goes considerably further, and it stops teammates from counting as teammates at all.
+Interactions that were never meant for your own team start working on them, and every friendly interaction stops.
+It effectively turns the game into a free-for-all.
+
+> [!NOTE]
+> The following changes only apply while `sm_friendlyfire_teammates_are_enemies` is `1`.
+
+### Changes
+
+* **General**
+    * Jars coat teammates instead of extinguishing them
+    * Radius buffs like the Buff Banner no longer affect teammates
+    * Self-cast spells no longer buff teammates
+    * Grappling Hooks latch onto teammates
+    * Teammates collide with eachother
+    * Teammates no longer glow after spawning
+* **Pyro**
+    * Airblast pushes teammates around instead of extinguishing them
+    * Gas Passer clouds coat teammates
+    * Manmelter secondary attack no longer extinguishes teammates
+    * Thermal Thruster launches and landings knock teammates around instead of extinguishing them
+* **Soldier**
+    * Mantreads can stomp teammates
+* **Engineer**
+    * Sentry Guns shoot all players except the builder, and can be wrangled onto teammates
+    * Dispensers and Teleporters only work for the builder
+    * Buildings are solid to teammates
+    * The Wrench damages your team's buildings instead of repairing them
+* **Medic**
+    * The Medi Gun cannot heal teammates
+    * Crusader's Crossbow arrows no longer heal teammates
+* **Sniper**
+    * The Sydney Sleeper no longer extinguishes burning teammates
+* **Spy**
+    * Cloaked teammates are invisible to you
+    * Sappers can be placed on your team's buildings

@@ -1,20 +1,3 @@
-/**
- * Copyright (C) 2022  Mikusch
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 #pragma newdecls required
 #pragma semicolon 1
 
@@ -23,14 +6,12 @@
 #include <sdkhooks>
 #include <dhooks>
 #include <tf2_stocks>
-#include <tf2utils>
 #include <pluginstatemanager>
 
-#define PLUGIN_VERSION	"1.4.1"
+#define PLUGIN_VERSION	"2.0.0"
 
 #define TICK_NEVER_THINK	-1.0
 #define TF_CUSTOM_NONE		0
-#define TF_GAMETYPE_ARENA	4
 
 enum
 {
@@ -71,6 +52,8 @@ enum
 	TF_PROJECTILE_GRAPPLINGHOOK,
 	TF_PROJECTILE_SENTRY_ROCKET,
 	TF_PROJECTILE_BREAD_MONSTER,
+	TF_PROJECTILE_JAR_GAS,
+	TF_PROJECTILE_FLAME_BALL,
 
 	TF_NUM_PROJECTILES
 };
@@ -79,21 +62,21 @@ bool g_isMapRunning;
 
 ConVar mp_friendlyfire;
 
-ConVar sm_friendlyfire_medic_allow_healing;
+ConVar sm_friendlyfire_teammates_are_enemies;
 
 int g_offset_CTakeDamageInfo_m_hAttacker;
 
 #include "friendlyfire/dhooks.sp"
-#include "friendlyfire/entity.sp"
 #include "friendlyfire/sdkcalls.sp"
 #include "friendlyfire/sdkhooks.sp"
+#include "friendlyfire/spoof.sp"
 #include "friendlyfire/util.sp"
 
 public Plugin myinfo =
 {
-	name = "[TF2] Fixed Friendly Fire",
+	name = "[TF2] Friendly Fire Fix",
 	author = "Mikusch",
-	description = "Fixes mp_friendlyfire in Team Fortress 2.",
+	description = "Fixes broken interactions during friendly fire in Team Fortress 2.",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Mikusch/friendlyfire"
 }
@@ -108,15 +91,14 @@ public void OnPluginStart()
 
 	g_offset_CTakeDamageInfo_m_hAttacker = GameConfGetOffsetOrElseThrow(gamedata, "CTakeDamageInfo::m_hAttacker");
 
-	PSM_Init("sm_friendlyfire", gamedata);
+	PSM_Init("sm_friendlyfire_enabled", gamedata);
 	PSM_AddPluginStateChangedHook(OnPluginStateChanged);
 	PSM_AddShouldEnableCallback(ShouldEnable);
 	
-	Entity.Init();
-	
+	Spoof_Init();
+
 	ConVars_Init();
 	DHooks_Init();
-	SDKHooks_Init();
 	
 	SDKCalls_Init(gamedata);
 	
@@ -157,43 +139,39 @@ public void OnEntityDestroyed(int entity)
 	if (!PSM_IsEnabled())
 		return;
 	
+	Spoof_OnEntityDestroyed(entity);
+
 	PSM_SDKUnhook(entity);
-	
-	if (Entity.IsEntityTracked(entity))
-	{
-		Entity obj = Entity(entity);
-		
-		// If an entity is removed while it still has a team history, we need to reset its owner's team.
-		// This can happen if the entity is deleted in-between pre-hook and post-hook callbacks e.g. from a projectile that collided with worldspawn.
-		for (int i = 0; i < obj.TeamCount; i++)
-		{
-			int owner = FindParentOwnerEntity(entity);
-			if (owner != -1)
-				Entity(owner).ResetTeam();
-		}
-		
-		obj.Destroy();
-	}
 }
 
 public Action TF2_OnPlayerTeleport(int client, int teleporter, bool& result)
 {
 	if (!PSM_IsEnabled())
 		return Plugin_Continue;
-	
-	result = IsObjectFriendly(teleporter, client);
+
+	if (!AreTeammatesEnemies())
+		return Plugin_Continue;
+
+	// Spies can use any Teleporter, see CObjectTeleporter::PlayerCanBeTeleported.
+	if (TF2_GetPlayerClass(client) == TFClass_Spy)
+		return Plugin_Continue;
+
+	if (IsObjectFriendly(teleporter, client))
+		return Plugin_Continue;
+
+	result = false;
 	return Plugin_Handled;
 }
 
 static void ConVars_Init()
 {
-	CreateConVar("sm_friendlyfire", "1", "Enable the plugin?");
+	CreateConVar("sm_friendlyfire_enabled", "1", "Enable the plugin?");
 	CreateConVar("sm_friendlyfire_version", PLUGIN_VERSION, "Plugin version.", FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-	CreateConVar("sm_friendlyfire_avoidteammates", "0", "Controls how teammates interact when colliding.\n  0: Teammates block each other\n  1: Teammates pass through each other, but push each other away", _, true, 0.0, true, 1.0);
-	sm_friendlyfire_medic_allow_healing = CreateConVar("sm_friendlyfire_medic_allow_healing", "0", "Whether Medics are allowed to heal teammates during friendly fire.", _, true, 0.0, true, 1.0);
-	
-	PSM_AddSyncedConVar("tf_avoidteammates", "sm_friendlyfire_avoidteammates");
-	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0");
+	sm_friendlyfire_teammates_are_enemies = CreateConVar("sm_friendlyfire_teammates_are_enemies", "0", "When set, your teammates act as enemies and all players are valid targets.", _, true, 0.0, true, 1.0);
+
+	PSM_AddEnforcedConVar("tf_avoidteammates", "0", AreTeammatesEnemies, sm_friendlyfire_teammates_are_enemies);
+	PSM_AddEnforcedConVar("tf_spawn_glows_duration", "0", AreTeammatesEnemies, sm_friendlyfire_teammates_are_enemies);
+	PSM_AddConVarChangeHook(sm_friendlyfire_teammates_are_enemies, OnTeammatesAreEnemiesChanged);
 
 	mp_friendlyfire = FindConVar("mp_friendlyfire");
 	mp_friendlyfire.AddChangeHook(OnFriendlyFireChanged);
@@ -201,23 +179,28 @@ static void ConVars_Init()
 
 static void OnPluginStateChanged(bool enable)
 {
-	int entity = -1;
-	while ((entity = FindEntityByClassname(entity, "*")) != -1)
+	if (!g_isMapRunning)
+		return;
+
+	if (enable)
 	{
-		if (enable)
+		int entity = -1;
+		while ((entity = FindEntityByClassname(entity, "*")) != -1)
 		{
 			char classname[64];
 			if (!GetEntityClassname(entity, classname, sizeof(classname)))
 				continue;
-			
+
 			OnEntityCreated(entity, classname);
 		}
-		else
-		{
-			if (Entity.IsEntityTracked(entity))
-				Entity(entity).Destroy();
-		}
 	}
+	else
+	{
+		DHooks_Clear();
+		Spoof_Clear();
+	}
+
+	SetAllObjectsSolidToPlayers(enable && AreTeammatesEnemies());
 }
 
 static bool ShouldEnable()
@@ -225,7 +208,20 @@ static bool ShouldEnable()
 	return mp_friendlyfire.BoolValue;
 }
 
+bool AreTeammatesEnemies()
+{
+	return sm_friendlyfire_teammates_are_enemies.BoolValue;
+}
+
 static void OnFriendlyFireChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	PSM_TogglePluginState();
+}
+
+static void OnTeammatesAreEnemiesChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	if (!PSM_IsEnabled() || !g_isMapRunning)
+		return;
+
+	SetAllObjectsSolidToPlayers(AreTeammatesEnemies());
 }

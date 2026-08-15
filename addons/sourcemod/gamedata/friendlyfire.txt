@@ -9,55 +9,63 @@
 				// string: "firing in: %.2f sec", first call
 				"library"	"server"
 				"linux" 	"@_ZN11CBaseEntity12GetNextThinkEPKc"
+				"linux64"	"@_ZN11CBaseEntity12GetNextThinkEPKc"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x56\x8B\xF1\x85\xC0\x75\x2A\x8B\x86\xD0\x00\x00\x00\x89\x45\x08"
+				"windows64"	"\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\x48\x85\xD2\x75\x2A\x8B\x81\x38\x01\x00\x00\x83\xF8\xFF\x74"
 			}
 			"CBaseEntity::PhysicsDispatchThink"
 			{
 				// string: "CBaseEntity::PhysicsDispatchThink"
 				"library"	"server"
 				"linux" 	"@_ZN11CBaseEntity20PhysicsDispatchThinkEMS_FvvE"
+				"linux64"	"@_ZN11CBaseEntity20PhysicsDispatchThinkEMS_FvvE"
 				"windows"	"\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x83\xEC\x08\x83\x78\x30\x00\x53\x57"
-			}
-			"CWeaponMedigun::AllowedToHealTarget"
-			{
-				"library"	"server"
-				"linux" 	"@_ZN14CWeaponMedigun19AllowedToHealTargetEP11CBaseEntity"
-				"windows"	"\x55\x8B\xEC\x53\x8B\xD9\x56\x57\x8B\x93\x10\x02\x00\x00\x85\xD2\x0F\x84\x2A\x2A\x2A\x2A\xB9\xFF\x1F\x00\x00\x83\xFA\xFF\x74\x2A\x0F\xB7\xCA\xA1\x2A\x2A\x2A\x2A\xC1\xE1\x04\x8D\x78\x04\x03\xF9\x0F\x84\x2A\x2A\x2A\x2A\xC1\xEA\x10\x39\x57\x04\x0F\x85\x2A\x2A\x2A\x2A\x8B\x3F\x85\xFF\x0F\x84\x2A\x2A\x2A\x2A\x8B\x07\x8B\xCF\x8B\x80\x4C\x01\x00\x00\xFF\xD0\x84\xC0\x0F\x84\x2A\x2A\x2A\x2A\x8B\x75\x08\x85\xF6\x74\x2A"
+				"windows64"	"\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x60\x48\x8B\x05\x2A\x2A\x2A\x2A\x48\x8D\x35"
 			}
 			"CBaseEntity::InSameTeam"
 			{
 				// string: "lowV_debrischunks", long single block, go down a few blocks, first call
 				"library"	"server"
 				"linux"		"@_ZNK11CBaseEntity10InSameTeamEPKS_"
+				"linux64"	"@_ZNK11CBaseEntity10InSameTeamEPKS_"
 				"windows"	"\x55\x8B\xEC\x8B\x45\x08\x57\x8B\xF9\x85\xC0"
+				"windows64"	"\x40\x57\x48\x83\xEC\x20\x48\x8B\xF9\x48\x85\xD2\x75"
 			}
 			"CTFPlayer::ApplyGenericPushbackImpulse"
 			{
 				// string: "airblast_vulnerability_multiplier" and "airblast_vertical_vulnerability_multiplier", no others
 				"library"	"server"
 				"linux"		"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
+				"linux64"	"@_ZN9CTFPlayer27ApplyGenericPushbackImpulseERK6VectorPS_"
 				"windows"	"\x55\x8B\xEC\x83\xEC\x0C\x53\x57\x8B\xF9\x8D\x8F\xE8\x1A\x00\x00"
+				"windows64"	"\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x50\x48\x8B\xF9\x49\x8B\xD8"
 			}
 			"CTFPlayer::CanAttack"
 			{
 				// string: "no_attack"
 				"library"	"server"
 				"linux"		"@_ZN9CTFPlayer9CanAttackEi"
+				"linux64"	"@_ZN9CTFPlayer9CanAttackEi"
 				"windows"	"\x55\x8B\xEC\x53\x56\x8B\x35\x2A\x2A\x2A\x2A\x57\x8B\xF9\x80\xBF\xC0\x25\x00\x00\x00"
+				"windows64"	"\x48\x89\x5C\x24\x10\x48\x89\x6C\x24\x18\x56\x57\x41\x56\x48\x83\xEC\x30\x80\xB9\xE4\x2A\x00\x00\x00"
 			}
 			"CTFPlayerShared::StunPlayer"
 			{
 				// string: "player_stunned"
 				"library"	"server"
 				"linux"		"@_ZN15CTFPlayerShared10StunPlayerEffiP9CTFPlayer"
-				"windows"	"\x55\x8B\xEC\x83\xEC\x24\x57\x8B\xF9\x8B\x87\xE0\x04\x00\x00"
+				"linux64"	"@_ZN15CTFPlayerShared10StunPlayerEffiP9CTFPlayer"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x20\x57\x8B\xF9\x8B\x87\x2A\x2A\x2A\x2A\x40"
+				"windows64"	"\x40\x57\x41\x57\x48\x81\xEC\x88\x00\x00\x00"
 			}
 			"GetGlobalTeam"
 			{
 				// string: "CSquadSpawner: %3.2f: <<<< Spawning Squad >>>>" with a dev message, 1 block down
 				"library"	"server"
 				"linux"		"@_Z13GetGlobalTeami"
+				"linux64"	"@_Z13GetGlobalTeami"
 				"windows"	"\x55\x8B\xEC\x8B\x4D\x08\x85\xC9\x78\x2A\x3B\x0D\x2A\x2A\x2A\x2A\x7D\x2A\xA1\x2A\x2A\x2A\x2A\x8B\x04\x88\x5D\xC3"
+				"windows64"	"\x85\xC9\x78\x2A\x3B\x0D\x2A\x2A\x2A\x2A\x7D\x2A\x48\x8B\x05"
 			}
 			"CTFTeam::AddObject"
 			{
@@ -65,7 +73,9 @@
 				// Go up around 6 blocks, very small block, 1 call, it only is connected to 2 functions
 				"library"	"server"
 				"linux"		"@_ZN7CTFTeam9AddObjectEP11CBaseObject"
+				"linux64"	"@_ZN7CTFTeam9AddObjectEP11CBaseObject"
 				"windows"	"\x55\x8B\xEC\x56\x8B\x75\x08\x57\x8B\xF9\x85\xF6\x74\x2A\x8B\x06\x8B\xCE\xFF\x50\x08\x8B\x00\xEB\x2A\x83\xC8\xFF\x8D\x4D\x08"
+				"windows64"	"\x40\x57\x41\x54\x48\x83\xEC\x38\x48\x89\x5C\x24\x58"
 			}
 			"CTFTeam::RemoveObject"
 			{
@@ -73,7 +83,9 @@
 				// Follow the xref, 2nd to last block, follow xref to 2nd function (block has 2 calls)
 				"library"	"server"
 				"linux"		"@_ZN7CTFTeam12RemoveObjectEP11CBaseObject"
+				"linux64"	"@_ZN7CTFTeam12RemoveObjectEP11CBaseObject"
 				"windows"	"\x55\x8B\xEC\x56\x8B\xF1\x83\xBE\xF0\x03\x00\x00\x00"
+				"windows64"	"\x40\x53\x56\x48\x83\xEC\x28\x83\xB9\x20\x05\x00\x00\x00"
 			}
 		}
 		"Offsets"
@@ -81,91 +93,137 @@
 			"CTakeDamageInfo::m_hAttacker"
 			{
 				"linux"		"40"
+				"linux64"	"40"
 				"windows"	"40"
+				"windows64"	"40"
+			}
+			"CBaseProjectile::GetProjectileType"
+			{
+				"library"	"server"
+				"linux"		"229"
+				"linux64"	"229"
+				"windows"	"228"
+				"windows64"	"228"
 			}
 			"CBaseProjectile::CanCollideWithTeammates"
 			{
 				"library"	"server"
 				"linux"		"231"
+				"linux64"	"231"
 				"windows"	"230"
+				"windows64"	"230"
 			}
 			"CTFWeaponBase::DeflectProjectiles"
 			{
 				"library"	"server"
 				"linux"		"429"
+				"linux64"	"429"
 				"windows"	"422"
+				"windows64"	"422"
+			}
+			"CTFWeaponBase::GetWeaponID"
+			{
+				"library"	"server"
+				"linux"		"388"
+				"linux64"	"388"
+				"windows"	"382"
+				"windows64"	"382"
 			}
 			"CTFSniperRifle::GetCustomDamageType"
 			{
 				"library"	"server"
 				"linux"		"389"
+				"linux64"	"389"
 				"windows"	"383"
+				"windows64"	"383"
 			}
 			"CTFSniperRifle::GetPenetrateType"
 			{
 				"library"	"server"
 				"linux"		"410"
+				"linux64"	"410"
 				"windows"	"403"
+				"windows64"	"403"
 			}
 			"CBaseGrenade::Explode"
 			{
 				"library"	"server"
 				"linux"		"237"
+				"linux64"	"237"
 				"windows"	"236"
+				"windows64"	"236"
 			}
 			"CTFBaseRocket::Explode"
 			{
 				"library"	"server"
 				"linux"		"241"
+				"linux64"	"241"
 				"windows"	"240"
+				"windows64"	"240"
+			}
+			"CTFProjectile_SpellFireball::Explode"
+			{
+				"library"	"server"
+				"linux"		"251"
+				"linux64"	"251"
+				"windows"	"248"
+				"windows64"	"248"
 			}
 			"CTeam::AddPlayer"
 			{
 				"library"	"server"
 				"linux"		"210"
+				"linux64"	"210"
 				"windows"	"209"
+				"windows64"	"209"
 			}
 			"CTeam::RemovePlayer"
 			{
 				"library"	"server"
 				"linux"		"211"
+				"linux64"	"211"
 				"windows"	"210"
-			}
-			"CBaseEntity::ChangeTeam"
-			{
-				"library"	"server"
-				"linux"		"98"
-				"windows"	"97"
+				"windows64"	"210"
 			}
 			"CBasePlayer::Event_Killed"
 			{
 				"library"	"server"
 				"linux"		"69"
+				"linux64"	"69"
 				"windows"	"68"
+				"windows64"	"68"
 			}
 			"CTFWeaponBaseMelee::Smack"
 			{
 				"library"	"server"
 				"linux"		"480"
+				"linux64"	"480"
 				"windows"	"473"
+				"windows64"	"473"
 			}
 			"CTFWeaponBase::SecondaryAttack"
 			{
 				"library"	"server"
 				"linux"		"294"
+				"linux64"	"294"
 				"windows"	"288"
+				"windows64"	"288"
 			}
 			"CBaseEntity::Deflected"
 			{
 				"library"	"server"
 				"linux"		"161"
+				"linux64"	"161"
 				"windows"	"160"
+				"windows64"	"160"
 			}
 			"CBaseEntity::VPhysicsUpdate"
 			{
 				"library"	"server"
 				"linux"		"165"
+				"linux64"	"165"
 				"windows"	"164"
+				"windows64"	"164"
 			}
 		}
 		"Functions"
@@ -184,20 +242,6 @@
 					}
 				}
 			}
-			"CWeaponMedigun::AllowedToHealTarget"
-			{
-				"signature"	"CWeaponMedigun::AllowedToHealTarget"
-				"callconv"	"thiscall"
-				"return"	"bool"
-				"this"		"entity"
-				"arguments"
-				{
-					"pTarget"
-					{
-						"type"	"cbaseentity"
-					}
-				}
-			}
 			"CBaseGrenade::Explode"
 			{
 				"offset"	"CBaseGrenade::Explode"
@@ -211,6 +255,20 @@
 						"type"	"int"
 					}
 					"bitsDamageType"
+					{
+						"type"	"int"
+					}
+				}
+			}
+			"CTFProjectile_SpellFireball::Explode"
+			{
+				"offset"	"CTFProjectile_SpellFireball::Explode"
+				"hooktype"	"entity"
+				"return"	"void"
+				"this"		"entity"
+				"arguments"
+				{
+					"pTrace"
 					{
 						"type"	"int"
 					}
