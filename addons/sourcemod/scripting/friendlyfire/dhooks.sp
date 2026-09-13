@@ -710,7 +710,7 @@ static MRESReturn DHookCallback_CTFPlayer_CanAttack_Pre(int player, DHookReturn 
 	return MRES_Ignored;
 }
 
-static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Pre(Address shared, DHookParam params)
+static MRESReturn DHookCallback_CTFPlayerShared_StunPlayer_Pre(Address playerShared, DHookParam params)
 {
 	Spoof_BeginFrame();
 	
